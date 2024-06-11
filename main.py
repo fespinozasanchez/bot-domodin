@@ -1,3 +1,4 @@
+fespinoza:~# cat bot_c/main.py
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
@@ -8,7 +9,7 @@ from discord import FFmpegPCMAudio
 import yt_dlp as youtube_dl
 import glob
 from mutagen.mp3 import MP3
-
+#from openai import OpenAI
 
 handler = logging.FileHandler(
     filename='logs/discord.log', encoding='utf-8', mode='w')
@@ -16,12 +17,16 @@ handler = logging.FileHandler(
 
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
+tokengpt = os.getenv('GPT_TOKEN')
 intents = discord.Intents.default()
 intents.message_content = True
 
 bot = commands.Bot(command_prefix='!',
                    description="this is a bot the Caro", intents=intents)
 
+#client = OpenAI(
+#    api_key=tokengpt,
+#)
 
 # Ping-pong
 @bot.command()
@@ -38,6 +43,20 @@ async def best(ctx):
 async def duro(ctx):
     await ctx.send("Duro, duro, duro, duro, duro, duro, duro!!!!")
 
+#@bot.command()
+#async def gpt(ctx, *, prompt):
+#    """Genera una respuesta utilizando OpenAI GPT-4"""
+#    try:
+#        completion = client.chat.completions.create(
+#            messages=[
+#                {"role": "system", "content": "Eres un asistente útil que responde en español a menos que se indique lo contrario."},
+#                {"role": "user", "content": prompt}
+#            ],
+#            model="gpt-3.5-turbo",
+#        )
+#        await ctx.send(completion.choices[0].message.content.strip())
+#    except Exception as e:
+#        await ctx.send(f"Error al generar la respuesta: {e}")
 
 @bot.command()
 async def mide(ctx):
@@ -114,6 +133,15 @@ async def aram(ctx):
         await ctx.send('@everyone ¡Hora de jugar ARAM! 🎮')
     else:
         await ctx.send('Hoy no se juega!')
+
+
+@bot.command()
+async def age(ctx):
+    result = ra.randint(0,1)
+    if result == 1:
+        await ctx.send('@everyone ¡Hora de jugar su AGE 🥵🥵🥵')
+    else:
+        await ctx.send('En otro momento equisde')
 
 
 @bot.command()
