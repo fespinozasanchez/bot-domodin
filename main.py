@@ -1,4 +1,4 @@
-fespinoza:~# cat bot_c/main.py
+#fespinoza:~# cat bot_c/main.py
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
@@ -9,15 +9,20 @@ from discord import FFmpegPCMAudio
 import yt_dlp as youtube_dl
 import glob
 from mutagen.mp3 import MP3
+from  a_queue.audio_queue import AudioQueue
 #from openai import OpenAI
 
+#logs/discord.log previously 
 handler = logging.FileHandler(
-    filename='logs/discord.log', encoding='utf-8', mode='w')
+    filename='discord.log', encoding='utf-8', mode='w')
 
 
 load_dotenv()
-token = os.getenv('DISCORD_TOKEN')
-tokengpt = os.getenv('GPT_TOKEN')
+#token = os.getenv('DISCORD_TOKEN')
+#tokengpt = os.getenv('GPT_TOKEN')
+token='MTAxNTM3ODQ1MjIyNTk5NDc5Mw.GZ-T31.Qkisd2yBeOZjEqVkhnSXSNe1pq5waHDuCJ6hL8'
+tokengpt='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'
+
 intents = discord.Intents.default()
 intents.message_content = True
 
@@ -27,6 +32,8 @@ bot = commands.Bot(command_prefix='!',
 #client = OpenAI(
 #    api_key=tokengpt,
 #)
+#audio queue
+audio_queue = AudioQueue()
 
 # Ping-pong
 @bot.command()
@@ -168,6 +175,7 @@ async def leave(ctx):
     await ctx.voice_client.disconnect()
 
 
+
 @bot.command()
 async def play(ctx, filename: str, repeat: int = 1):
     if ctx.voice_client is None:
@@ -193,18 +201,42 @@ async def play(ctx, filename: str, repeat: int = 1):
         await ctx.send("El archivo especificado no existe.")
         return
 
+
+    for _ in range(repeat):
+        audio_queue.add(file_path[0])
+
+    await ctx.send(f"Cola después de agregar {filename} repetido {repeat} veces: {audio_queue.view_queue()}")
+    await ctx.send('.')
+    # Función para reproducir el audio repetidamente
+    def play_next(_):
+        if audio_queue.view_queue() and bot.is_playing_audio:
+            next_audio = audio_queue.get_next_audio()
+            ctx.send(f"Reproduciendo siguiente audio: {next_audio}")
+            vc.play(FFmpegPCMAudio(next_audio), after=play_next)
     vc = ctx.voice_client
     bot.is_playing_audio = True
 
-    # Función para reproducir el audio repetidamente
-    def play_next(repeat_count):
-        if repeat_count > 0 and bot.is_playing_audio:
-            vc.play(FFmpegPCMAudio(file_path[0]), after=lambda e: play_next(repeat_count - 1))
-
     if not vc.is_playing():
-        play_next(repeat)
+        next_audio = audio_queue.get_next_audio()
+        await ctx.send(f"Reproduciendo audio inicial: {next_audio}")
+        vc.play(FFmpegPCMAudio(next_audio), after=play_next)
     else:
         await ctx.send("Ya estoy reproduciendo audio.")
+
+@bot.command()
+async def add(ctx, filename: str):
+     # Definir el directorio donde se encuentran los archivos de audio
+    directory = '/usr/home/users/fespinoza/bot_c/audio'
+    # Buscar archivos que coincidan con el nombre del archivo proporcionado (sin extensión)
+    file_path = glob.glob(os.path.join(directory, f"{filename}.*"))
+
+    if not file_path:
+        await ctx.send("El archivo especificado no existe.")
+        return
+    # Añadir el nombre del archivo a la cola
+    audio_queue.add(filename)
+    await ctx.send(f"Cola después de agregar '{filename}': {audio_queue.view_queue()}")
+
 
 
 @bot.command()
@@ -216,9 +248,37 @@ async def stop(ctx):
     if ctx.voice_client.is_playing():
         bot.is_playing_audio = False
         ctx.voice_client.stop()
-        await ctx.send("Reproducción detenida.")
+        await ctx.send(f"Reproducción detenida. Cola actual: {audio_queue.view_queue()}")
     else:
         await ctx.send("No estoy reproduciendo ningún audio.")
+
+
+@bot.command()
+async def q(ctx):
+    if audio_queue.view_queue():
+        queue_list = audio_queue.view_queue()
+        queue_str = '\n'.join([f"{idx + 1}. {os.path.basename(audio)}" for idx, audio in enumerate(queue_list)])
+        await ctx.send(f"Cola de Reproducción:\n{queue_str}")
+        await ctx.send("Cola de Reproducción:", queue_list)
+    else:
+        await ctx.send("La cola está vacía.")
+
+@bot.command()
+async def skip(ctx):
+    """Salta el audio actualmente en reproducción y reproduce el siguiente en la cola."""
+    if ctx.voice_client.is_playing():
+        ctx.voice_client.stop()  
+        await ctx.send("Audio saltado. Cola actual:", audio_queue.view_queue())
+    else:
+        await ctx.send("No estoy reproduciendo ningún audio.")
+
+@bot.command()
+async def remove(ctx, index: int):
+    try:
+        audio_queue.remove_audio(index - 1)  
+        await ctx.sendt(f"Audio en la posición {index} eliminado. Cola actual:", audio_queue.view_queue())
+    except IndexError:
+        await ctx.send("Índice fuera de rango al intentar eliminar audio. Cola actual:", audio_queue.view_queue())
 
 
 @bot.command()
@@ -278,6 +338,9 @@ async def hello(ctx):
 async def diuca(ctx):
     await ctx.send("ESTOY CANSADO JEFE\nSaquenme de acªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªª")
     await ctx.send("https://pillan.inf.uct.cl/~fespinoza/file.jpg")
+
+
+
 
 @bot.event
 async def on_ready():
