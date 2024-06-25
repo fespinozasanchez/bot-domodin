@@ -189,6 +189,12 @@ async def stop(ctx):
     else:
         await ctx.send("No estoy reproduciendo ningún audio.")
 
+
+@bot.command()
+async def clean(ctx):
+    audio_queue.clean_queue()
+    await ctx.send("Me limpie la colita 🥰")
+
 @bot.command()
 async def q(ctx):
     if audio_queue.view_queue():
