@@ -175,17 +175,6 @@ async def play(ctx, filename: str, repeat: int = 1):
     else:
         await ctx.send("Ya estoy reproduciendo audio.")
 
-@bot.command()
-async def add(ctx, filename: str):
-    directory = '/usr/home/users/fespinoza/bot_c/audio'
-    file_path = glob.glob(os.path.join(directory, f"{filename}.*"))
-
-    if not file_path:
-        await ctx.send("El archivo especificado no existe.")
-        return
-
-    audio_queue.add(filename)
-    await ctx.send(f"Cola después de agregar '{filename}': {audio_queue.view_queue()}")
 
 @bot.command()
 async def stop(ctx):
