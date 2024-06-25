@@ -20,8 +20,8 @@ handler = logging.FileHandler(
 load_dotenv()
 #token = os.getenv('DISCORD_TOKEN')
 #tokengpt = os.getenv('GPT_TOKEN')
-token='MTAxNTM3ODQ1MjIyNTk5NDc5Mw.GZ-T31.Qkisd2yBeOZjEqVkhnSXSNe1pq5waHDuCJ6hL8'
-tokengpt='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'
+token=':D'
+tokengpt=':0'
 
 intents = discord.Intents.default()
 intents.message_content = True
