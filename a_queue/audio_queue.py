@@ -21,3 +21,6 @@ class AudioQueue:
         return None
     def view_queue(self):
         return self.queue
+
+    def clean_queue(self):
+        self.queue.clear()
