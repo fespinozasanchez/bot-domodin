@@ -158,7 +158,7 @@ async def play(ctx, filename: str, repeat: int = 1):
     for _ in range(repeat):
         audio_queue.add(file_path[0])
 
-    await ctx.send(f"Cola después de agregar {filename} repetido {repeat} veces: {audio_queue.view_queue()}")
+    await ctx.send(f"Se ha agregado a la cola  {filename} repetido {repeat} veces")
 
     def play_next(_):
         if audio_queue.view_queue() and bot.is_playing_audio:
