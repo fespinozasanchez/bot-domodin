@@ -161,7 +161,7 @@ async def play(ctx, filename: str, repeat: int = 1):
     for _ in range(repeat):
         audio_queue.add(file_path[0])
 
-    await ctx.send(f"Se ha agregado a la cola  {filename} repetido {repeat} veces")
+    await ctx.send(f"Lo meti en mi cola  {filename} repetido {repeat} veces")
 
     def play_next(_):
         if audio_queue.view_queue() and bot.is_playing_audio:
@@ -198,11 +198,11 @@ async def q(ctx):
     if audio_queue.view_queue():
         queue_list = audio_queue.view_queue()
         queue_str = '\n'.join([f"{idx + 1}. {os.path.basename(audio)}" for idx, audio in enumerate(queue_list)])
-        embed = discord.Embed(title="Cola de Reproducción", color=discord.Color.blurple())
+        embed = discord.Embed(title="Mi Cola ", color=discord.Color.blurple())
         embed.description = queue_str
         await ctx.send(embed=embed)
     else:
-        await ctx.send("La cola está vacía.")
+        await ctx.send("No tengo nada en mi  cola 😔.")
 
 @bot.command()
 async def skip(ctx):
@@ -297,7 +297,8 @@ async def check_reminders():
         reminder_time, message, channel_id = reminder
         if now >= reminder_time:
             channel = bot.get_channel(channel_id)
-            await channel.send(f"@everyone son las {reminder_time.strftime('%H:%M')} hora, es hora {message}")
+            for i in range(10):
+                await channel.send(f"@everyone son las {reminder_time.strftime('%H:%M')} hora, es hora {message}")
             reminders.remove(reminder)
 
 @bot.event
