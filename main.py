@@ -1,4 +1,3 @@
-#fespinoza:~# cat bot_c/main.py
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
@@ -9,19 +8,13 @@ from discord import FFmpegPCMAudio
 import yt_dlp as youtube_dl
 import glob
 from mutagen.mp3 import MP3
-from  a_queue.audio_queue import AudioQueue
-#from openai import OpenAI
+from a_queue.audio_queue import AudioQueue
 
-#logs/discord.log previously 
 handler = logging.FileHandler(
     filename='discord.log', encoding='utf-8', mode='w')
 
-
 load_dotenv()
-#token = os.getenv('DISCORD_TOKEN')
-#tokengpt = os.getenv('GPT_TOKEN')
-token=':D'
-tokengpt=':0'
+token = os.getenv('DISCORD_TOKEN')
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -29,10 +22,6 @@ intents.message_content = True
 bot = commands.Bot(command_prefix='!',
                    description="this is a bot the Caro", intents=intents)
 
-#client = OpenAI(
-#    api_key=tokengpt,
-#)
-#audio queue
 audio_queue = AudioQueue()
 
 # Ping-pong
@@ -40,36 +29,18 @@ audio_queue = AudioQueue()
 async def ping(ctx):
     await ctx.send('Un ingeniero duro programa todos los dias, si no no eres nadie.')
 
-
 @bot.command()
 async def best(ctx):
     await ctx.send('Mejor que un programador?, pues un ingeniero civil electrico, esos wns si son duro, sin ellos no habria nada de electricidad y ustedes saben los computadores viven de eso, 5vols 0 vols, 1 y 0 bits')
-
 
 @bot.command()
 async def duro(ctx):
     await ctx.send("Duro, duro, duro, duro, duro, duro, duro!!!!")
 
-#@bot.command()
-#async def gpt(ctx, *, prompt):
-#    """Genera una respuesta utilizando OpenAI GPT-4"""
-#    try:
-#        completion = client.chat.completions.create(
-#            messages=[
-#                {"role": "system", "content": "Eres un asistente útil que responde en español a menos que se indique lo contrario."},
-#                {"role": "user", "content": prompt}
-#            ],
-#            model="gpt-3.5-turbo",
-#        )
-#        await ctx.send(completion.choices[0].message.content.strip())
-#    except Exception as e:
-#        await ctx.send(f"Error al generar la respuesta: {e}")
-
 @bot.command()
 async def mide(ctx):
     cm = ra.randint(1, 30)
     await ctx.send(f"Te mide: {cm} cm de puro placer bb 🍌")
-
 
 @bot.command()
 async def ref(ctx):
@@ -84,7 +55,6 @@ async def ref(ctx):
     embed.set_footer(text="Information requested by: {}".format(
         ctx.author.display_name))
     await ctx.send(embed=embed)
-
 
 @bot.command()
 async def info(ctx):
@@ -115,7 +85,6 @@ async def info(ctx):
     embed.set_thumbnail(url="https://www.inf.uct.cl/wp-content/uploads/2018/10/Luis-Caro-577x1024.jpg")
     await ctx.send(embed=embed)
 
-# Deja de webear
 @bot.command()
 async def interfaz(ctx):
     embed = discord.Embed()
@@ -132,7 +101,6 @@ async def pasa(ctx, user: discord.User):
     else:
         await ctx.send(f"{user.mention} Lamentablemente!, repruebas el ramo malo ql sin opción a repetir. 😢")
 
-
 @bot.command()
 async def aram(ctx):
     result = ra.randint(0,1)
@@ -140,7 +108,6 @@ async def aram(ctx):
         await ctx.send('@everyone ¡Hora de jugar ARAM! 🎮')
     else:
         await ctx.send('Hoy no se juega!')
-
 
 @bot.command()
 async def age(ctx):
@@ -150,14 +117,9 @@ async def age(ctx):
     else:
         await ctx.send('En otro momento equisde')
 
-
 @bot.command()
 async def quesehace(ctx):
     await ctx.send('@everyone\nHoy solo se descansa gracias.')
-
-
-# conectar a un canal de voz
-
 
 @bot.command()
 async def join(ctx):
@@ -167,14 +129,9 @@ async def join(ctx):
     channel = ctx.author.voice.channel
     await channel.connect()
 
-# desconectar del canal de voz
-
-
 @bot.command()
 async def leave(ctx):
     await ctx.voice_client.disconnect()
-
-
 
 @bot.command()
 async def play(ctx, filename: str, repeat: int = 1):
@@ -182,7 +139,6 @@ async def play(ctx, filename: str, repeat: int = 1):
         await ctx.send("No estoy conectado a un canal de voz")
         return
 
-    # Validar y asegurar que el número máximo de repeticiones sea 10
     try:
         repeat = abs(int(repeat))
         if repeat < 1:
@@ -192,22 +148,18 @@ async def play(ctx, filename: str, repeat: int = 1):
         await ctx.send("ESCRIBE EL NUMERO BIEN SACO WEA")
         return
 
-    # Definir el directorio donde se encuentran los archivos de audio
     directory = '/usr/home/users/fespinoza/bot_c/audio'
-    # Buscar archivos que coincidan con el nombre del archivo proporcionado (sin extensión)
     file_path = glob.glob(os.path.join(directory, f"{filename}.*"))
 
     if not file_path:
         await ctx.send("El archivo especificado no existe.")
         return
 
-
     for _ in range(repeat):
         audio_queue.add(file_path[0])
 
     await ctx.send(f"Cola después de agregar {filename} repetido {repeat} veces: {audio_queue.view_queue()}")
-    await ctx.send('.')
-    # Función para reproducir el audio repetidamente
+
     def play_next(_):
         if audio_queue.view_queue() and bot.is_playing_audio:
             next_audio = audio_queue.get_next_audio()
@@ -225,19 +177,15 @@ async def play(ctx, filename: str, repeat: int = 1):
 
 @bot.command()
 async def add(ctx, filename: str):
-     # Definir el directorio donde se encuentran los archivos de audio
     directory = '/usr/home/users/fespinoza/bot_c/audio'
-    # Buscar archivos que coincidan con el nombre del archivo proporcionado (sin extensión)
     file_path = glob.glob(os.path.join(directory, f"{filename}.*"))
 
     if not file_path:
         await ctx.send("El archivo especificado no existe.")
         return
-    # Añadir el nombre del archivo a la cola
+
     audio_queue.add(filename)
     await ctx.send(f"Cola después de agregar '{filename}': {audio_queue.view_queue()}")
-
-
 
 @bot.command()
 async def stop(ctx):
@@ -252,22 +200,21 @@ async def stop(ctx):
     else:
         await ctx.send("No estoy reproduciendo ningún audio.")
 
-
 @bot.command()
 async def q(ctx):
     if audio_queue.view_queue():
         queue_list = audio_queue.view_queue()
         queue_str = '\n'.join([f"{idx + 1}. {os.path.basename(audio)}" for idx, audio in enumerate(queue_list)])
-        await ctx.send(f"Cola de Reproducción:\n{queue_str}")
-        await ctx.send("Cola de Reproducción:", queue_list)
+        embed = discord.Embed(title="Cola de Reproducción", color=discord.Color.blurple())
+        embed.description = queue_str
+        await ctx.send(embed=embed)
     else:
         await ctx.send("La cola está vacía.")
 
 @bot.command()
 async def skip(ctx):
-    """Salta el audio actualmente en reproducción y reproduce el siguiente en la cola."""
     if ctx.voice_client.is_playing():
-        ctx.voice_client.stop()  
+        ctx.voice_client.stop()
         await ctx.send("Audio saltado. Cola actual:", audio_queue.view_queue())
     else:
         await ctx.send("No estoy reproduciendo ningún audio.")
@@ -275,11 +222,10 @@ async def skip(ctx):
 @bot.command()
 async def remove(ctx, index: int):
     try:
-        audio_queue.remove_audio(index - 1)  
-        await ctx.sendt(f"Audio en la posición {index} eliminado. Cola actual:", audio_queue.view_queue())
+        audio_queue.remove_audio(index - 1)
+        await ctx.send(f"Audio en la posición {index} eliminado. Cola actual:", audio_queue.view_queue())
     except IndexError:
         await ctx.send("Índice fuera de rango al intentar eliminar audio. Cola actual:", audio_queue.view_queue())
-
 
 @bot.command()
 async def list(ctx):
@@ -321,7 +267,6 @@ async def list(ctx):
     embed.set_thumbnail(url="https://media.licdn.com/dms/image/C5603AQHFwyRGQtuSUA/profile-displayphoto-shrink_200_200/0/1516997163523?e=2147483647&v=beta&t=WtAtj17uSKfW4cIb1Ki8o4fBeqXTOnR4qooq9wSb8zI")
     await ctx.send(embed=embed)
 
-# Hello
 @bot.command()
 async def hello(ctx):
     embed = discord.Embed()
@@ -331,21 +276,15 @@ async def hello(ctx):
     embed.set_thumbnail(
         url="https://jomerlisriera.files.wordpress.com/2015/03/lazarus_logo_new.png")
     await ctx.send(embed=embed)
-    # await ctx.send('Hola mis estudiantes, vengan a estudiar conmigo, Pascal un potententisimo lenguaje de programación')
-# https://www.youtube.com/watch?v=yvFCI2whgOA
 
 @bot.command()
 async def diuca(ctx):
     await ctx.send("ESTOY CANSADO JEFE\nSaquenme de acªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªª")
     await ctx.send("https://pillan.inf.uct.cl/~fespinoza/file.jpg")
 
-
-
-
 @bot.event
 async def on_ready():
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='[CSEC IT: Pascal Programming in 1 hour | MAKE IT SIMPLE TT]'), status=discord.Status.dnd)
     print(f'We have logged in as {bot.user}')
-
 
 bot.run(token, log_handler=handler)
