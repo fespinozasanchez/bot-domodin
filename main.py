@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import os
 import logging
 import random as ra
@@ -9,6 +9,7 @@ import yt_dlp as youtube_dl
 import glob
 from mutagen.mp3 import MP3
 from a_queue.audio_queue import AudioQueue
+from datetime import datetime, timedelta
 
 handler = logging.FileHandler(
     filename='discord.log', encoding='utf-8', mode='w')
@@ -23,6 +24,8 @@ bot = commands.Bot(command_prefix='!',
                    description="this is a bot the Caro", intents=intents)
 
 audio_queue = AudioQueue()
+
+reminders = []
 
 # Ping-pong
 @bot.command()
@@ -76,7 +79,7 @@ async def info(ctx):
         """, inline=True)
     embed.add_field(name="Publicaciones", value="""
         ·Billy Peralta, T. Poblete, Luis Alberto Caro – Automatic feature selection for desertion and graduation prediction: A Chilean case.
-        ·Luis Alberto Caro, Camilo Silva, Billy Peralta, Oriel A. Herrera, Sergio Barrientos – Real-Time Recognition of Arm motion Using Artificial Neural Network Multi-perceptron with Arduino One MicroController and EKG/EMG Shield Sensor.
+        ·Luis Alberto Caro, Camilo Silva, Billy Peralta, Oriel A. Herrera, Sergio Barrientos – Real-Time Recognition of Arm motion Using Artificial Neural Network Multi-perceptron with Arduino One MicroController y EKG/EMG Shield Sensor.
         ·Luis Alberto Caro, Javier Correa, Pablo Espinace, Daniel Langdon, Daniel Maturana, Rubén Mitnik, Sebastian Montabone, Stefan Pszczólkowski, Anita Araneda, Domingo Mery, Miguel Torres, Alvaro Soto – Indoor Mobile Robotic at Grima, PUC.
         """, inline=True)
     embed.add_field(name="Áreas de Interés",
@@ -163,18 +166,13 @@ async def play(ctx, filename: str, repeat: int = 1):
     def play_next(_):
         if audio_queue.view_queue() and bot.is_playing_audio:
             next_audio = audio_queue.get_next_audio()
-            ctx.send(f"Reproduciendo siguiente audio: {next_audio}")
             vc.play(FFmpegPCMAudio(next_audio), after=play_next)
     vc = ctx.voice_client
     bot.is_playing_audio = True
 
     if not vc.is_playing():
         next_audio = audio_queue.get_next_audio()
-        await ctx.send(f"Reproduciendo audio inicial: {next_audio}")
         vc.play(FFmpegPCMAudio(next_audio), after=play_next)
-    else:
-        await ctx.send("Ya estoy reproduciendo audio.")
-
 
 @bot.command()
 async def stop(ctx):
@@ -185,7 +183,7 @@ async def stop(ctx):
     if ctx.voice_client.is_playing():
         bot.is_playing_audio = False
         ctx.voice_client.stop()
-        await ctx.send(f"Reproducción detenida. Cola actual: {audio_queue.view_queue()}")
+        await ctx.send("Reproducción detenida.")
     else:
         await ctx.send("No estoy reproduciendo ningún audio.")
 
@@ -210,7 +208,7 @@ async def q(ctx):
 async def skip(ctx):
     if ctx.voice_client.is_playing():
         ctx.voice_client.stop()
-        await ctx.send("Audio saltado. Cola actual:", audio_queue.view_queue())
+        await ctx.send("Audio saltado.")
     else:
         await ctx.send("No estoy reproduciendo ningún audio.")
 
@@ -218,9 +216,9 @@ async def skip(ctx):
 async def remove(ctx, index: int):
     try:
         audio_queue.remove_audio(index - 1)
-        await ctx.send(f"Audio en la posición {index} eliminado. Cola actual:", audio_queue.view_queue())
+        await ctx.send(f"Audio en la posición {index} eliminado.")
     except IndexError:
-        await ctx.send("Índice fuera de rango al intentar eliminar audio. Cola actual:", audio_queue.view_queue())
+        await ctx.send("Índice fuera de rango al intentar eliminar audio.")
 
 @bot.command()
 async def list(ctx):
@@ -277,8 +275,34 @@ async def diuca(ctx):
     await ctx.send("ESTOY CANSADO JEFE\nSaquenme de acªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªªª")
     await ctx.send("https://pillan.inf.uct.cl/~fespinoza/file.jpg")
 
+@bot.command()
+async def recordar(ctx, time: str, *, message: str):
+    try:
+        reminder_time = datetime.strptime(time, '%H:%M').time()
+        now = datetime.now()
+        reminder_datetime = datetime.combine(now, reminder_time)
+
+        if reminder_datetime < now:
+            reminder_datetime += timedelta(days=1)
+
+        reminders.append((reminder_datetime, message, ctx.channel.id))
+        await ctx.send(f"Recordatorio establecido para las {time} con el mensaje: {message}")
+    except ValueError:
+        await ctx.send("Formato de hora no válido. Usa HH:MM en formato 24 horas.")
+
+@tasks.loop(seconds=60)
+async def check_reminders():
+    now = datetime.now()
+    for reminder in reminders[:]:
+        reminder_time, message, channel_id = reminder
+        if now >= reminder_time:
+            channel = bot.get_channel(channel_id)
+            await channel.send(f"@everyone son las {reminder_time.strftime('%H:%M')} hora, es hora {message}")
+            reminders.remove(reminder)
+
 @bot.event
 async def on_ready():
+    check_reminders.start()
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='[CSEC IT: Pascal Programming in 1 hour | MAKE IT SIMPLE TT]'), status=discord.Status.dnd)
     print(f'We have logged in as {bot.user}')
 
