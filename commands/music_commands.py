@@ -140,6 +140,7 @@ def register_commands(bot, audio_queue):
                 file_name = file.split('.')[0]
                 embed.add_field(name="", value=f'{i}. {
                                 file_name} - ({duration_str})', inline=True)
+
                 i += 1
 
         embed.set_footer(text="Lunes – Viernes: 6:00 – ??:??")
