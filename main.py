@@ -9,6 +9,7 @@ from a_queue.audio_queue import AudioQueue
 from utils.logger import setup_logger
 from commands import fun_commands, music_commands, reminder_commands
 from utils.reminder_manager import ReminderManager
+from features import copa_america
 
 
 def def_handler(sig, frame):
@@ -40,6 +41,7 @@ reminder_manager = ReminderManager()
 fun_commands.register_commands(bot)
 music_commands.register_commands(bot, audio_queue)
 reminder_commands.register_commands(bot, reminder_manager)
+copa_america.register_commands(bot)
 
 
 async def load_cogs():

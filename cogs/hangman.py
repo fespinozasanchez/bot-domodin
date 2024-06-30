@@ -2,6 +2,7 @@ import random
 from discord.ext import commands
 import discord
 from utils.data_manager import load_user_data, save_user_data
+import requests
 
 
 class Hangman(commands.Cog):
@@ -11,8 +12,8 @@ class Hangman(commands.Cog):
 
     @commands.command(help="Inicia un nuevo juego de ahorcado.")
     async def ahorcado(self, ctx):
-        words = ["python", "discord", "ahorcado",
-                 "bot", "programacion", "ingeniero"]
+        response = requests.get('https://random-word-api.herokuapp.com/word?lang=es&number=10')
+        words = response.json()
         word = random.choice(words)
         self.games[ctx.channel.id] = {
             "word": word,
@@ -105,7 +106,7 @@ class Hangman(commands.Cog):
 
     async def _fallo(self, ctx, game):
         game["failures"] += 1
-        if game["failures"] >= 6:
+        if game["failures"] >= 12:
             embed = discord.Embed(
                 title="Lo siento, has perdido.",
                 description=f"La palabra era: {game['word']}",
@@ -116,8 +117,7 @@ class Hangman(commands.Cog):
         else:
             embed = discord.Embed(
                 title="Letra incorrecta.",
-                description=f"Intentos fallidos: {
-                    game['failures']}/6\n```\n" + " ".join(game["state"]) + "\n```"
+                description=f"Intentos fallidos: { game['failures']}/12\n```\n" + " ".join(game["state"]) + "\n```"
             )
             await ctx.send(embed=embed)
 

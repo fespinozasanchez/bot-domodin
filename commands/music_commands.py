@@ -138,8 +138,7 @@ def register_commands(bot, audio_queue):
                 minutes, seconds = divmod(duration, 60)
                 duration_str = f"{minutes}:{seconds:02d}"
                 file_name = file.split('.')[0]
-                embed.add_field(name="", value=f'{i}. {
-                                file_name} - ({duration_str})', inline=True)
+                embed.add_field(name="", value=f'{i}. {file_name} - ({duration_str})', inline=True)
 
                 i += 1
 

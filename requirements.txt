@@ -4,3 +4,7 @@ yt-dlp
 mutagen
 torch
 transformers
+pep8
+mysql-connector-python
+requests
+bs4
