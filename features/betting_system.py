@@ -13,6 +13,10 @@ class Betting(commands.Cog):
 
     @commands.command(name='apostar', help='Apostar por un equipo !apostar <equipo> <cantidad>')
     async def place_bet(self, ctx, equipo: str, cantidad: int):
+        if cantidad <= 0:
+            await ctx.send(f'Solo puedes apostar cantidades positivas, mono enfermo.')
+            return
+
         usuario = ctx.author
         user_id = str(usuario.id)
         guild_id = str(ctx.guild.id)
@@ -50,9 +54,11 @@ class Betting(commands.Cog):
             if usuario is None:
                 usuario = await self.bot.fetch_user(int(user_id))
             if usuario:
-                mensaje += f'{usuario.name}: {apuesta["cantidad"]} en {apuesta["equipo"]}\n'
+                mensaje += f'{usuario.name}: {
+                    apuesta["cantidad"]} en {apuesta["equipo"]}\n'
             else:
-                mensaje += f'Usuario desconocido (ID: {user_id}): {apuesta["cantidad"]} en {apuesta["equipo"]}\n'
+                mensaje += f'Usuario desconocido (ID: {user_id}): {apuesta["cantidad"]} en {
+                    apuesta["equipo"]}\n'
         await ctx.send(mensaje)
 
     @commands.command(name='resultados', help='Muestra el resultado de un partido')
@@ -65,7 +71,8 @@ class Betting(commands.Cog):
         if data['trackingEvents'][0]['typedServerParameter']['match_state']['value'] == 'FullTime':
             canada = data['containers'][1]['fullWidth']['component']['matchScore']['homeTeam']
             chile = data['containers'][1]['fullWidth']['component']['matchScore']['awayTeam']
-            mensaje_resultado = f'Resultado final: {canada["name"]} {canada["score"]} - {chile["name"]} {chile["score"]}'
+            mensaje_resultado = f'Resultado final: {canada["name"]} {
+                canada["score"]} - {chile["name"]} {chile["score"]}'
             await ctx.send(mensaje_resultado)
 
             if canada["score"] > chile["score"]:
@@ -90,9 +97,11 @@ class Betting(commands.Cog):
                     if ganador is None:
                         ganador = await self.bot.fetch_user(int(ganador_id))
                     if ganador:
-                        mensaje_ganadores += f'{ganador.name}: { ganancia} MelladoCoins\n'
+                        mensaje_ganadores += f'{ganador.name}: {
+                            ganancia} MelladoCoins\n'
                     else:
-                        mensaje_ganadores += f'Usuario desconocido (ID: {ganador_id}): {ganancia} MelladoCoins\n'
+                        mensaje_ganadores += f'Usuario desconocido (ID: {ganador_id}): {
+                            ganancia} MelladoCoins\n'
                 await ctx.send(mensaje_ganadores)
             else:
                 await ctx.send('Nadie ganó la apuesta.')
@@ -121,6 +130,10 @@ class Betting(commands.Cog):
             except ValueError:
                 await ctx.send(f'{usuario.name}, la cantidad debe ser un número o "all".')
                 return
+
+        if cantidad <= 0:
+            await ctx.send(f'Solo puedes apostar cantidades positivas, mono enfermo.')
+            return
 
         if cantidad > user_data['balance']:
             await ctx.send(f'{usuario.name}, no tienes suficiente saldo para apostar esa cantidad.')
