@@ -25,6 +25,7 @@ token = os.getenv('DISCORD_TOKEN')
 
 # Configurar intentos de Discord
 intents = discord.Intents.default()
+intents.members = True
 intents.message_content = True
 
 # Crear instancia del bot
@@ -39,15 +40,11 @@ reminder_manager = ReminderManager()
 fun_commands.register_commands(bot)
 music_commands.register_commands(bot, audio_queue)
 reminder_commands.register_commands(bot, reminder_manager)
-# chat_commands.register_commands(bot)
-
-# Función asíncrona para cargar los cogs
 
 
 async def load_cogs():
     await bot.load_extension('cogs.hangman')
-    await bot.load_extension('features.betting_system')  # Cargar el nuevo cog
-    # Cargar el nuevo cog de economía
+    await bot.load_extension('features.betting_system')
     await bot.load_extension('features.economy')
 
 
@@ -64,11 +61,8 @@ async def on_ready():
 
 
 async def main():
-    # Configurar el logger
     setup_logger()
-    # Cargar los cogs
     await load_cogs()
-    # Ejecutar el bot
     await bot.start(token)
 
 if __name__ == '__main__':
