@@ -7,7 +7,7 @@ import discord
 from discord.ext import commands, tasks
 from a_queue.audio_queue import AudioQueue
 from utils.logger import setup_logger
-from commands import fun_commands, music_commands, reminder_commands
+from commands import fun_commands, music_commands, reminder_commands, chat_commands
 from utils.reminder_manager import ReminderManager
 
 
@@ -39,6 +39,7 @@ reminder_manager = ReminderManager()
 fun_commands.register_commands(bot)
 music_commands.register_commands(bot, audio_queue)
 reminder_commands.register_commands(bot, reminder_manager)
+chat_commands.register_commands(bot)
 
 # Función asíncrona para cargar los cogs
 
