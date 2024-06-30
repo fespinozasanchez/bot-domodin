@@ -7,34 +7,58 @@ from discord.ext import commands
 # URL de la página web
 def register_commands(bot):
     @bot.command(help="Mira todos los eventos de la copa america")
-    async def copita(ctx):
-        await ctx.send("Estos son los eventos de la copa america:")
-        embed = discord.Embed(
-            title="Copa America",
-            description="Estos son los eventos de la copa america:",
-            color=0xFF5733
-        )
-        embed.set_author(
-            name="Copa America",
-               )
-        events = get_copa_america()
+    async def copita(ctx, msg: str):
+        if msg == "america" or msg == "1":
+            await ctx.send("Estos son los eventos de la copa america:")
+            embed = discord.Embed(
+                title="Copa America",
+                description="Estos son los eventos de la copa america:",
+                color=0xFF5733
+            )
+            embed.set_author(
+                name="Copa America",
+                )
+            events = get_copa(1)
 
-        for event in events:
-                fecha = event['fecha']
-                equipo_local = event['equipo_local']
-                resultado = event['resultado']
-                equipo_visitante = event['equipo_visitante']
-                embed.add_field(name=f"{fecha}", value=f"{equipo_local} {resultado} {equipo_visitante}", inline=True)
-        embed.set_footer(text="Conmmebol Copa America")
-        embed.set_thumbnail(
-            url="https://www.thesportsdb.com/images/media/league/poster/23s9ii1693644543.jpg")
-        await ctx.send(embed=embed)
+            for event in events:
+                    fecha = event['fecha']
+                    equipo_local = event['equipo_local']
+                    resultado = event['resultado']
+                    equipo_visitante = event['equipo_visitante']
+                    embed.add_field(name=f"{fecha}", value=f"{equipo_local} {resultado} {equipo_visitante}", inline=True)
+            embed.set_footer(text="Conmmebol Copa America")
+            embed.set_thumbnail(
+                url="https://www.thesportsdb.com/images/media/league/poster/23s9ii1693644543.jpg")
+            await ctx.send(embed=embed)
 
+        elif msg =='europa' or msg == "2":
+            await ctx.send("Estos son los eventos de la Eurocopa:")
+            embed = discord.Embed(
+                title="Euro Copa",
+                description="Estos son los eventos de la Eurocopa:",
+                color=0xFF5733
+            )
+            embed.set_author(
+                name="UEFA European Championships",
+                )
+            events = get_copa(2)
+
+
+            for event in events:
+                    fecha = event['fecha']
+                    equipo_local = event['equipo_local']
+                    resultado = event['resultado']
+                    equipo_visitante = event['equipo_visitante']
+                    embed.add_field(name=f"{fecha}", value=f"{equipo_local} {resultado} {equipo_visitante}", inline=True)
+            embed.set_footer(text="UEFA European Championships")
+            embed.set_thumbnail(
+                url="https://www.thesportsdb.com/images/media/league/poster/3jojms1718437755.jpg")
+            await ctx.send(embed=embed)
 
 
     @bot.command(help="Busca un evento de la copa america por fecha")
     async def buscar_evento(ctx, fecha: str):
-        events = get_copa_america()
+        events = get_copa(1)
         for event in events:
             if event['fecha'] == fecha:
                 await ctx.send(f"{event['fecha']} - {event['equipo_local']} {event['resultado']} {event['equipo_visitante']}")
@@ -43,8 +67,11 @@ def register_commands(bot):
     
 
 
-def get_copa_america():
-    url = 'https://www.thesportsdb.com/league/4499-Copa-America'    # Realizar la solicitud HTTP GET
+def get_copa(number:int):
+    if number == 1:
+        url = 'https://www.thesportsdb.com/league/4499-Copa-America'
+    elif number == 2:
+        url = 'https://www.thesportsdb.com/league/4502-UEFA-European-Championships'  
     response = requests.get(url)
 
     # Comprobar si la solicitud fue exitosa (código de estado 200)
