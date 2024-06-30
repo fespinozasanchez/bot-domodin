@@ -1,6 +1,7 @@
 import random
 from discord.ext import commands
 import discord
+from utils.data_manager import load_user_data, save_user_data
 
 
 class Hangman(commands.Cog):
@@ -47,63 +48,19 @@ class Hangman(commands.Cog):
                     if char == guess:
                         game["state"][idx] = guess
                 if "_" not in game["state"]:
-                    embed = discord.Embed(
-                        title="¡Felicidades!",
-                        description="Has adivinado la palabra: " +
-                        game["word"],
-                        color=discord.Color.green()
-                    )
-                    await ctx.send(embed=embed)
-                    del self.games[ctx.channel.id]
+                    await self._ganar(ctx, game["word"])
                 else:
                     embed = discord.Embed(
                         description="```\n" + " ".join(game["state"]) + "\n```"
                     )
                     await ctx.send(embed=embed)
             else:
-                game["failures"] += 1
-                if game["failures"] >= 6:
-                    embed = discord.Embed(
-                        title="Lo siento, has perdido.",
-                        description=f"La palabra era: {game['word']}",
-                        color=discord.Color.red()
-                    )
-                    await ctx.send(embed=embed)
-                    del self.games[ctx.channel.id]
-                else:
-                    embed = discord.Embed(
-                        title="Letra incorrecta.",
-                        description=f"Intentos fallidos: {
-                            game['failures']}/6\n```\n" + " ".join(game["state"]) + "\n```"
-                    )
-                    await ctx.send(embed=embed)
-
+                await self._fallo(ctx, game)
         else:  # Adivinando una palabra completa
             if guess == game["word"]:
-                embed = discord.Embed(
-                    title="¡Felicidades!",
-                    description="Has adivinado la palabra: " + game["word"],
-                    color=discord.Color.green()
-                )
-                await ctx.send(embed=embed)
-                del self.games[ctx.channel.id]
+                await self._ganar(ctx, game["word"])
             else:
-                game["failures"] += 1
-                if game["failures"] >= 6:
-                    embed = discord.Embed(
-                        title="Lo siento, has perdido.",
-                        description=f"La palabra era: {game['word']}",
-                        color=discord.Color.red()
-                    )
-                    await ctx.send(embed=embed)
-                    del self.games[ctx.channel.id]
-                else:
-                    embed = discord.Embed(
-                        title="Palabra incorrecta.",
-                        description=f"Intentos fallidos: {
-                            game['failures']}/6\n```\n" + " ".join(game["state"]) + "\n```"
-                    )
-                    await ctx.send(embed=embed)
+                await self._fallo(ctx, game)
 
     @commands.command(help="Muestra el estado actual del juego de ahorcado.")
     async def estado(self, ctx):
@@ -114,8 +71,7 @@ class Hangman(commands.Cog):
         game = self.games[ctx.channel.id]
         embed = discord.Embed(
             title="Estado actual",
-            description="```\n" +
-            " ".join(game["state"]) + "\n```" +
+            description="```\n" + " ".join(game["state"]) + "\n```" +
             f"\nIntentos fallidos: {game['failures']}/6"
         )
         await ctx.send(embed=embed)
@@ -127,6 +83,43 @@ class Hangman(commands.Cog):
             await ctx.send("El juego de ahorcado ha sido terminado.")
         else:
             await ctx.send("No hay ningún juego de ahorcado en curso.")
+
+    async def _ganar(self, ctx, word):
+        embed = discord.Embed(
+            title="¡Felicidades!",
+            description="Has adivinado la palabra: " + word,
+            color=discord.Color.green()
+        )
+        await ctx.send(embed=embed)
+
+        # Otorgar MelladoCoins al usuario
+        user_id = str(ctx.author.id)
+        guild_id = str(ctx.guild.id)
+        user_data = load_user_data(user_id, guild_id)
+        if user_data:
+            user_data['balance'] += 50  # Otorgar 50 MelladoCoins
+            save_user_data(user_id, guild_id, user_data['balance'])
+            await ctx.send(f'{ctx.author.name}, has ganado 50 MelladoCoins. Tu nuevo saldo es {user_data["balance"]} MelladoCoins.')
+
+        del self.games[ctx.channel.id]
+
+    async def _fallo(self, ctx, game):
+        game["failures"] += 1
+        if game["failures"] >= 6:
+            embed = discord.Embed(
+                title="Lo siento, has perdido.",
+                description=f"La palabra era: {game['word']}",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            del self.games[ctx.channel.id]
+        else:
+            embed = discord.Embed(
+                title="Letra incorrecta.",
+                description=f"Intentos fallidos: {
+                    game['failures']}/6\n```\n" + " ".join(game["state"]) + "\n```"
+            )
+            await ctx.send(embed=embed)
 
 
 async def setup(bot):
