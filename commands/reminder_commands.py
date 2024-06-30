@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from datetime import datetime, timedelta
+from utils.reminder_manager import ReminderManager
 
 
 def register_commands(bot, reminder_manager):
@@ -26,17 +27,17 @@ def register_commands(bot, reminder_manager):
         if reminders:
             embed = discord.Embed(title="Recordatorios",
                                   color=discord.Color.blurple())
-            for idx, (reminder_time, message, channel_id) in enumerate(reminders):
-                embed.add_field(name=f"Recordatorio {idx + 1}", value=f"Hora: {
-                                reminder_time.strftime('%H:%M')} - Mensaje: {message}", inline=False)
+            for reminder in reminders:
+                embed.add_field(name=f"Recordatorio {reminder['id']}", value=f"Hora: {
+                                reminder['reminder_time'].strftime('%H:%M')} - Mensaje: {reminder['message']}", inline=False)
             await ctx.send(embed=embed)
         else:
             await ctx.send("No hay recordatorios establecidos.")
 
     @bot.command(help="Elimina un recordatorio por su índice.")
-    async def remover_recordatorio(ctx, index: int):
-        reminder = reminder_manager.remove_reminder(index - 1)
+    async def remover_recordatorio(ctx, reminder_id: int):
+        reminder = reminder_manager.remove_reminder(reminder_id)
         if reminder:
-            await ctx.send(f"Recordatorio para las {reminder[0].strftime('%H:%M')} con el mensaje: {reminder[1]} ha sido eliminado.")
+            await ctx.send(f"Recordatorio para las {reminder['reminder_time'].strftime('%H:%M')} con el mensaje: {reminder['message']} ha sido eliminado.")
         else:
             await ctx.send("Índice fuera de rango. Por favor, proporciona un índice válido.")
