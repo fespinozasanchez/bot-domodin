@@ -21,29 +21,43 @@ def register_commands(bot):
         cm = ra.randint(1, 30)
         await ctx.send(f"Te mide: {cm} cm de puro placer bb 🍌 {ctx.author.mention}")
 
-    
     @bot.command(help="Manda a dormir a la gente")
     async def tutito(ctx):
-        choice =ra.randint(0,1)
+        choice = ra.randint(0, 1)
         if choice == 1:
             await ctx.send(f"Anda a acostarte mierda! {ctx.author.mention}")
         else:
             await ctx.send(f"Los ingenieros duros no duermen {ctx.author.mention}")
 
+    @bot.command(help="Pregunta si pasa el ramo")
+    async def pasa(ctx, user: discord.User):
+        resultado = ra.randint(0, 1)
+        if resultado == 1:
+            await ctx.send(f"{user.mention} ¡Estás aprobado! 🎉")
+        else:
+            await ctx.send(f"{user.mention} Lamentablemente!, repruebas el ramo malo ql sin opción a repetir. 😢")
+
     @bot.command(help="Pregunta por una partida de age")
     async def age(ctx):
-        choice =ra.randint(0,1)
+        choice = ra.randint(0, 1)
         if choice == 1:
             await ctx.send(f"@everyone Hora de jugar AGE 🥵🥵🥵🥵🥵")
-        await ctx.send(f"Hoy dia no toca")
+        if choice == 0:
+            await ctx.send(f"Hoy dia no toca")
+
+    @bot.command(help="Pregunta que se hace hoy")
+    async def quesehace(ctx):
+        await ctx.send('@everyone\nHoy solo se descansa gracias.')
+
 
     @bot.command(help="Pregunta por una partida de aram")
     async def aram(ctx):
-        choice =ra.randint(0,1)
-        if choice == 1:
-            await ctx.send(f"@everyone Hora de jugar ARAMCITO 🥵🥵🥵🥵🥵")
-        await ctx.send(f"Ño ")
-
+        result = ra.randint(0, 1)
+        if result == 1:
+            await ctx.send('@everyone ¡Hora de jugar ARAM! 🎮')
+            await ctx.send("https://i.imgflip.com/7mwjwz.png?a477192")
+        else:
+            await ctx.send('Hoy no se juega!')
 
     @bot.command(help="Documentación del PIC 12F629")
     async def ref(ctx):
