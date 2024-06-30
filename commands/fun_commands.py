@@ -25,9 +25,10 @@ def register_commands(bot):
     @bot.command(help="Manda a dormir a la gente")
     async def tutito(ctx):
         choice =ra.randint(0,1)
-        if choice == 0:
+        if choice == 1:
             await ctx.send(f"Anda a acostarte mierda! {ctx.author.mention}")
-        await ctx.send(f"Los ingenieros duros no duermen {ctx.author.mention}")
+        else:
+            await ctx.send(f"Los ingenieros duros no duermen {ctx.author.mention}")
 
     @bot.command(help="Pregunta por una partida de age")
     async def age(ctx):
