@@ -1,6 +1,7 @@
 import os
 import logging
-import sys, signal
+import sys
+import signal
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands, tasks
@@ -12,10 +13,11 @@ from utils.reminder_manager import ReminderManager
 
 def def_handler(sig, frame):
     print("\n\n[!] Saliendo...\n")
-    sys.exit(1);
-#Ctrl+C
-signal.signal(signal.SIGINT, def_handler)
+    sys.exit(1)
 
+
+# Ctrl+C
+signal.signal(signal.SIGINT, def_handler)
 
 # Cargar variables de entorno
 load_dotenv()
@@ -43,6 +45,9 @@ reminder_commands.register_commands(bot, reminder_manager)
 
 async def load_cogs():
     await bot.load_extension('cogs.hangman')
+    await bot.load_extension('features.betting_system')  # Cargar el nuevo cog
+    # Cargar el nuevo cog de economía
+    await bot.load_extension('features.economy')
 
 
 @tasks.loop(seconds=60)
