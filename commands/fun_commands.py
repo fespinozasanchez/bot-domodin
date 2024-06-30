@@ -19,7 +19,30 @@ def register_commands(bot):
     @bot.command(help="Mide tu pene")
     async def mide(ctx):
         cm = ra.randint(1, 30)
-        await ctx.send(f"Te mide: {cm} cm de puro placer bb 🍌")
+        await ctx.send(f"Te mide: {cm} cm de puro placer bb 🍌 {ctx.author.mention}")
+
+    
+    @bot.command(help="Manda a dormir a la gente")
+    async def tutito(ctx):
+        choice =ra.randint(0,1)
+        if choice == 0:
+            await ctx.send(f"Anda a acostarte mierda! {ctx.author.mention}")
+        await ctx.send(f"Los ingenieros duros no duermen {ctx.author.mention}")
+
+    @bot.command(help="Pregunta por una partida de age")
+    async def age(ctx):
+        choice =ra.randint(0,1)
+        if choice == 1:
+            await ctx.send(f"@everyone Hora de jugar AGE 🥵🥵🥵🥵🥵")
+        await ctx.send(f"Hoy dia no toca")
+
+    @bot.command(help="Pregunta por una partida de aram")
+    async def aram(ctx):
+        choice =ra.randint(0,1)
+        if choice == 1:
+            await ctx.send(f"@everyone Hora de jugar ARAMCITO 🥵🥵🥵🥵🥵")
+        await ctx.send(f"Ño ")
+
 
     @bot.command(help="Documentación del PIC 12F629")
     async def ref(ctx):
