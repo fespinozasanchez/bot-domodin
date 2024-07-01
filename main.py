@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import discord
 from discord.ext import commands, tasks
 from a_queue.audio_queue import AudioQueue
+from utils.custom_help import CustomHelpCommand
 from utils.logger import setup_logger
 from commands import fun_commands, music_commands, reminder_commands
 from utils.reminder_manager import ReminderManager
@@ -31,7 +32,7 @@ intents.message_content = True
 
 # Crear instancia del bot
 bot = commands.Bot(command_prefix='!',
-                   description="this is a bot the Caro", intents=intents)
+                   description="this is a bot the Caro", intents=intents, help_command=CustomHelpCommand())
 
 # Instanciar las clases necesarias
 audio_queue = AudioQueue()
