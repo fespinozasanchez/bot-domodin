@@ -48,6 +48,7 @@ async def load_cogs():
     await bot.load_extension('cogs.hangman')
     await bot.load_extension('features.betting_system')
     await bot.load_extension('features.economy')
+    await bot.load_extension('moderation.moderation_commands')
 
 
 @tasks.loop(seconds=60)
