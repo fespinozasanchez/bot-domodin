@@ -25,9 +25,7 @@ class Hangman(commands.Cog):
         }
         embed = discord.Embed(
             title="¡El juego del ahorcado ha comenzado!",
-            description="Adivina la palabra:\n```\n" +
-            " ".join(self.games[ctx.channel.id]["state"]) + "\n```"
-        )
+            description="Adivina la palabra:\n```\n" +" ".join(self.games[ctx.channel.id]["state"]) + "\n```")
         await ctx.send(embed=embed)
 
     @commands.command(help="Adivina una letra o la palabra completa en el juego de ahorcado.")
@@ -53,9 +51,7 @@ class Hangman(commands.Cog):
                 if "_" not in game["state"]:
                     await self._ganar(ctx, game["word"])
                 else:
-                    embed = discord.Embed(
-                        description="```\n" + " ".join(game["state"]) + "\n```"
-                    )
+                    embed = discord.Embed(description="```\n" + " ".join(game["state"]) + "\n```")
                     await ctx.send(embed=embed)
             else:
                 await self._fallo(ctx, game)
@@ -74,9 +70,7 @@ class Hangman(commands.Cog):
         game = self.games[ctx.channel.id]
         embed = discord.Embed(
             title="Estado actual",
-            description="```\n" + " ".join(game["state"]) + "\n```" +
-            f"\nIntentos fallidos: {game['failures']}/6"
-        )
+            description="```\n" + " ".join(game["state"]) + "\n```" +f"\nIntentos fallidos: {game['failures']}/6")
         await ctx.send(embed=embed)
 
     @commands.command(help="Termina el juego de ahorcado actual.")
@@ -119,9 +113,7 @@ class Hangman(commands.Cog):
         else:
             embed = discord.Embed(
                 title="Letra incorrecta.",
-                description=f"Intentos fallidos: {
-                    game['failures']}/12\n```\n" + " ".join(game["state"]) + "\n```"
-            )
+                description=f"Intentos fallidos: { game['failures']}/12\n```\n" + " ".join(game["state"]) + "\n```")
             await ctx.send(embed=embed)
 
 
