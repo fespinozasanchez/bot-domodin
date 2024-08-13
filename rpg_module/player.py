@@ -47,7 +47,7 @@ class Player:
             damage = self.strength * 1.5
         elif self.intelligence > self.strength and self.intelligence > self.agility:
             damage = self.intelligence * 1.5
-        elif self.agility > self.strength and self.agility > laintelligence:
+        elif self.agility > self.strength and self.agility > self.intelligence:
             damage = self.agility * 1.5
         return damage
 
