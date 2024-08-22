@@ -34,8 +34,6 @@ intents.message_content = True
 bot = commands.Bot(command_prefix='!',
                    description="this is a bot the Caro", intents=intents, help_command=CustomHelpCommand())
 
-# Instanciar las clases necesarias
-# audio_queue = AudioQueue()
 reminder_manager = ReminderManager()
 
 # Registrar comandos
