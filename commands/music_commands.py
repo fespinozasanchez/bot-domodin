@@ -45,18 +45,34 @@ def register_commands(bot, audio_queue):
         for _ in range(repeat):
             audio_queue.add(file_path[0])
 
-        await ctx.send(f"Lo meti en mi cola  {filename} repetido {repeat} veces")
+        await ctx.send(f"Lo metí en mi cola {filename} repetido {repeat} veces")
 
-        def play_next(_):
+        def play_next(error):
+            if error:
+                print(f"Error reproduciendo el audio: {error}")
+
             if audio_queue.view_queue() and bot.is_playing_audio:
                 next_audio = audio_queue.get_next_audio()
+                print(f"Reproduciendo siguiente audio: {next_audio}")
                 vc.play(FFmpegPCMAudio(next_audio), after=play_next)
+            else:
+                bot.is_playing_audio = False
+
         vc = ctx.voice_client
+
+        if not vc.is_connected():
+            await ctx.send("El bot se desconectó del canal de voz.")
+            bot.is_playing_audio = False
+            return
+
         bot.is_playing_audio = True
 
         if not vc.is_playing():
             next_audio = audio_queue.get_next_audio()
+            print(f"Reproduciendo audio: {next_audio}")
             vc.play(FFmpegPCMAudio(next_audio), after=play_next)
+        else:
+            print("Ya estoy reproduciendo audio.")
 
     @bot.command(help="Detiene la reproducción de audio actual.")
     async def stop(ctx):
@@ -138,7 +154,8 @@ def register_commands(bot, audio_queue):
                 minutes, seconds = divmod(duration, 60)
                 duration_str = f"{minutes}:{seconds:02d}"
                 file_name = file.split('.')[0]
-                embed.add_field(name="", value=f'{i}. {file_name} - ({duration_str})', inline=True)
+                embed.add_field(name="", value=f'{i}. {
+                                file_name} - ({duration_str})', inline=True)
 
                 i += 1
 
