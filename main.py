@@ -6,9 +6,9 @@ from dotenv import load_dotenv
 import discord
 from discord.ext import commands, tasks
 from a_queue.audio_queue import AudioQueue
+from commands import fun_commands
 from utils.custom_help import CustomHelpCommand
 from utils.logger import setup_logger
-from commands import fun_commands, music_commands, reminder_commands
 from utils.reminder_manager import ReminderManager
 from features import copa_america
 
@@ -31,15 +31,13 @@ intents.members = True
 intents.message_content = True
 
 # Crear instancia del bot
-bot = commands.Bot(command_prefix='!',
-                   description="this is a bot the Caro", intents=intents, help_command=CustomHelpCommand())
+bot = commands.Bot(command_prefix='!', description="this is a bot the Caro",
+                   intents=intents, help_command=CustomHelpCommand())
 
+# Crear instancia de ReminderManager
 reminder_manager = ReminderManager()
-
 # Registrar comandos
 fun_commands.register_commands(bot)
-reminder_commands.register_commands(bot, reminder_manager)
-copa_america.register_commands(bot)
 
 
 async def load_cogs():
@@ -48,6 +46,7 @@ async def load_cogs():
     await bot.load_extension('features.betting_system')
     await bot.load_extension('features.economy')
     await bot.load_extension('moderation.moderation_commands')
+    await bot.load_extension('commands.reminder_commands')
 
 
 @tasks.loop(seconds=60)
@@ -58,7 +57,11 @@ async def check_reminders():
 @bot.event
 async def on_ready():
     check_reminders.start()
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name='[CSEC IT: Pascal Programming in 1 hour | MAKE IT SIMPLE TT]'), status=discord.Status.dnd)
+    await bot.change_presence(
+        activity=discord.Activity(type=discord.ActivityType.watching,
+                                  name='[CSEC IT: Pascal Programming in 1 hour | MAKE IT SIMPLE TT]'),
+        status=discord.Status.dnd
+    )
     print(f'We have logged in as {bot.user}')
 
 
@@ -66,6 +69,7 @@ async def main():
     setup_logger()
     await load_cogs()
     await bot.start(token)
+
 
 if __name__ == '__main__':
     import asyncio
