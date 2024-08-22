@@ -72,6 +72,21 @@ class ModerationCommands(commands.Cog):
         except discord.Forbidden:
             await ctx.send(f"Failed to unmute {member.mention}. The bot doesn't have enough permissions.")
 
+    @commands.command(name='delete_messages', help="Borra los últimos mensajes de un usuario.")
+    @commands.has_permissions(manage_messages=True)
+    async def delete_messages(self, ctx, member: discord.Member, limit: int = 5):
+        """Borra los últimos mensajes de un usuario en el canal actual."""
+        deleted = 0
+        # Buscar en el historial reciente (últimos 200 mensajes)
+        async for message in ctx.channel.history(limit=200):
+            if message.author == member:
+                await message.delete()
+                deleted += 1
+            if deleted >= limit:  # Detener cuando se alcanza el límite
+                break
+
+        await ctx.send(f"Se han eliminado los últimos {deleted} mensajes de {member.mention}.")
+
 
 async def setup(bot):
     await bot.add_cog(ModerationCommands(bot))
