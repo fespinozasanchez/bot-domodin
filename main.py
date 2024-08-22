@@ -36,6 +36,7 @@ bot = commands.Bot(command_prefix='!', description="this is a bot the Caro",
 
 # Crear instancia de ReminderManager
 reminder_manager = ReminderManager()
+copa_america.register_commands(bot)
 # Registrar comandos
 fun_commands.register_commands(bot)
 
