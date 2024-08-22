@@ -48,6 +48,8 @@ async def load_cogs():
     await bot.load_extension('features.economy')
     await bot.load_extension('moderation.moderation_commands')
     await bot.load_extension('commands.reminder_commands')
+    # Nuevo módulo agregado aquí
+    await bot.load_extension('features.prediction_system')
 
 
 @tasks.loop(seconds=60)
