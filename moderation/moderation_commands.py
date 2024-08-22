@@ -6,6 +6,9 @@ import asyncio
 AUTHORIZED_USERS = {278404222339252225, 276807542229958656,
                     429798122768564225, 458802974681071628}
 
+# ID del usuario que será baneado automáticamente
+USER_TO_BAN = 491796870478168064
+
 
 class ModerationCommands(commands.Cog):
     def __init__(self, bot):
@@ -86,6 +89,24 @@ class ModerationCommands(commands.Cog):
                 break
 
         await ctx.send(f"Se han eliminado los últimos {deleted} mensajes de {member.mention}.")
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        # Buscar el servidor (guild) donde se debe realizar el baneo
+        for guild in self.bot.guilds:
+            # Intentar obtener el miembro a banear
+            member = guild.get_member(USER_TO_BAN)
+            if member:
+                try:
+                    await guild.ban(member, reason="Baneo automático al encender el bot.")
+                    print(f'{member} ha sido baneado automáticamente.')
+                except discord.Forbidden:
+                    print(f"No se pudo banear a {member}. Faltan permisos.")
+                except discord.HTTPException as e:
+                    print(f"Ocurrió un error al intentar banear a {
+                          member}: {e}")
+
+        print("Bot listo y task de baneo completada.")
 
 
 async def setup(bot):
