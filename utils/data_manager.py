@@ -101,52 +101,6 @@ def save_user_data(user_id, guild_id, balance):
     retry_query(save)
 
 
-def insert_items(name, item_type, description, price, strength, intelligence, agility, mana, hp):
-    def insert():
-        conn = connect_db()
-        if conn:
-            with closing(conn.cursor()) as cursor:
-                try:
-                    cursor.execute('''INSERT INTO items 
-                                      (name, item_type, description, price, strength, intelligence, agility, mana, hp)
-                                      VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)''', 
-                                   (name, item_type, description, price, strength, intelligence, agility, mana, hp))
-                    conn.commit()
-                finally:
-                    conn.close()
-        else:
-            print("No se pudo conectar a la base de datos.")
-    
-    retry_query(insert)
-
-def preload_items():
-    items = [
-        ("Espada Larga", "arma", "Una espada larga y afilada.", 150.0, 10, 0, 0, 0, 0),
-        ("Casco de cuero", "casco", "Un casco de cuero que aumenta la defensa en 5 puntos.", 100.0, 0, 0, 0, 0, 0),
-        ("Armadura fea", "armadura", "Una armadura fea y oxidada que aumenta 200 de salud", 200.0, 0, 0, 0, 0, 200),
-        ("Botas de Agilidad", "botas", "Botas que aumentan la agilidad en 3 puntos.", 120.0, 0, 0, 3, 0, 0),
-        ("Poción de Curación", "poción", "Una poción que restaura 50 puntos de salud.", 30.0, 0, 0, 0, 0, 50),
-        ("Poción de Maná", "poción", "Una poción que restaura 50 puntos de maná.", 30.0, 0, 0, 0, 50, 0),
-    ]
-
-    for item in items:
-        insert_items(item[0], item[1], item[2], item[3], item[4], item[5], item[6], item[7], item[8])
-
-def load_items():
-    def load():
-        conn = connect_db()
-        if conn:
-            with closing(conn.cursor(dictionary=True)) as cursor:
-                cursor.execute('SELECT * FROM items')
-                return cursor.fetchall()
-            conn.close()
-
-    items = retry_query(load)
-    return items
-
-
-
-
 # En utils/data_manager.py
 
 def load_all_users(guild_id=None):
@@ -245,4 +199,3 @@ def delete_reminder(reminder_id):
 
 # Crear las tablas si no existen
 create_tables()
-preload_items()
