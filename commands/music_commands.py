@@ -4,6 +4,7 @@ from discord import FFmpegPCMAudio
 import glob
 import os
 from mutagen.mp3 import MP3
+
 from a_queue.audio_queue import AudioQueue
 
 
@@ -37,8 +38,8 @@ class AudioPlayer(commands.Cog):
             if repeat < 1:
                 raise ValueError
             repeat = min(repeat, 10)
-        except (ValueError, SyntaxError, NameError):
-            await ctx.send("Escribe el número bien, por favor.")
+        except ValueError:
+            await ctx.send("Escribe el número correctamente, por favor.")
             return
 
         file_path = glob.glob(os.path.join(
@@ -124,8 +125,11 @@ class AudioPlayer(commands.Cog):
     @commands.command(help="Elimina un audio de la cola de reproducción.")
     async def remove(self, ctx, index: int):
         try:
-            self.audio_queue.remove_audio(index - 1)
-            await ctx.send(f"Audio en la posición {index} eliminado.")
+            removed_audio = self.audio_queue.remove_audio(index - 1)
+            if removed_audio:
+                await ctx.send(f"Audio en la posición {index} eliminado.")
+            else:
+                await ctx.send("Índice fuera de rango.")
         except IndexError:
             await ctx.send("Índice fuera de rango al intentar eliminar el audio.")
 
@@ -133,13 +137,8 @@ class AudioPlayer(commands.Cog):
     async def list(self, ctx):
         embed = discord.Embed(
             title="Lista de reproducción disponible",
-            url="https://media.licdn.com/dms/image/C5603AQHFwyRGQtuSUA/profile-displayphoto-shrink_200_200/0/1516997163523?e=2147483647&v=beta&t=WtAtj17uSKfW4cIb1Ki8o4fBeqXTOnR4qooq9wSb8zI",
             description="Uso: !play fileName",
             color=0xFF5733
-        )
-        embed.set_author(
-            name="Dr(c) Luis Alberto Caro",
-            url="https://media.licdn.com/dms/image/C5603AQHFwyRGQtuSUA/profile-displayphoto-shrink_200_200/0/1516997163523?e=2147483647&v=beta&t=WtAtj17uSKfW4cIb1Ki8o4fBeqXTOnR4qooq9wSb8zI"
         )
 
         if not os.path.exists(self.audio_directory):
@@ -152,8 +151,7 @@ class AudioPlayer(commands.Cog):
             await ctx.send("El directorio está vacío.")
             return
 
-        i = 1
-        for file in files:
+        for i, file in enumerate(files, start=1):
             file_path = os.path.join(self.audio_directory, file)
             if file.endswith('.mp3'):
                 audio = MP3(file_path)
@@ -161,14 +159,10 @@ class AudioPlayer(commands.Cog):
                 minutes, seconds = divmod(duration, 60)
                 duration_str = f"{minutes}:{seconds:02d}"
                 file_name = file.split('.')[0]
-                embed.add_field(name="", value=f'{i}. {
-                                file_name} - ({duration_str})', inline=True)
-                i += 1
+                embed.add_field(name=f"{i}. {file_name}", value=f"Duración: {
+                                duration_str}", inline=True)
 
         embed.set_footer(text="Lunes – Viernes: 6:00 – ??:??")
-        embed.set_thumbnail(
-            url="https://media.licdn.com/dms/image/C5603AQHFwyRGQtuSUA/profile-displayphoto-shrink_200_200/0/1516997163523?e=2147483647&v=beta&t=WtAtj17uSKfW4cIb1Ki8o4fBeqXTOnR4qooq9wSb8zI"
-        )
         await ctx.send(embed=embed)
 
 
