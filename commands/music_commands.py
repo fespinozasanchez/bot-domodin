@@ -4,8 +4,8 @@ from discord import FFmpegPCMAudio
 import glob
 import os
 from mutagen.mp3 import MP3
-
 from a_queue.audio_queue import AudioQueue
+from utils.paginator_view import PaginatorView
 
 
 class AudioPlayer(commands.Cog):
@@ -101,69 +101,102 @@ class AudioPlayer(commands.Cog):
 
     @commands.command(help="Muestra la cola de reproducción.")
     async def q(self, ctx):
-        if self.audio_queue.view_queue():
-            queue_list = self.audio_queue.view_queue()
-            queue_str = '\n'.join(
-                [f"{idx + 1}. {os.path.basename(audio)}" for idx,
-                 audio in enumerate(queue_list)]
-            )
+        queue_list = self.audio_queue.view_queue()
+        if not queue_list:
+            await ctx.send("No tengo nada en mi cola 😔.")
+            return
+
+        embeds = []
+        page_size = 10  # 5 elementos por columna (10 en total por página)
+
+        for i in range(0, len(queue_list), page_size):
+            chunk = queue_list[i:i + page_size]
             embed = discord.Embed(
                 title="Mi Cola", color=discord.Color.blurple())
-            embed.description = queue_str
-            await ctx.send(embed=embed)
-        else:
-            await ctx.send("No tengo nada en mi cola 😔.")
 
-    @commands.command(help="Salta al siguiente audio en la cola de reproducción.")
-    async def skip(self, ctx):
-        if ctx.voice_client.is_playing():
-            ctx.voice_client.stop()
-            await ctx.send("Audio saltado.")
-        else:
-            await ctx.send("No estoy reproduciendo ningún audio.")
+            # Dividir el chunk en dos columnas
+            half = len(chunk) // 2
+            column1 = chunk[:half]
+            column2 = chunk[half:]
 
-    @commands.command(help="Elimina un audio de la cola de reproducción.")
-    async def remove(self, ctx, index: int):
-        try:
-            removed_audio = self.audio_queue.remove_audio(index - 1)
-            if removed_audio:
-                await ctx.send(f"Audio en la posición {index} eliminado.")
-            else:
-                await ctx.send("Índice fuera de rango.")
-        except IndexError:
-            await ctx.send("Índice fuera de rango al intentar eliminar el audio.")
+            column1_text = '\n'.join(
+                [f"{i + idx + 1}. {os.path.basename(audio)
+                                   }" for idx, audio in enumerate(column1)]
+            )
+            column2_text = '\n'.join(
+                [f"{i + idx + half +
+                    1}. {os.path.basename(audio)}" for idx, audio in enumerate(column2)]
+            )
+
+            embed.add_field(name="Columna 1",
+                            value=column1_text or "─", inline=True)
+            embed.add_field(name="Columna 2",
+                            value=column2_text or "─", inline=True)
+
+            embeds.append(embed)
+
+        if embeds:
+            view = PaginatorView(embeds)
+            await ctx.send(embed=embeds[0], view=view)
 
     @commands.command(help="Lista los archivos de audio disponibles.")
     async def list(self, ctx):
-        embed = discord.Embed(
-            title="Lista de reproducción disponible",
-            description="Uso: !play fileName",
-            color=0xFF5733
-        )
-
         if not os.path.exists(self.audio_directory):
             await ctx.send("El directorio especificado no existe.")
             return
 
         files = os.listdir(self.audio_directory)
-
         if not files:
             await ctx.send("El directorio está vacío.")
             return
 
-        for i, file in enumerate(files, start=1):
-            file_path = os.path.join(self.audio_directory, file)
-            if file.endswith('.mp3'):
-                audio = MP3(file_path)
-                duration = int(audio.info.length)
-                minutes, seconds = divmod(duration, 60)
-                duration_str = f"{minutes}:{seconds:02d}"
-                file_name = file.split('.')[0]
-                embed.add_field(name=f"{i}. {file_name}", value=f"Duración: {
-                                duration_str}", inline=True)
+        embeds = []
+        page_size = 10  # 5 elementos por columna (10 en total por página)
 
-        embed.set_footer(text="Lunes – Viernes: 6:00 – ??:??")
-        await ctx.send(embed=embed)
+        for i in range(0, len(files), page_size):
+            chunk = files[i:i + page_size]
+            embed = discord.Embed(
+                title="Lista de reproducción disponible", color=0xFF5733)
+
+            # Dividir el chunk en dos columnas
+            half = len(chunk) // 2
+            column1 = chunk[:half]
+            column2 = chunk[half:]
+
+            column1_text = ""
+            column2_text = ""
+            for idx, file in enumerate(column1):
+                if file.endswith('.mp3'):
+                    file_path = os.path.join(self.audio_directory, file)
+                    audio = MP3(file_path)
+                    duration = int(audio.info.length)
+                    minutes, seconds = divmod(duration, 60)
+                    duration_str = f"{minutes}:{seconds:02d}"
+                    file_name = file.split('.')[0]
+                    column1_text += f"{i + idx +
+                                       1}. {file_name} - ({duration_str})\n"
+
+            for idx, file in enumerate(column2):
+                if file.endswith('.mp3'):
+                    file_path = os.path.join(self.audio_directory, file)
+                    audio = MP3(file_path)
+                    duration = int(audio.info.length)
+                    minutes, seconds = divmod(duration, 60)
+                    duration_str = f"{minutes}:{seconds:02d}"
+                    file_name = file.split('.')[0]
+                    column2_text += f"{i + idx + half +
+                                       1}. {file_name} - ({duration_str})\n"
+
+            embed.add_field(name="Columna 1",
+                            value=column1_text or "─", inline=True)
+            embed.add_field(name="Columna 2",
+                            value=column2_text or "─", inline=True)
+
+            embeds.append(embed)
+
+        if embeds:
+            view = PaginatorView(embeds)
+            await ctx.send(embed=embeds[0], view=view)
 
 
 async def setup(bot):
