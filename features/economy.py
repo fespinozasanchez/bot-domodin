@@ -76,14 +76,12 @@ class Economy(commands.Cog):
             plt.text(bar.get_x() + bar.get_width() / 2, yval, round(yval, 2),
                      ha='center', va='bottom', fontsize=10, color='black')
 
-      
         buf = io.BytesIO()
         plt.tight_layout()
         plt.savefig(buf, format='png')
         buf.seek(0)
         plt.close()
 
-      
         file = discord.File(buf, filename='grafico_saldos.png')
         await ctx.send(file=file)
 
@@ -111,9 +109,11 @@ class Economy(commands.Cog):
             except ValueError:
                 logging.error(
                     f"Key '{key}' does not have the expected format 'user_id_guild_id'")
-    @tasks.loop(minutes=1)
+
+    @tasks.loop(hours=1)
     async def mellado_coins_task(self):
-        for guild in self.bot.guilds:  # Itera sobre todas las guilds (servidores) en los que está el bot
+        # Itera sobre todas las guilds (servidores) en los que está el bot
+        for guild in self.bot.guilds:
             # Buscar el canal "general" en todo el servidor
             channel = discord.utils.get(guild.text_channels, name="general")
 
@@ -129,7 +129,8 @@ class Economy(commands.Cog):
             if user_data is None:
                 continue  # Si el usuario no está registrado, pasa al siguiente usuario
 
-            cantidad = ra.randint(-100, 100)  # Genera una cantidad aleatoria entre -100 y 100
+            # Genera una cantidad aleatoria entre -100 y 100
+            cantidad = ra.randint(-100, 100)
 
             user_data['balance'] += cantidad
             save_user_data(user_id, guild_id, user_data['balance'])
@@ -141,10 +142,7 @@ class Economy(commands.Cog):
                 else:
                     await channel.send(f'<@{usuario.id}> tiene que irse a parvularia. Le he quitado {-cantidad} MelladoCoins. Tu nuevo saldo es {user_data["balance"]} MelladoCoins.')
             else:
-                if cantidad > 0:
-                    await usuario.send(f'¡<@{usuario.id}> es un ingeniero duro! y como es duro le voy a dar {cantidad} MelladoCoins. Tu nuevo saldo es {user_data["balance"]} MelladoCoins.')
-                else:
-                    await usuario.send(f'<@{usuario.id}> tiene que irse a parvularia. Le he quitado {-cantidad} MelladoCoins. Tu nuevo saldo es {user_data["balance"]} MelladoCoins.')
+                return
 
     @passive_income.before_loop
     async def before_passive_income(self):
@@ -152,8 +150,7 @@ class Economy(commands.Cog):
 
     @mellado_coins_task.before_loop
     async def before_mellado_coins_task(self):
-        await self.bot.wait_until_ready()  
-
+        await self.bot.wait_until_ready()
 
     @commands.Cog.listener()
     async def on_ready(self):
