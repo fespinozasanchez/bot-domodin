@@ -8,6 +8,7 @@ from discord.ext import commands, tasks
 from utils.data_manager import load_user_data, save_user_data, load_all_users
 import logging
 import matplotlib
+import random as ra
 matplotlib.use('Agg')  # Esto cambia el backend a 'Agg'
 
 # Configuración del logging
@@ -19,6 +20,7 @@ class Economy(commands.Cog):
         self.bot = bot
         self.data = load_all_users()
         self.passive_income.start()
+        self.mellado_coins_task.start()
 
     @commands.command(name='registrar')
     async def register_user(self, ctx):
@@ -74,14 +76,14 @@ class Economy(commands.Cog):
             plt.text(bar.get_x() + bar.get_width() / 2, yval, round(yval, 2),
                      ha='center', va='bottom', fontsize=10, color='black')
 
-        # Guardar el gráfico en un buffer en memoria
+      
         buf = io.BytesIO()
         plt.tight_layout()
         plt.savefig(buf, format='png')
         buf.seek(0)
         plt.close()
 
-        # Enviar el gráfico como una imagen
+      
         file = discord.File(buf, filename='grafico_saldos.png')
         await ctx.send(file=file)
 
@@ -100,7 +102,7 @@ class Economy(commands.Cog):
             if key in self.data:
                 self.update_balance(user_id, guild_id, 0.1)
 
-    @tasks.loop(minutes=5)
+    @tasks.loop(minutes=60)
     async def passive_income(self):
         for key, user_data in self.data.items():
             try:
@@ -109,10 +111,49 @@ class Economy(commands.Cog):
             except ValueError:
                 logging.error(
                     f"Key '{key}' does not have the expected format 'user_id_guild_id'")
+    @tasks.loop(minutes=1)
+    async def mellado_coins_task(self):
+        for guild in self.bot.guilds:  # Itera sobre todas las guilds (servidores) en los que está el bot
+            # Buscar el canal "general" en todo el servidor
+            channel = discord.utils.get(guild.text_channels, name="general")
+
+            members = [member for member in guild.members if not member.bot]
+            if not members:
+                continue  # Si no hay miembros humanos, pasa al siguiente guild
+
+            usuario = ra.choice(members)
+            user_id = str(usuario.id)
+            guild_id = str(guild.id)
+
+            user_data = load_user_data(user_id, guild_id)
+            if user_data is None:
+                continue  # Si el usuario no está registrado, pasa al siguiente usuario
+
+            cantidad = ra.randint(-100, 100)  # Genera una cantidad aleatoria entre -100 y 100
+
+            user_data['balance'] += cantidad
+            save_user_data(user_id, guild_id, user_data['balance'])
+
+            # Verifica si se encontró el canal
+            if channel:
+                if cantidad > 0:
+                    await channel.send(f'¡<@{usuario.id}> es un ingeniero duro! y como es duro le voy a dar {cantidad} MelladoCoins. Tu nuevo saldo es {user_data["balance"]} MelladoCoins.')
+                else:
+                    await channel.send(f'<@{usuario.id}> tiene que irse a parvularia. Le he quitado {-cantidad} MelladoCoins. Tu nuevo saldo es {user_data["balance"]} MelladoCoins.')
+            else:
+                if cantidad > 0:
+                    await usuario.send(f'¡<@{usuario.id}> es un ingeniero duro! y como es duro le voy a dar {cantidad} MelladoCoins. Tu nuevo saldo es {user_data["balance"]} MelladoCoins.')
+                else:
+                    await usuario.send(f'<@{usuario.id}> tiene que irse a parvularia. Le he quitado {-cantidad} MelladoCoins. Tu nuevo saldo es {user_data["balance"]} MelladoCoins.')
 
     @passive_income.before_loop
     async def before_passive_income(self):
         await self.bot.wait_until_ready()
+
+    @mellado_coins_task.before_loop
+    async def before_mellado_coins_task(self):
+        await self.bot.wait_until_ready()  
+
 
     @commands.Cog.listener()
     async def on_ready(self):

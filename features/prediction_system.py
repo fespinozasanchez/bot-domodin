@@ -76,13 +76,11 @@ class Prediction(commands.Cog):
         for pred in predictions:
             embed.add_field(
                 name=f"Pregunta: {pred['pregunta']}",
-                value=f"Fecha límite: {pred['fecha_limite'].strftime(
-                    '%d/%m/%Y')}\nVotos SI: {pred['votos_si']} | Votos NO: {pred['votos_no']}",
+                value=f"Fecha límite: {pred['fecha_limite'].strftime('%d/%m/%Y')}\nVotos SI: {pred['votos_si']} | Votos NO: {pred['votos_no']}",
                 inline=False
             )
 
-        embed.set_footer(text=f"Solicitado por {
-                         ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
+        embed.set_footer(text=f"Solicitado por {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
         await ctx.send(embed=embed)
 
 

@@ -109,19 +109,11 @@ class Hangman(commands.Cog):
     async def _fallo(self, ctx, game):
         game["failures"] += 1
         if game["failures"] >= 12:
-            embed = discord.Embed(
-                title="Lo siento, has perdido.",
-                description=f"La palabra era: {game['word']}",
-                color=discord.Color.red()
-            )
+            embed = discord.Embed(title="Lo siento, has perdido.",description=f"La palabra era: {game['word']}",color=discord.Color.red())
             await ctx.send(embed=embed)
             del self.games[ctx.channel.id]
         else:
-            embed = discord.Embed(
-                title="Letra incorrecta.",
-                description=f"Intentos fallidos: {
-                    game['failures']}/12\n```\n" + " ".join(game["state"]) + "\n```"
-            )
+            embed = discord.Embed(title="Letra incorrecta.", description=f"Intentos fallidos: {game['failures']}/12\n```\n" + " ".join(game["state"]) + "\n```" )
             await ctx.send(embed=embed)
 
 

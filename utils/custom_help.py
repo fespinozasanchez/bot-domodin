@@ -70,18 +70,13 @@ class CustomHelpCommand(commands.HelpCommand):
                 column2 = command_signatures[half:]
 
                 # Agregar las dos columnas al embed, con formato más limpio
-                embed.add_field(name=f"{
-                                cog_name} (1/2)", value="\n".join(column1) or "No hay comandos.", inline=True)
-                embed.add_field(name=f"{
-                                cog_name} (2/2)", value="\n".join(column2) or "No hay comandos.", inline=True)
+                embed.add_field(name=f"{cog_name} (1/2)", value="\n".join(column1) or "No hay comandos.", inline=True)
+                embed.add_field(name=f"{ cog_name} (2/2)", value="\n".join(column2) or "No hay comandos.", inline=True)
 
                 # Limitar los campos por embed para evitar overflow
                 if len(embed.fields) >= 6:
                     embeds.append(embed)
-                    embed = discord.Embed(
-                        title="Comandos del Bot",
-                        color=discord.Color.blue()
-                    )
+                    embed = discord.Embed(title="Comandos del Bot", color=discord.Color.blue() )
 
         if embed.fields:
             embeds.append(embed)

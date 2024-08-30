@@ -119,19 +119,11 @@ class AudioPlayer(commands.Cog):
             column1 = chunk[:half]
             column2 = chunk[half:]
 
-            column1_text = '\n'.join(
-                [f"{i + idx + 1}. {os.path.basename(audio)
-                                   }" for idx, audio in enumerate(column1)]
-            )
-            column2_text = '\n'.join(
-                [f"{i + idx + half +
-                    1}. {os.path.basename(audio)}" for idx, audio in enumerate(column2)]
-            )
+            column1_text = '\n'.join( [f"{i + idx + 1}. {os.path.basename(audio)}" for idx, audio in enumerate(column1)])
+            column2_text = '\n'.join([f"{i + idx + half +1}. {os.path.basename(audio)}" for idx, audio in enumerate(column2)] )
 
-            embed.add_field(name="Columna 1",
-                            value=column1_text or "─", inline=True)
-            embed.add_field(name="Columna 2",
-                            value=column2_text or "─", inline=True)
+            embed.add_field(name="Columna 1", value=column1_text or "─", inline=True)
+            embed.add_field(name="Columna 2",value=column2_text or "─", inline=True)
 
             embeds.append(embed)
 
@@ -173,8 +165,7 @@ class AudioPlayer(commands.Cog):
                     minutes, seconds = divmod(duration, 60)
                     duration_str = f"{minutes}:{seconds:02d}"
                     file_name = file.split('.')[0]
-                    column1_text += f"{i + idx +
-                                       1}. {file_name} - ({duration_str})\n"
+                    column1_text += f"{i + idx +1}. {file_name} - ({duration_str})\n"
 
             for idx, file in enumerate(column2):
                 if file.endswith('.mp3'):
@@ -184,13 +175,10 @@ class AudioPlayer(commands.Cog):
                     minutes, seconds = divmod(duration, 60)
                     duration_str = f"{minutes}:{seconds:02d}"
                     file_name = file.split('.')[0]
-                    column2_text += f"{i + idx + half +
-                                       1}. {file_name} - ({duration_str})\n"
+                    column2_text += f"{i + idx + half +1}. {file_name} - ({duration_str})\n"
 
-            embed.add_field(name="Columna 1",
-                            value=column1_text or "─", inline=True)
-            embed.add_field(name="Columna 2",
-                            value=column2_text or "─", inline=True)
+            embed.add_field(name="Columna 1",value=column1_text or "─", inline=True)
+            embed.add_field(name="Columna 2",value=column2_text or "─", inline=True)
 
             embeds.append(embed)
 

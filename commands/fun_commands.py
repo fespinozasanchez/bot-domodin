@@ -37,6 +37,10 @@ def register_commands(bot):
         else:
             await ctx.send(f"{user.mention} Lamentablemente!, repruebas el ramo malo ql sin opción a repetir. 😢")
 
+    @bot.command(help="Prendio la Luchoneta")
+    async def luchoneta(ctx):
+        await ctx.send(f"@everyone MAMI PRENDA LA RADIO ENCIENDA LA TELE Y NO ME MOLESTE QUE HOY JUEGA LA LUCHONETA 🗣️🗣️🗣️🗣️🗣️🗣️🗣️🗣️🗣️🗣️🗣️🗣️🗣️🗣️🗣️💥💥💥💥💥‼️‼️‼️❗❗❗❗⁉️")
+
     @bot.command(help="Pregunta por una partida de age")
     async def age(ctx):
         choice = ra.randint(0, 1)

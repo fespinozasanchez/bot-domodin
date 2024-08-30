@@ -103,8 +103,7 @@ class ModerationCommands(commands.Cog):
                 except discord.Forbidden:
                     print(f"No se pudo banear a {member}. Faltan permisos.")
                 except discord.HTTPException as e:
-                    print(f"Ocurrió un error al intentar banear a {
-                          member}: {e}")
+                    print(f"Ocurrió un error al intentar banear a {member}: {e}")
 
         print("Bot listo y task de baneo completada.")
 

@@ -147,5 +147,55 @@ class Betting(commands.Cog):
         save_user_data(user_id, guild_id, user_data['balance'])
 
 
+    @commands.command(name='transferir', help='Realiza una transferencia de tus MelladoCoins. Uso: !transferir <usuario> <cantidad>')
+    async def transferir(self, ctx, destinatario: discord.Member, cantidad: str):
+        usuario = ctx.author
+        user_id = str(usuario.id)
+        guild_id = str(ctx.guild.id)
+        destinatario_id = str(destinatario.id)
+
+        if destinatario_id == user_id:
+            await ctx.send(f'{usuario.name}, no puedes transferirte saldo a ti mismo.')
+            return
+
+        user_data = load_user_data(user_id, guild_id)
+        destinatario_data = load_user_data(destinatario_id, guild_id)
+
+        if user_data is None:
+            await ctx.send(f'{usuario.name}, no estás registrado. Usa el comando !registrar para registrarte.')
+            return
+
+        if destinatario_data is None:
+            await ctx.send(f'{destinatario.name} no está registrado. El destinatario debe registrarse antes de recibir saldo.')
+            return
+
+        try:
+            cantidad = float(cantidad)
+        except ValueError:
+            await ctx.send(f'{usuario.name}, la cantidad debe ser un número.')
+            return
+
+        if cantidad <= 0:
+            await ctx.send(f'{usuario.name}, solo puedes transferir cantidades positivas.')
+            return
+
+        if cantidad > user_data['balance']:
+            await ctx.send(f'{usuario.name}, no tienes suficiente saldo para transferir esa cantidad.')
+            return
+
+        # Realizar la transferencia
+        user_data['balance'] -= cantidad
+        destinatario_data['balance'] += cantidad
+
+        # Guardar los datos actualizados
+        save_user_data(user_id, guild_id, user_data['balance'])
+        save_user_data(destinatario_id, guild_id, destinatario_data['balance'])
+
+        await ctx.send(f'{usuario.name}, has transferido {cantidad} MelladoCoins a {destinatario.name}. Tu nuevo saldo es {user_data["balance"]} MelladoCoins.')
+        await ctx.send(f'{destinatario.name}, has recibido {cantidad} MelladoCoins de {usuario.name}. Tu nuevo saldo es {destinatario_data["balance"]} MelladoCoins.')
+
+
+
+
 async def setup(bot):
     await bot.add_cog(Betting(bot))

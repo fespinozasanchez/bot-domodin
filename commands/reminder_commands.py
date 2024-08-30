@@ -32,12 +32,7 @@ class Reminder(commands.Cog):
             embed = discord.Embed(title="Recordatorios",
                                   color=discord.Color.blurple())
             for reminder in reminders:
-                embed.add_field(
-                    name=f"Recordatorio {reminder['id']}",
-                    value=f"Hora: {reminder['reminder_time'].strftime(
-                        '%H:%M')} - Mensaje: {reminder['message']}",
-                    inline=False
-                )
+                embed.add_field(name=f"Recordatorio {reminder['id']}",value=f"Hora: {reminder['reminder_time'].strftime('%H:%M')} - Mensaje: {reminder['message']}",inline=False)
             await ctx.send(embed=embed)
         else:
             await ctx.send("No hay recordatorios establecidos.")
