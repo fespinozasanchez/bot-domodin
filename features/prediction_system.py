@@ -8,11 +8,6 @@ from datetime import datetime
 import re
 from datetime import datetime
 
-
-import re
-from datetime import datetime
-
-
 class Prediction(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
