@@ -53,7 +53,6 @@ def register_commands(bot):
     async def quesehace(ctx):
         await ctx.send('@everyone\nHoy solo se descansa gracias.')
 
-
     @bot.command(help="Pregunta por una partida de aram")
     async def aram(ctx):
         result = ra.randint(0, 1)
