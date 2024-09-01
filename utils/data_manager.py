@@ -53,18 +53,6 @@ def create_tables():
                                     message TEXT,
                                     channel_id BIGINT
                                   )''')
-                cursor.execute('''CREATE TABLE IF NOT EXISTS items (
-                                    item_id INTEGER AUTO_INCREMENT PRIMARY KEY,
-                                    name VARCHAR(255),
-                                    item_type VARCHAR(255),
-                                    description TEXT,
-                                    price FLOAT,
-                                    strength INTEGER,
-                                    intelligence INTEGER,
-                                    agility INTEGER,
-                                    mana INTEGER,
-                                    hp INTEGER
-                                  )''')
                 conn.commit()
             conn.close()
 

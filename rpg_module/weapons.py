@@ -1,4 +1,4 @@
-# weapon.py
+# weapons.py
 from items import Item
 
 
@@ -23,8 +23,6 @@ class Weapon(Item):
         if self.increase_stat and self.increase_amount:
             setattr(player, self.increase_stat, getattr(
                 player, self.increase_stat) + self.increase_amount)
-        print(f"{player.name} equipped {self.name}, increasing {
-              self.increase_stat} by {self.increase_amount}.")
 
     def remove_bonus(self, player):
         """
@@ -33,8 +31,6 @@ class Weapon(Item):
         if self.increase_stat and self.increase_amount:
             setattr(player, self.increase_stat, getattr(
                 player, self.increase_stat) - self.increase_amount)
-        print(f"{player.name} unequipped {self.name}, reducing {
-              self.increase_stat} by {self.increase_amount}.")
 
     def calculate_damage(self, player):
         """

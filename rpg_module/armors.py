@@ -1,4 +1,4 @@
-# armor.py
+# armors.py
 from items import Item
 
 

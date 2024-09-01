@@ -78,7 +78,6 @@ class Player:
 
     def receive_damage(self, damage):
         reduced_damage = max(0, damage - (self.defense + self.agility * 0.4))
-        print(f"Player receives damage! Reduced damage: {reduced_damage}")
         self.health -= reduced_damage
         return reduced_damage
 
@@ -90,7 +89,7 @@ class Player:
         """
         Maneja la muerte del jugador.
         """
-        print(f"{self.name} has been defeated!")
+        return (f"{self.name} has been defeated!")
 
     def use_stat_point(self, stat):
         """
@@ -107,7 +106,7 @@ class Player:
                 self.agility += 1
             self.stats_points -= 1
         else:
-            print("No tienes más puntos para usar")
+            return("No tienes más puntos para usar")
 
     def add_item(self, item):
         """
@@ -160,7 +159,7 @@ class Player:
             self.intelligence += 2
             self.agility += 2
             self.stats_points += 5
-            print(f"{self.name} has leveled up to level {self.level}!")
+            return (f"{self.name} has leveled up to level {self.level}!")
 
     def get_stats(self):
         """

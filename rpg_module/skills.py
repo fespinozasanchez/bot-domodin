@@ -52,7 +52,6 @@ class Skill:
 
             return damage
         else:
-            print(f"{self.name} no se puede usar en este momento.")
             return 0
 
     def calculate_damage(self, player):
@@ -62,8 +61,6 @@ class Skill:
         if self.can_use(player):
             return getattr(player, self.main_attribute) * self.multiplier + self.damage
         else:
-            print(
-                "No tienes suficiente mana o no cumples con los requisitos para usar esta habilidad.")
             return 0
 
     def reduce_cooldown(self):

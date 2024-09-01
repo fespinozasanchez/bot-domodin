@@ -1,4 +1,4 @@
-# item.py
+# items.py
 
 class Item:
     def __init__(self, name, item_type, description, increase_stat=None, increase_amount=0, effect=None):
@@ -42,6 +42,6 @@ class Item:
         """
         if self.effect:
             self.effect(player)
-            print(f"{self.name} used on {player.name}.")
+            return True
         else:
-            print(f"{self.name} cannot be used directly.")
+            return False

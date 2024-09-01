@@ -14,7 +14,6 @@ class Enemy:
 
     def attack(self, target):
         damage = max(0, self.attack_power - target.defense)
-        print(f"Enemy attacks! Calculated damage: {damage}")
         target.receive_damage(damage)
         return damage
 
@@ -40,7 +39,6 @@ class Enemy:
         """
         Maneja la muerte del enemigo.
         """
-        print(f"{self.name} has been defeated!")
 
     def is_alive(self):
         """

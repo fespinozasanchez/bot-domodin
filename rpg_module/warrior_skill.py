@@ -27,7 +27,6 @@ class WarriorSkill(Skill):
         Usa la habilidad del guerrero, causando daño y aplicando la probabilidad de aturdir al enemigo.
         """
         if not enemy:
-            print("No se proporcionó un objetivo enemigo para la habilidad del guerrero.")
             return 0
 
         if self.can_use(player):
@@ -37,12 +36,9 @@ class WarriorSkill(Skill):
 
             if ra.random() < self.stun_chance:
                 enemy.stunned = True
-                print(f"¡El enemigo {enemy.name} ha sido aturdido!")
 
             self.current_cooldown = self.cooldown
 
             return max(damage, 0)
         else:
-            print(f"No tienes suficiente mana o la habilidad {
-                  self.name} está en cooldown.")
             return 0

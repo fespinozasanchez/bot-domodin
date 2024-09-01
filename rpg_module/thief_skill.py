@@ -33,17 +33,11 @@ class ThiefSkill(Skill):
 
             if ra.random() < self.crit_chance:
                 damage *= 2
-                print(f"Critical hit! {player.name} dealt {damage} damage.")
-
             player.evasion += self.evasion_boost
-            print(f"{player.name}'s evasion increased by {
-                  self.evasion_boost}!")
             self.current_cooldown = self.cooldown
 
             return damage
         else:
-            print(
-                "No tienes suficiente mana o no cumples con los requisitos para usar esta habilidad.")
             return 0
 
     def apply_critical_hit(self, damage):

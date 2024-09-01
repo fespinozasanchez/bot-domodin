@@ -35,18 +35,15 @@ class MageSkill(Skill):
 
                 # Asegúrate de que la salud del enemigo no caiga por debajo de 0
                 target.health = max(0, target.health)
-                print(f"Mage skill used! Total damage: {
-                      total_damage}, Enemy health: {target.health}")
+                
 
             self.current_cooldown = self.cooldown
             return total_damage
         elif self.current_cooldown > 0:
-            print(f"Skill {self.name} is on cooldown for {
-                  self.current_cooldown} more turn(s).")
+            return False
         else:
-            print(
-                "No tienes suficiente mana o no cumples con los requisitos para usar esta habilidad.")
-        return 0
+            return True
+
 
     def apply_elemental_effect(self, target):
         """
@@ -54,10 +51,10 @@ class MageSkill(Skill):
         """
         if self.elemental_type == "Fire":
             target.health -= 5  # Ejemplo de efecto de quemadura
-            print(f"{target.name} is burned by {self.elemental_type}!")
+            
         elif self.elemental_type == "Ice":
             target.stunned = True  # Ejemplo de efecto de congelación
-            print(f"{target.name} is frozen by {self.elemental_type}!")
+        
 
     def reduce_cooldown(self):
         """
