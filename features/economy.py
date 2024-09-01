@@ -39,11 +39,32 @@ class Economy(commands.Cog):
         user_id = str(ctx.author.id)
         guild_id = str(ctx.guild.id)
         user_data = load_user_data(user_id, guild_id)
+
         if user_data:
             balance = user_data['balance']
-            await ctx.send(f'{ctx.author.name}, tu saldo es {balance} MelladoCoins.')
+            embed = discord.Embed(
+                title="💳 Mellado Bank",
+                description=f"Saldo disponible para {ctx.author.name}",
+                color=discord.Color.blue()  # Puedes elegir el color que más te guste
+            )
+            embed.set_thumbnail(url=ctx.author.avatar.url)  # Se corrige el acceso a la URL del avatar
+            embed.add_field(name="Usuario", value=ctx.author.name, inline=True)
+            embed.add_field(name="ID", value=ctx.author.id, inline=True)
+            embed.add_field(name="Saldo Disponible", value=f"{balance} MelladoCoins", inline=False)
+            embed.set_footer(text="Gracias por utilizar Mellado Bank", icon_url="https://pillan.inf.uct.cl/~fespinoza/logo.png")  # Logo del banco, opcional
+
+            await ctx.send(embed=embed)
         else:
-            await ctx.send(f'{ctx.author.name}, no estás registrado. Usa el comando !registrar para registrarte.')
+            embed = discord.Embed(
+                title="🚫 Mellado Bank",
+                description=f"{ctx.author.name}, no estás registrado.",
+                color=discord.Color.red()  # Rojo para resaltar el error
+            )
+            embed.set_thumbnail(url=ctx.author.avatar.url)  # Se corrige el acceso a la URL del avatar
+            embed.add_field(name="Acción Requerida", value="Usa el comando !registrar para registrarte.", inline=False)
+            embed.set_footer(text="Registro necesario para utilizar Mellado Bank", icon_url="https://pillan.inf.uct.cl/~fespinoza/logo.png")  # Logo del banco, opcional
+
+            await ctx.send(embed=embed)
 
     @commands.command(name='grafico_saldos')
     async def grafico_saldos(self, ctx):
@@ -105,8 +126,7 @@ class Economy(commands.Cog):
                 user_id, guild_id = key.split("_")
                 self.update_balance(user_id, guild_id, 0.01)
             except ValueError:
-                logging.error(
-                    f"Key '{key}' does not have the expected format 'user_id_guild_id'")
+                logging.error(f"Key '{key}' does not have the expected format 'user_id_guild_id'")
 
     @commands.command(name='set_channel')
     @commands.has_permissions(administrator=True)
