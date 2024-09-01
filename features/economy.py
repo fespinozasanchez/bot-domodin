@@ -1,5 +1,3 @@
-# En features/economy.py
-
 import io
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,9 +7,9 @@ from utils.data_manager import load_user_data, save_user_data, load_all_users
 import logging
 import matplotlib
 import random as ra
-matplotlib.use('Agg')  # Esto cambia el backend a 'Agg'
+from utils.channel_manager import save_channel_setting, load_channel_setting
+matplotlib.use('Agg')
 
-# Configuración del logging
 logging.basicConfig(level=logging.DEBUG)
 
 
@@ -110,39 +108,66 @@ class Economy(commands.Cog):
                 logging.error(
                     f"Key '{key}' does not have the expected format 'user_id_guild_id'")
 
-    @tasks.loop(hours=1)
+    @commands.command(name='set_channel')
+    @commands.has_permissions(administrator=True)
+    async def set_channel(self, ctx, channel: discord.TextChannel):
+        guild_id = str(ctx.guild.id)
+        save_channel_setting(guild_id, channel.id)
+        await ctx.send(f"Canal configurado a {channel.mention} para los mensajes de MelladoCoins.")
+        logging.info(f"Canal configurado en {ctx.guild.name}: {channel.name}")
+
+    @tasks.loop(minutes=60)
     async def mellado_coins_task(self):
-        # Itera sobre todas las guilds (servidores) en los que está el bot
-        for guild in self.bot.guilds:
-            # Buscar el canal "general" en todo el servidor
-            channel = discord.utils.get(guild.text_channels, name="general")
+        try:
+            logging.debug("mellado_coins_task is running.")
+            for guild in self.bot.guilds:
+                guild_id = str(guild.id)
+                channel_id = load_channel_setting(guild_id)  # Cargar la configuración del canal
 
-            members = [member for member in guild.members if not member.bot]
-            if not members:
-                continue  # Si no hay miembros humanos, pasa al siguiente guild
+                # Si no hay un canal configurado, selecciona el primer canal disponible
+                if channel_id is None:
+                    channel = next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
+                    if channel:
+                        channel_id = channel.id
+                        save_channel_setting(guild_id, channel_id)  # Guarda este canal como el predeterminado
+                        logging.info(f"Usando {channel.name} como canal por defecto en {guild.name}.")
+                    else:
+                        logging.warning(f"No hay canales disponibles para enviar mensajes en {guild.name}.")
+                        continue
+                else:
+                    channel = self.bot.get_channel(channel_id)
+                    if not channel or not channel.permissions_for(guild.me).send_messages:
+                        # Si el canal configurado ya no es válido, busca otro canal
+                        channel = next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
+                        if channel:
+                            channel_id = channel.id
+                            save_channel_setting(guild_id, channel_id)  # Guarda este nuevo canal como el predeterminado
+                            logging.info(f"Canal {channel.name} seleccionado como predeterminado en {guild.name}.")
+                        else:
+                            logging.warning(f"No hay canales disponibles para enviar mensajes en {guild.name}.")
+                            continue
 
-            usuario = ra.choice(members)
-            user_id = str(usuario.id)
-            guild_id = str(guild.id)
+                members = [member for member in guild.members if not member.bot]
+                if not members:
+                    continue
 
-            user_data = load_user_data(user_id, guild_id)
-            if user_data is None:
-                continue  # Si el usuario no está registrado, pasa al siguiente usuario
+                usuario = ra.choice(members)
+                user_id = str(usuario.id)
+                user_data = load_user_data(user_id, guild_id)
 
-            # Genera una cantidad aleatoria entre -100 y 100
-            cantidad = ra.randint(-100, 100)
+                if user_data is None:
+                    continue
 
-            user_data['balance'] += cantidad
-            save_user_data(user_id, guild_id, user_data['balance'])
+                cantidad = ra.randint(-100, 100)
+                user_data['balance'] += cantidad
+                save_user_data(user_id, guild_id, user_data['balance'])
 
-            # Verifica si se encontró el canal
-            if channel:
                 if cantidad > 0:
                     await channel.send(f'¡<@{usuario.id}> es un ingeniero duro! y como es duro le voy a dar {cantidad} MelladoCoins. Tu nuevo saldo es {user_data["balance"]} MelladoCoins.')
                 else:
                     await channel.send(f'<@{usuario.id}> tiene que irse a parvularia. Le he quitado {-cantidad} MelladoCoins. Tu nuevo saldo es {user_data["balance"]} MelladoCoins.')
-            else:
-                return
+        except Exception as e:
+            logging.error("Error en mellado_coins_task:", exc_info=e)
 
     @passive_income.before_loop
     async def before_passive_income(self):
