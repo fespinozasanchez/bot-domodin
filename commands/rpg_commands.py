@@ -2,9 +2,13 @@ import discord
 from discord.ext import commands
 from utils.rpg_data_manager import register_player, get_player_stats
 
-def register_commands(bot):
-    @bot.command(help='Registra un jugador. Usa el comando solo una vez por usuario.')
-    async def registerplayer(ctx):
+
+class RPG(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command(help='Registra un jugador. Usa el comando solo una vez por usuario.')
+    async def registerplayer(self, ctx):
         usuario = ctx.author
         user_id = str(usuario.id)
         guild_id = str(ctx.guild.id)
@@ -29,8 +33,8 @@ def register_commands(bot):
 
         await ctx.send(f'{usuario.name}, has sido registrado como jugador con éxito.')
 
-    @bot.command(help='Muestra las estadísticas de tu personaje.')
-    async def stats(ctx):
+    @commands.command(help='Muestra las estadísticas de tu personaje.')
+    async def stats(self, ctx):
         usuario = ctx.author
         user_id = str(usuario.id)
 
@@ -57,7 +61,10 @@ def register_commands(bot):
         # Enviar el embed con las estadísticas
         await ctx.send(embed=embed)
 
-    @bot.command(help="Pregunta si pasa el ramo")
-    async def poto(ctx):
+    @commands.command(help="Pregunta si pasa el ramo")
+    async def poto(self, ctx):
         await ctx.send("poto")
 
+
+async def setup(bot):
+    await bot.add_cog(RPG(bot))
