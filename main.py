@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import discord
 from discord.ext import commands, tasks
 from a_queue.audio_queue import AudioQueue
-from commands import fun_commands,rpg_commands
+from commands import fun_commands
 from utils.custom_help import CustomHelpCommand
 from utils.logger import setup_logger
 from utils.reminder_manager import ReminderManager
@@ -36,10 +36,10 @@ bot = commands.Bot(command_prefix='!', description="this is a bot the Caro",
 
 # Crear instancia de ReminderManager
 reminder_manager = ReminderManager()
+
 # Registrar comandos
 copa_america.register_commands(bot)
 fun_commands.register_commands(bot)
-rpg_commands.register_commands(bot)
 
 
 async def load_cogs():
@@ -49,8 +49,8 @@ async def load_cogs():
     await bot.load_extension('features.economy')
     await bot.load_extension('moderation.moderation_commands')
     await bot.load_extension('commands.reminder_commands')
-    # Nuevo módulo agregado aquí
     await bot.load_extension('features.prediction_system')
+    await bot.load_extension('commands.rpg_commands')  # Cargar el módulo RPG como un cog
 
 
 @tasks.loop(seconds=60)
