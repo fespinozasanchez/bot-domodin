@@ -1,6 +1,7 @@
 import random as ra
 import discord
 from discord.ext import commands
+from commands.CONST.payas import PAYAS
 
 
 def register_commands(bot):
@@ -20,6 +21,10 @@ def register_commands(bot):
     async def mide(ctx):
         cm = ra.randint(1, 30)
         await ctx.send(f"Te mide: {cm} cm de puro placer bb 🍌 {ctx.author.mention}")
+
+    @bot.command(help="Payas")
+    async def payas(ctx):
+        await ctx.send(ra.choice(PAYAS))
 
     @bot.command(help="Manda a dormir a la gente")
     async def tutito(ctx):
