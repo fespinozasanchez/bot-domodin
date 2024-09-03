@@ -1,6 +1,7 @@
 import random as ra
 import discord
 from discord.ext import commands
+from commands.CONST.payas import PAYAS
 
 
 def register_commands(bot):
@@ -21,6 +22,10 @@ def register_commands(bot):
         cm = ra.randint(1, 30)
         await ctx.send(f"Te mide: {cm} cm de puro placer bb 🍌 {ctx.author.mention}")
 
+    @bot.command(help="Payas")
+    async def payas(ctx):
+        await ctx.send(ra.choice(PAYAS))
+
     @bot.command(help="Manda a dormir a la gente")
     async def tutito(ctx):
         choice = ra.randint(0, 1)
@@ -37,6 +42,32 @@ def register_commands(bot):
         else:
             await ctx.send(f"{user.mention} Lamentablemente!, repruebas el ramo malo ql sin opción a repetir. 😢")
 
+    @bot.command(help="Prendio la Luchoneta")
+    async def luchoneta(ctx):
+        await ctx.send(f"@everyone MAMI PRENDA LA RADIO ENCIENDA LA TELE Y NO ME MOLESTE QUE HOY JUEGA LA LUCHONETA 🗣️🗣️🗣️🗣️🗣️🗣️🗣️🗣️🗣️🗣️🗣️🗣️🗣️🗣️🗣️💥💥💥💥💥‼️‼️‼️❗❗❗❗⁉️")
+
+    @bot.command()
+    async def stream(ctx):
+        # Crear el embed con la información del stream
+        embed = discord.Embed(
+            title="2 dias stremeando seguido? en mi prime jugando soloq mañanero en el gran high elo de bronce las !ig !only !barbería !donacion",
+            description="Mira la transmisión en Twitch",
+            url="https://www.twitch.tv/wenaluis",
+            color=discord.Color.purple()
+        )
+
+        # Agregar una imagen (generalmente un avatar o banner del stream)
+        embed.set_thumbnail(url="https://static-cdn.jtvnw.net/jtv_user_pictures/3adc7ba56988787b-profile_image-70x70.jpeg")  # Reemplaza con la URL de la imagen del stream
+
+        # Agregar un campo con el nombre del canal
+        embed.add_field(name="Canal:", value="wenaluis", inline=False)
+
+        # Agregar un campo con el enlace directo al stream
+        embed.add_field(name="Enlace:", value="[Ver el stream](https://www.twitch.tv/wenaluis)", inline=False)
+
+        # Enviar el embed en el canal
+        await ctx.send(embed=embed)
+
     @bot.command(help="Pregunta por una partida de age")
     async def age(ctx):
         choice = ra.randint(0, 1)
@@ -51,7 +82,6 @@ def register_commands(bot):
     @bot.command(help="Pregunta que se hace hoy")
     async def quesehace(ctx):
         await ctx.send('@everyone\nHoy solo se descansa gracias.')
-
 
     @bot.command(help="Pregunta por una partida de aram")
     async def aram(ctx):

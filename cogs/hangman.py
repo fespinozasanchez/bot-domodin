@@ -12,9 +12,11 @@ class Hangman(commands.Cog):
 
     @commands.command(help="Inicia un nuevo juego de ahorcado.")
     async def ahorcado(self, ctx):
-        response = requests.get('https://random-word-api.herokuapp.com/word?lang=es&number=10')
+        response = requests.get(
+            'https://random-word-api.herokuapp.com/word?lang=es&number=10')
         words = response.json()
-        word = random.choice(words)
+        # Asegurar que la palabra esté en minúsculas
+        word = random.choice(words).lower()
         self.games[ctx.channel.id] = {
             "word": word,
             "state": ["_" for _ in word],
@@ -107,18 +109,11 @@ class Hangman(commands.Cog):
     async def _fallo(self, ctx, game):
         game["failures"] += 1
         if game["failures"] >= 12:
-            embed = discord.Embed(
-                title="Lo siento, has perdido.",
-                description=f"La palabra era: {game['word']}",
-                color=discord.Color.red()
-            )
+            embed = discord.Embed(title="Lo siento, has perdido.",description=f"La palabra era: {game['word']}",color=discord.Color.red())
             await ctx.send(embed=embed)
             del self.games[ctx.channel.id]
         else:
-            embed = discord.Embed(
-                title="Letra incorrecta.",
-                description=f"Intentos fallidos: { game['failures']}/12\n```\n" + " ".join(game["state"]) + "\n```"
-            )
+            embed = discord.Embed(title="Letra incorrecta.", description=f"Intentos fallidos: {game['failures']}/12\n```\n" + " ".join(game["state"]) + "\n```" )
             await ctx.send(embed=embed)
 
 

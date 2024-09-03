@@ -13,6 +13,10 @@ class Betting(commands.Cog):
 
     @commands.command(name='apostar', help='Apostar por un equipo !apostar <equipo> <cantidad>')
     async def place_bet(self, ctx, equipo: str, cantidad: int):
+        if cantidad <= 0:
+            await ctx.send(f'Solo puedes apostar cantidades positivas, mono enfermo.')
+            return
+
         usuario = ctx.author
         user_id = str(usuario.id)
         guild_id = str(ctx.guild.id)
@@ -90,7 +94,7 @@ class Betting(commands.Cog):
                     if ganador is None:
                         ganador = await self.bot.fetch_user(int(ganador_id))
                     if ganador:
-                        mensaje_ganadores += f'{ganador.name}: { ganancia} MelladoCoins\n'
+                        mensaje_ganadores += f'{ganador.name}: {ganancia} MelladoCoins\n'
                     else:
                         mensaje_ganadores += f'Usuario desconocido (ID: {ganador_id}): {ganancia} MelladoCoins\n'
                 await ctx.send(mensaje_ganadores)
@@ -122,6 +126,10 @@ class Betting(commands.Cog):
                 await ctx.send(f'{usuario.name}, la cantidad debe ser un número o "all".')
                 return
 
+        if cantidad <= 0:
+            await ctx.send(f'Solo puedes apostar cantidades positivas, mono enfermo.')
+            return
+
         if cantidad > user_data['balance']:
             await ctx.send(f'{usuario.name}, no tienes suficiente saldo para apostar esa cantidad.')
             return
@@ -137,6 +145,111 @@ class Betting(commands.Cog):
             await ctx.send(f'{usuario.name}, has perdido. Tu nuevo saldo es {user_data["balance"]} MelladoCoins.')
 
         save_user_data(user_id, guild_id, user_data['balance'])
+
+    @commands.command(name='transferir', help='Realiza una transferencia de tus MelladoCoins. Uso: !transferir <usuario> <cantidad>')
+    async def transferir(self, ctx, destinatario: discord.Member, cantidad: str):
+        usuario = ctx.author
+        user_id = str(usuario.id)
+        guild_id = str(ctx.guild.id)
+        destinatario_id = str(destinatario.id)
+
+        # Verificar si el usuario intenta transferirse a sí mismo
+        if destinatario_id == user_id:
+            embed = discord.Embed(
+                title="🚫 Error de Transferencia",
+                description="No puedes transferirte saldo a ti mismo.",
+                color=discord.Color.red()
+            )
+            embed.set_thumbnail(url=usuario.avatar.url)
+            await ctx.send(embed=embed)
+            return
+
+        # Cargar datos de usuario y destinatario
+        user_data = load_user_data(user_id, guild_id)
+        destinatario_data = load_user_data(destinatario_id, guild_id)
+
+        # Verificar si el usuario está registrado
+        if user_data is None:
+            embed = discord.Embed(
+                title="🚫 No Registrado",
+                description=f"{usuario.name}, no estás registrado. Usa el comando !registrar para registrarte.",
+                color=discord.Color.red()
+            )
+            embed.set_thumbnail(url=usuario.avatar.url)
+            await ctx.send(embed=embed)
+            return
+
+        # Verificar si el destinatario está registrado
+        if destinatario_data is None:
+            embed = discord.Embed(
+                title="🚫 Destinatario No Registrado",
+                description=f"{destinatario.name} no está registrado. El destinatario debe registrarse antes de recibir saldo.",
+                color=discord.Color.red()
+            )
+            embed.set_thumbnail(url=destinatario.avatar.url)
+            await ctx.send(embed=embed)
+            return
+
+        # Validar la cantidad de la transferencia
+        try:
+            cantidad = float(cantidad)
+        except ValueError:
+            embed = discord.Embed(
+                title="🚫 Cantidad Inválida",
+                description="La cantidad debe ser un número válido.",
+                color=discord.Color.red()
+            )
+            embed.set_thumbnail(url=usuario.avatar.url)
+            await ctx.send(embed=embed)
+            return
+
+        if cantidad <= 0:
+            embed = discord.Embed(
+                title="🚫 Cantidad Inválida",
+                description="Solo puedes transferir cantidades positivas.",
+                color=discord.Color.red()
+            )
+            embed.set_thumbnail(url=usuario.avatar.url)
+            await ctx.send(embed=embed)
+            return
+
+        if cantidad > user_data['balance']:
+            embed = discord.Embed(
+                title="🚫 Saldo Insuficiente",
+                description=f"No tienes suficiente saldo para transferir {cantidad} MelladoCoins.",
+                color=discord.Color.red()
+            )
+            embed.set_thumbnail(url=usuario.avatar.url)
+            await ctx.send(embed=embed)
+            return
+
+        # Realizar la transferencia
+        user_data['balance'] -= cantidad
+        destinatario_data['balance'] += cantidad
+
+        # Guardar los datos actualizados
+        save_user_data(user_id, guild_id, user_data['balance'])
+        save_user_data(destinatario_id, guild_id, destinatario_data['balance'])
+
+        # Mensaje de confirmación para el usuario
+        embed_usuario = discord.Embed(
+            title="✅ Transferencia Exitosa",
+            description=f"Has transferido {cantidad} MelladoCoins a {destinatario.name}.",
+            color=discord.Color.green()
+        )
+        embed_usuario.add_field(name="Tu Nuevo Saldo", value=f"{user_data['balance']} MelladoCoins", inline=False)
+        embed_usuario.set_thumbnail(url=usuario.avatar.url)
+        await ctx.send(embed=embed_usuario)
+
+        # Mensaje de confirmación para el destinatario
+        embed_destinatario = discord.Embed(
+            title="💰 Has Recibido una Transferencia",
+            description=f"Has recibido {cantidad} MelladoCoins de {usuario.name}.",
+            color=discord.Color.green()
+        )
+        embed_destinatario.add_field(name="Tu Nuevo Saldo", value=f"{destinatario_data['balance']} MelladoCoins", inline=False)
+        embed_destinatario.set_thumbnail(url=destinatario.avatar.url)
+        await ctx.send(embed=embed_destinatario)
 
 
 async def setup(bot):

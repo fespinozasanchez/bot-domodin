@@ -89,12 +89,18 @@ def save_user_data(user_id, guild_id, balance):
     retry_query(save)
 
 
-def load_all_users():
+# En utils/data_manager.py
+
+def load_all_users(guild_id=None):
     def load_all():
         conn = connect_db()
         if conn:
             with closing(conn.cursor(dictionary=True)) as cursor:
-                cursor.execute('SELECT * FROM users')
+                if guild_id:
+                    cursor.execute(
+                        'SELECT * FROM users WHERE guild_id=%s', (guild_id,))
+                else:
+                    cursor.execute('SELECT * FROM users')
                 return cursor.fetchall()
             conn.close()
 
