@@ -5,3 +5,6 @@ DATABASE_CONFIG = {
     'host': 'localhost',
     'database': 'bot_caro',
 }
+
+
+URL = "https://americas.api.riotgames.com"
