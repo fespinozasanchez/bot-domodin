@@ -44,13 +44,13 @@ fun_commands.register_commands(bot)
 
 async def load_cogs():
     await bot.load_extension('cogs.hangman')
-    # await bot.load_extension('commands.music_commands')
-    # await bot.load_extension('features.betting_system')
-    # await bot.load_extension('features.economy')
-    # await bot.load_extension('moderation.moderation_commands')
-    # await bot.load_extension('commands.reminder_commands')
-    # await bot.load_extension('features.prediction_system')
-    # await bot.load_extension('commands.rpg_commands')
+    await bot.load_extension('commands.music_commands')
+    await bot.load_extension('features.betting_system')
+    await bot.load_extension('features.economy')
+    await bot.load_extension('moderation.moderation_commands')
+    await bot.load_extension('commands.reminder_commands')
+    await bot.load_extension('features.prediction_system')
+    await bot.load_extension('commands.rpg_commands')
     await bot.load_extension('riot.leagueoflegends')
 
 
