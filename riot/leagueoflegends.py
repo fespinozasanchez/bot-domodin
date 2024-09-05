@@ -5,6 +5,8 @@ from riot.services.spectator_service import SpectatorService
 from riot.services.account_service import AccountService
 from riot.services.mastery_service import MasteryService
 from riot.services.match_service import MatchService
+from riot.services.summoner_service import SummonerService
+from riot.services.league_service import LeagueService
 
 
 class LeageOfLegends(commands.Cog):
@@ -16,6 +18,8 @@ class LeageOfLegends(commands.Cog):
         self.match_service = MatchService("americas")
         self.mastery_service = MasteryService(self.region)
         self.champion_service = ChampionService()
+        self.summoner_service = SummonerService(self.region)
+        self.league_service = LeagueService(self.region)
 
     @commands.command(name="game")
     async def game(self, ctx, *, summoner_name: str):
@@ -95,34 +99,84 @@ class LeageOfLegends(commands.Cog):
     @commands.command(name="profile")
     async def profile(self, ctx, *, summoner_name: str):
         try:
+            # Separar el riot_id y el tag del nombre del invocador
             riot_id, tag = summoner_name.split('#')
+
+            # Obtener la cuenta por Riot ID
             account = self.account_service.get_account_by_riot_id(riot_id, tag)
-            summoner_name = account.gameName
-            summoner_id = account.puuid
 
-            # Obtener información de la liga
-            ranked_data = self.league_service.get_ranked_info_by_summoner_id(summoner_id)
-
-            if not ranked_data:
-                await ctx.send(f"{summoner_name} no tiene datos de clasificación.")
+            if account is None:
+                await ctx.send(f"No se encontró información para {summoner_name}.")
                 return
 
-            # Crear embed para mostrar el perfil
+            # Obtener el PUUID
+            puuid = account.puuid
+
+            # Obtener información del invocador usando el PUUID
+            summoner = self.summoner_service.get_summoner_by_puuid(puuid)
+
+            if summoner is None:
+                await ctx.send(f"No se encontró información de invocador para {summoner_name}.")
+                return
+
+            # Crear embed inicial para mostrar información general del perfil
             embed = discord.Embed(title=f"Perfil de {summoner_name}#{tag}", color=discord.Color.blue())
+            embed.add_field(name="Nivel", value=summoner.summonerLevel, inline=True)
+            embed.set_thumbnail(url=f"http://ddragon.leagueoflegends.com/cdn/14.17.1/img/profileicon/{summoner.profileIconId}.png")
 
-            # Añadir información de perfil
-            for queue in ranked_data:
-                embed.add_field(name=f"{queue['queueType']}",
-                                value=(
-                                    f"División: {queue['tier']} {queue['rank']}\n"
-                                    f"Victorias: {queue['wins']}\n"
-                                    f"Derrotas: {queue['losses']}\n"
-                                    f"Winrate: {round(queue['wins'] / (queue['wins'] + queue['losses']) * 100, 2)}%"
-                ),
-                    inline=False)
-
+            # Enviar el primer embed con la información general
             await ctx.send(embed=embed)
 
+            # Obtener las ligas clasificatorias
+            ranked_data = self.league_service.get_ranked_info_by_summoner_id(summoner.id)
+
+            # Mapeo de los tiers para imágenes
+            tier_images = {
+                "IRON": "https://pillan.inf.uct.cl/~fespinoza/lol/emblems/Rank=Iron.png",
+                "BRONZE": "https://pillan.inf.uct.cl/~fespinoza/lol/emblems/Rank=Bronze.png",
+                "SILVER": "https://pillan.inf.uct.cl/~fespinoza/lol/emblems/Rank=Silver.png",
+                "GOLD": "https://pillan.inf.uct.cl/~fespinoza/lol/emblems/Rank=Gold.png",
+                "PLATINUM": "https://pillan.inf.uct.cl/~fespinoza/lol/emblems/Rank=Platinum.png",
+                "DIAMOND": "https://pillan.inf.uct.cl/~fespinoza/lol/emblems/Rank=Diamond.png",
+                "MASTER": "https://pillan.inf.uct.cl/~fespinoza/lol/emblems/Rank=Master.png",
+                "GRANDMASTER": "https://pillan.inf.uct.cl/~fespinoza/lol/emblems/Rank=Grandmaster.png",
+                "CHALLENGER": "https://pillan.inf.uct.cl/~fespinoza/lol/emblems/Rank=Challenger.png",
+                "EMERALD": "https://pillan.inf.uct.cl/~fespinoza/lol/emblems/Rank=Emerald.png"
+            }
+
+            # Mapeo para mostrar nombres personalizados en las colas
+            queue_names = {
+                "RANKED_SOLO_5x5": "SOLOQ",
+                "RANKED_FLEX_SR": "FLEX"
+            }
+
+            if ranked_data:
+                # Crear un embed separado para cada tipo de liga
+                for league in ranked_data:
+                    # Obtener la URL de la imagen correspondiente al rango
+                    rank_image_url = tier_images.get(league.tier.upper(), None)
+
+                    # Obtener el nombre de la cola o usar el valor por defecto si no está en el mapeo
+                    queue_name = queue_names.get(league.queueType, league.queueType)
+
+                    league_embed = discord.Embed(title=f"{queue_name}", color=discord.Color.green())
+                    league_embed.add_field(name="División", value=f"{league.tier} {league.rank}", inline=True)
+                    league_embed.add_field(name="LP", value=f"{league.leaguePoints} LP", inline=True)
+                    league_embed.add_field(name="Victorias", value=f"{league.wins}", inline=True)
+                    league_embed.add_field(name="Derrotas", value=f"{league.losses}", inline=True)
+                    league_embed.add_field(name="Winrate", value=f"{round(league.wins / (league.wins + league.losses) * 100, 2)}%", inline=True)
+
+                    # Agregar la imagen del rango si está disponible
+                    if rank_image_url:
+                        league_embed.set_thumbnail(url=rank_image_url)
+
+                    # Enviar el embed para cada tipo de clasificación
+                    await ctx.send(embed=league_embed)
+            else:
+                await ctx.send(f"{summoner_name} no tiene datos de clasificación en ninguna cola.")
+
+        except ValueError:
+            await ctx.send(f"El formato del nombre de invocador {summoner_name} es incorrecto. Usa Nombre#Etiqueta.")
         except Exception as e:
             await ctx.send(f"Ocurrió un error al intentar obtener la información de {summoner_name}. Error: {str(e)}")
 
