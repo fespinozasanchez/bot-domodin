@@ -1,8 +1,9 @@
 import random as ra
 import discord
-from discord.ext import commands
+from discord.ext import commands,tasks
 from commands.CONST.payas import PAYAS
-
+from PIL import Image
+from datetime import datetime
 
 def register_commands(bot):
     @bot.command(help="¿Qué es un ingeniero?")
@@ -132,3 +133,75 @@ def register_commands(bot):
         embed.set_thumbnail(
             url="https://www.inf.uct.cl/wp-content/uploads/2018/10/Luis-Caro-577x1024.jpg")
         await ctx.send(embed=embed)
+
+    # Fecha límite
+    fecha_inicio = datetime(2024, 9, 4)
+    fecha_limite = datetime(2024, 9, 18)
+
+    # Ruta de la imagen
+    imagen_mario = "commands\img\mario18.jpg"
+
+    # Función para ajustar la opacidad de una imagen
+    def ajustar_opacidad(imagen, opacidad):
+        imagen = imagen.convert("RGBA")
+        alpha = imagen.split()[3]  # Obtiene el canal alpha (opacidad)
+        alpha = alpha.point(lambda p: p * opacidad)  # Ajusta la opacidad
+        imagen.putalpha(alpha)
+        return imagen
+
+    @bot.command(name="mario")
+    async def mario(ctx):
+        usuario = await bot.fetch_user(429798122768564225)  # ID de Mario
+        hoy = datetime.now()
+
+        # Si estamos dentro del rango de fechas
+        if fecha_inicio <= hoy <= fecha_limite:
+            # Calcular el total de días y los días restantes
+            dias_totales = (fecha_limite - fecha_inicio).days
+            dias_restantes = (fecha_limite - hoy).days
+
+            # Calcular el porcentaje de disponibilidad
+            porcentaje_disponibilidad = dias_restantes / dias_totales
+
+            # Ajustar la opacidad de la imagen según el porcentaje de disponibilidad
+            opacidad = porcentaje_disponibilidad  # Opacidad entre 0.0 y 1.0
+
+            # Cargar la imagen
+            imagen_mario = Image.open("commands\img\mario18.jpg")  # Asegúrate de usar la ruta correcta
+            imagen = ajustar_opacidad(imagen_mario, opacidad)
+            imagen.save("mario_opacidad.png")
+
+            # Enviar imagen ajustada con opacidad
+            await ctx.send(
+                f"{usuario.mention}, tu disponibilidad es del {porcentaje_disponibilidad * 100:.2f}% ({dias_restantes} días restantes).",
+                file=discord.File("mario_opacidad.png")
+            )
+        elif hoy < fecha_inicio:
+            # Si la fecha actual es anterior al inicio de la cuenta regresiva
+            await ctx.send(f"{usuario.mention}, tu disponibilidad aún no ha comenzado.")
+        else:
+            # Cuando llega la fecha límite o pasa
+            await ctx.send(f"{usuario.mention}, tu disponibilidad ha llegado a 0. No queda tiempo.")
+
+    @tasks.loop(hours=24)
+    async def verificar_opacidad():
+        canal = bot.get_channel(1234567890)  # Reemplaza con el ID de tu canal
+        dias_restantes = (fecha_limite - datetime.now()).days
+            
+        if dias_restantes <= 0:
+            await canal.send("Disponibilidad de Mario: 0")
+            verificar_opacidad.cancel()
+
+    @verificar_opacidad.before_loop
+    async def before_verificar_opacidad():
+        await bot.wait_until_ready()
+
+    @bot.event
+    async def on_ready():
+        if not verificar_opacidad.is_running():
+            verificar_opacidad.start()
+        print(f'Bot {bot.user} ha iniciado.')
+
+
+
+
