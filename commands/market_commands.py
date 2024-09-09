@@ -47,6 +47,7 @@ class MarketCommands(commands.Cog):
     @commands.command(name='comprar_propiedad', help="Compra una propiedad aleatoria del tipo especificado (hogar o tienda). Uso: !comprar_propiedad [tipo]")
     async def comprar_propiedad(self, ctx, tipo: str):
         usuario_id = str(ctx.author.id)
+        guild_id = str(ctx.guild.id)
 
         # Validar tipo de propiedad
         if tipo not in ['hogar', 'tienda']:
@@ -56,7 +57,7 @@ class MarketCommands(commands.Cog):
         try:
             # Generar una propiedad y comprobar el saldo
             propiedad = generar_propiedad(tipo)
-            comprar_propiedad(usuario_id, propiedad)
+            comprar_propiedad(usuario_id,guild_id, propiedad)
             await ctx.send(f"Has comprado una propiedad: {propiedad['nombre']}, nivel {propiedad['nivel']}.")
         except Exception as e:
             # Enviar mensaje de error al usuario
@@ -73,11 +74,12 @@ class MarketCommands(commands.Cog):
             return
 
         usuario_id = str(ctx.author.id)
+        guild_id = str(ctx.guild.id)
         propiedad = self.ultima_propiedad_generada
 
         try:
             # Intentar comprar la última propiedad generada
-            comprar_propiedad(usuario_id, propiedad)
+            comprar_propiedad(usuario_id, guild_id , propiedad)
             await ctx.send(f"Has comprado la propiedad {propiedad['nombre']} por {propiedad['valor_compra']}.")
             # Limpiar la última propiedad generada
             self.ultima_propiedad_generada = None
