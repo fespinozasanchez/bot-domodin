@@ -121,6 +121,7 @@ def create_property_tables():
                 cursor.execute('''CREATE TABLE IF NOT EXISTS inversionistas (
                                     usuario_id VARCHAR(255),
                                     penalizado BOOLEAN DEFAULT FALSE,
+                                    guild_id VARCHAR(255),
                                     PRIMARY KEY (usuario_id),
                                     FOREIGN KEY (usuario_id) REFERENCES users(user_id)
                                 )''')
@@ -166,14 +167,14 @@ def create_property_tables():
 
 
 # Registrar inversionista
-def register_investor(usuario_id):
+def register_investor(usuario_id, guild_id):
     def query():
         conn = connect_db()
         if conn:
             with closing(conn.cursor()) as cursor:
                 try:
-                    cursor.execute('''INSERT INTO inversionistas (usuario_id, penalizado) VALUES (%s, %s)''', 
-                                   (usuario_id, False))
+                    cursor.execute('''INSERT INTO inversionistas (usuario_id, guild_id, penalizado) VALUES (%s, %s, %s)''', 
+                                   (usuario_id, guild_id, False))
                     conn.commit()
                 except Error:
                     conn.rollback()
@@ -350,13 +351,13 @@ def actualizar_controladores_barrio(barrio_id, porcentajes):
     retry_query(query)
 
 # Obtener el saldo del usuario
-def obtener_saldo_usuario(usuario_id):
+def obtener_saldo_usuario(usuario_id, guild_id):
     def query():
         conn = connect_db()
         saldo = 0
         if conn:
             with closing(conn.cursor(dictionary=True)) as cursor:
-                cursor.execute('SELECT balance FROM users WHERE user_id = %s', (usuario_id,))
+                cursor.execute('SELECT balance FROM users WHERE user_id = %s AND guild_id = %s', (usuario_id, guild_id))
                 usuario = cursor.fetchone()
                 if usuario:
                     saldo = usuario['balance']
@@ -365,12 +366,12 @@ def obtener_saldo_usuario(usuario_id):
     return retry_query(query)
 
 # Actualizar el saldo del usuario
-def actualizar_saldo_usuario(usuario_id, nuevo_saldo):
+def actualizar_saldo_usuario(usuario_id, guild_id, nuevo_saldo):
     def query():
         conn = connect_db()
         if conn:
             with closing(conn.cursor()) as cursor:
-                cursor.execute('UPDATE users SET balance = %s WHERE user_id = %s', (nuevo_saldo, usuario_id))
+                cursor.execute('UPDATE users SET balance = %s WHERE user_id = %s AND guild_id = %s', (nuevo_saldo, usuario_id, guild_id))
                 conn.commit()
             conn.close()
     retry_query(query)
@@ -507,13 +508,13 @@ def obtener_usuarios_registrados():
     return retry_query(query)
 
 # Verificar si un usuario está registrado como inversionista
-def es_inversionista(usuario_id):
+def es_inversionista(usuario_id, guild_id):
     def query():
         conn = connect_db()
         inversionista = False
         if conn:
             with closing(conn.cursor(dictionary=True)) as cursor:
-                cursor.execute('SELECT usuario_id FROM inversionistas WHERE usuario_id = %s', (usuario_id,))
+                cursor.execute('SELECT usuario_id FROM inversionistas WHERE usuario_id = %s AND guild_id = %s', (usuario_id, guild_id))
                 inversionista = cursor.fetchone() is not None
             conn.close()
         return inversionista

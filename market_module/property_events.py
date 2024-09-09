@@ -42,16 +42,11 @@ def manejar_eventos_diarios():
 
 # Eventos circunstanciales
 # Evento: Comprar una propiedad
-def comprar_propiedad(usuario_id, propiedad):
-    """
-    Evento que maneja la compra de una propiedad.
-    Almacena la propiedad en la base de datos con el ID del usuario.
-    También actualiza los colores en el barrio correspondiente.
-    """
-    
+# Evento: Comprar una propiedad
+def comprar_propiedad(usuario_id, guild_id, propiedad):
     if propiedad is not None:
         # Obtener el saldo del usuario
-        saldo = obtener_saldo_usuario(usuario_id)
+        saldo = obtener_saldo_usuario(usuario_id, guild_id)
         
         # Verificar si el usuario tiene suficiente saldo para comprar la propiedad
         if saldo < propiedad['valor_compra']:
@@ -62,7 +57,7 @@ def comprar_propiedad(usuario_id, propiedad):
         guardar_propiedad(propiedad)
         
         # Actualizar el saldo del usuario
-        actualizar_saldo_usuario(usuario_id, saldo - propiedad['valor_compra'])
+        actualizar_saldo_usuario(usuario_id, guild_id, saldo - propiedad['valor_compra'])
         
         # Actualizar controladores de barrio
         actualizar_controladores_propiedades_barrio(propiedad['barrio'])

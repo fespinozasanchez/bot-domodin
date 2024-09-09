@@ -25,23 +25,23 @@ class MarketCommands(commands.Cog):
     @commands.command(name='registrar_inversionista', help='Registra al usuario como inversionista. Uso: !registrar_inversionista')
     async def registrar_inversionista(self, ctx):
         usuario_id = str(ctx.author.id)
+        guild_id = str(ctx.guild.id)  # Usar guild_id para diferenciar servidores
 
         # Verificar si el usuario ya está registrado como inversionista
-        if es_inversionista(usuario_id):
+        if es_inversionista(usuario_id, guild_id):
             await ctx.send("Ya estás registrado como inversionista. No puedes registrarte de nuevo.")
             return
 
         # Generar propiedad inicial
         try:
-            register_investor(usuario_id)
+            register_investor(usuario_id, guild_id)
             propiedad_inicial = generar_propiedad(tipo='hogar')
             propiedad_inicial["es_residencia_principal"] = True
-            comprar_propiedad(usuario_id, propiedad_inicial)
+            comprar_propiedad(usuario_id, guild_id, propiedad_inicial)
 
             await ctx.send(f"Te has registrado como inversionista y has recibido una propiedad inicial tipo hogar: {propiedad_inicial['nombre']}.")
         except Exception as e:
             await ctx.send(f"Ocurrió un error al registrarte: {str(e)}")
-
 
     # Comando: !comprar_propiedad [tipo]
     @commands.command(name='comprar_propiedad', help="Compra una propiedad aleatoria del tipo especificado (hogar o tienda). Uso: !comprar_propiedad [tipo]")
