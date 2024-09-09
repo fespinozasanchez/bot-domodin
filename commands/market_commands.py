@@ -382,10 +382,8 @@ class MarketCommands(commands.Cog):
             return
 
         for usuario in usuarios:
-            propiedades = obtener_propiedades_por_usuario(usuario['usuario_id'])
-            for propiedad in propiedades:
-                pagar_renta_diaria(usuario['usuario_id'], propiedad['id'])
-                logging.info(f"Renta diaria pagada por la propiedad {propiedad['nombre']} del usuario {usuario['usuario_id']}.")
+            pagar_renta_diaria(usuario['usuario_id'])
+            logging.info(f"Renta diaria pagada al {usuario['usuario_id']}.")
 
         # Notificación de rentas pagadas solo a servidores con inversionistas
         for guild in self.bot.guilds:
