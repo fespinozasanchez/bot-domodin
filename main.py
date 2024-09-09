@@ -64,10 +64,10 @@ async def on_ready():
     check_reminders.start()
     await bot.change_presence(
         activity=discord.Activity(type=discord.ActivityType.watching,
-                                  name='[CSEC IT: Pascal Programming in 1 hour | MAKE IT SIMPLE TT]'),
+                                  name='Dom domo din, el sabio dueño de Domodin, está vigilando...'),
         status=discord.Status.dnd
     )
-    print(f'We have logged in as {bot.user}')
+print(f'We have logged in as {bot.user}')
 
 
 async def main():
