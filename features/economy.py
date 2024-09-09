@@ -18,7 +18,8 @@ class Economy(commands.Cog):
         self.bot = bot
         self.data = load_all_users()
         self.passive_income.start()
-        self.mellado_coins_task.start()
+        #self.mellado_coins_task.start()
+        
 
     @commands.command(name='registrar')
     async def register_user(self, ctx):

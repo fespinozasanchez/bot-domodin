@@ -1,5 +1,7 @@
 # mage_skill.py
-from skills import Skill
+from rpg_module.skills import Skill
+
+
 
 
 class MageSkill(Skill):

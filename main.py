@@ -52,7 +52,7 @@ async def load_cogs():
     await bot.load_extension('features.prediction_system')
     await bot.load_extension('commands.rpg_commands')
     await bot.load_extension('riot.leagueoflegends')
-    await bot.load_extension('commands.market_commands')
+    #await bot.load_extension('commands.market_commands')
 
 @tasks.loop(seconds=60)
 async def check_reminders():
