@@ -18,8 +18,7 @@ class Economy(commands.Cog):
         self.bot = bot
         self.data = load_all_users()
         self.passive_income.start()
-        #self.mellado_coins_task.start()
-        
+        # self.mellado_coins_task.start()
 
     @commands.command(name='registrar')
     async def register_user(self, ctx):
@@ -33,7 +32,7 @@ class Economy(commands.Cog):
         else:
             self.data[key] = {'guild_id': guild_id, 'balance': 1000}
             save_user_data(user_id, guild_id, 1000)
-            await ctx.send(f'{ctx.author.name}, has sido registrado con un saldo inicial de 1000 MelladoCoins.')
+            await ctx.send(f'{ctx.author.name}, has sido registrado con un saldo inicial de $1.000 MelladoCoins.')
 
     @commands.command(name='saldo')
     async def check_balance(self, ctx):
@@ -42,7 +41,8 @@ class Economy(commands.Cog):
         user_data = load_user_data(user_id, guild_id)
 
         if user_data:
-            balance = user_data['balance']
+            balance = round(user_data['balance'], 0)  # Redondear a 0 decimales
+            balance_formatted = f"${balance:,.0f}".replace(",", ".")  # Formato con puntos de mil y sin decimales
             embed = discord.Embed(
                 title="💳 Mellado Bank",
                 description=f"Saldo disponible para {ctx.author.name}",
@@ -51,7 +51,7 @@ class Economy(commands.Cog):
             embed.set_thumbnail(url=ctx.author.avatar.url)  # Se corrige el acceso a la URL del avatar
             embed.add_field(name="Usuario", value=ctx.author.name, inline=True)
             embed.add_field(name="ID", value=ctx.author.id, inline=True)
-            embed.add_field(name="Saldo Disponible", value=f"{balance} MelladoCoins", inline=False)
+            embed.add_field(name="Saldo Disponible", value=f"{balance_formatted} MelladoCoins", inline=False)
             embed.set_footer(text="Gracias por utilizar Mellado Bank", icon_url="https://pillan.inf.uct.cl/~fespinoza/logo.png")  # Logo del banco, opcional
 
             await ctx.send(embed=embed)
@@ -76,7 +76,7 @@ class Economy(commands.Cog):
         for user_key, user_data in all_users.items():
             user = await self.bot.fetch_user(user_key.split('_')[0])
             user_names.append(user.name)
-            balances.append(user_data['balance'])
+            balances.append(round(user_data['balance'], 0))  # Redondear saldos a 0 decimales
 
         # Configuración del gráfico
         plt.figure(figsize=(12, 8))
@@ -93,7 +93,9 @@ class Economy(commands.Cog):
         # Añadir etiquetas a las barras
         for bar in bars:
             yval = bar.get_height()
-            plt.text(bar.get_x() + bar.get_width() / 2, yval, round(yval, 2),
+            # Agregar formato de puntos de mil y signo de moneda
+            formatted_value = f"${yval:,.0f}".replace(",", ".")
+            plt.text(bar.get_x() + bar.get_width() / 2, yval, formatted_value,
                      ha='center', va='bottom', fontsize=10, color='black')
 
         buf = io.BytesIO()
@@ -183,10 +185,12 @@ class Economy(commands.Cog):
                 user_data['balance'] += cantidad
                 save_user_data(user_id, guild_id, user_data['balance'])
 
+                balance_formatted = f"${user_data['balance']:,.0f}".replace(",", ".")
+
                 if cantidad > 0:
-                    await channel.send(f'¡<@{usuario.id}> es un ingeniero duro! y como es duro le voy a dar {cantidad} MelladoCoins. Tu nuevo saldo es {user_data["balance"]} MelladoCoins.')
+                    await channel.send(f'¡<@{usuario.id}> es un ingeniero duro! y como es duro le voy a dar {cantidad} MelladoCoins. Tu nuevo saldo es {balance_formatted} MelladoCoins.')
                 else:
-                    await channel.send(f'<@{usuario.id}> tiene que irse a parvularia. Le he quitado {-cantidad} MelladoCoins. Tu nuevo saldo es {user_data["balance"]} MelladoCoins.')
+                    await channel.send(f'<@{usuario.id}> tiene que irse a parvularia. Le he quitado {-cantidad} MelladoCoins. Tu nuevo saldo es {balance_formatted} MelladoCoins.')
         except Exception as e:
             logging.error("Error en mellado_coins_task:", exc_info=e)
 
