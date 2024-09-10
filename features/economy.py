@@ -3,11 +3,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import discord
 from discord.ext import commands, tasks
-from utils.data_manager import load_user_data, save_user_data, load_all_users
+from utils.data_manager import load_user_data, save_loan_data, save_user_data, load_all_users
 import logging
 import matplotlib
 import random as ra
 from utils.channel_manager import save_channel_setting, load_channel_setting
+from datetime import datetime, timedelta
 matplotlib.use('Agg')
 
 logging.basicConfig(level=logging.DEBUG)
@@ -19,6 +20,201 @@ class Economy(commands.Cog):
         self.data = load_all_users()
         self.passive_income.start()
         # self.mellado_coins_task.start()
+
+    @commands.command(name='prestamo', help='Solicita un préstamo de MelladoCoins. Uso: !prestamo <cantidad>')
+    async def prestamo(self, ctx, cantidad: int):
+        usuario = ctx.author
+        user_id = str(usuario.id)
+        guild_id = str(ctx.guild.id)
+
+        if cantidad <= 0 or cantidad > 10000000:
+            embed = discord.Embed(
+                title="❌ Préstamo Denegado",
+                description="El préstamo no puede ser negativo, cero o mayor a 1.000.000 MelladoCoins.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        if ra.random() > 0.5:  # 50% de probabilidad de éxito
+            embed = discord.Embed(
+                title="❌ Préstamo Denegado",
+                description="No, tienes cara de pobre, así que no te daré el préstamo.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        # Cargar los datos del usuario
+        user_data = load_user_data(user_id, guild_id)
+        if user_data is None:
+            embed = discord.Embed(
+                title="❌ No Registrado",
+                description=f"{usuario.name}, no estás registrado. Usa el comando !registrar para registrarte.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        # Verificar si ya tiene un préstamo pendiente
+        loan_amount = user_data.get('loan_amount', 0)
+        if loan_amount > 0:
+            embed = discord.Embed(
+                title="⏳ Préstamo Denegado",
+                description="No puedes solicitar un nuevo préstamo hasta que hayas pagado el anterior.",
+                color=discord.Color.orange()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        bot_user_id = str(self.bot.user.id)
+        bot_data = load_user_data(bot_user_id, guild_id)
+
+        if bot_data is None:
+            logging.error(f"No se encontró el balance del bot en la base de datos (user_id: {bot_user_id}, guild_id: {guild_id})")
+            return
+
+        # Verificar si el banco tiene saldo suficiente
+        if bot_data['balance'] < cantidad:
+            embed = discord.Embed(
+                title="❌ Préstamo Denegado",
+                description="El banco no tiene suficientes MelladoCoins para otorgar este préstamo.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        user_data['balance'] += cantidad
+        bot_data['balance'] -= cantidad
+
+        save_user_data(bot_user_id, guild_id, bot_data['balance'])
+
+        loan_due_time = datetime.now() + timedelta(days=1)
+        save_loan_data(user_id, guild_id, user_data['balance'], last_loan_time=datetime.now(), loan_amount=cantidad, loan_due_time=loan_due_time)
+
+        cantidad_formateada = f"${cantidad:,.0f}".replace(",", ".")
+        saldo_formateado = f"${user_data['balance']:,.0f}".replace(",", ".")
+
+        # Respuesta del bot con embed para el usuario
+        embed = discord.Embed(
+            title="✅ Préstamo Aprobado",
+            description=f"¡Has recibido {cantidad_formateada} MelladoCoins!",
+            color=discord.Color.green()
+        )
+        embed.add_field(name="Nuevo Saldo", value=f"{saldo_formateado} MelladoCoins", inline=False)
+        embed.set_thumbnail(url=usuario.avatar.url)
+
+        await ctx.send(embed=embed)
+
+        # Embed del banco
+        saldo_bot_formateado = f"${bot_data['balance']:,.0f}".replace(",", ".")
+
+        embed_bot = discord.Embed(
+            title="💰 Préstamo Emitido",
+            description=f"El banco (bot) ha transferido {cantidad_formateada} MelladoCoins hacia {usuario.mention}.\nEl préstamo vence en 24 horas.\n¡No olvides pagar a tiempo!\nHay un impuesto del 25% sobre el monto del préstamo.\nSi no pagas a tiempo, se aplicará un interés diario del 1.4% sobre el monto del préstamo.",
+            color=discord.Color.blue()
+        )
+        embed_bot.add_field(name="Saldo del Banco", value=f"{saldo_bot_formateado} MelladoCoins", inline=False)
+        embed_bot.set_thumbnail(url=self.bot.user.avatar.url)
+
+        await ctx.send(embed=embed_bot)
+
+    @commands.command(name='pagar_prestamo', help='Paga tu préstamo pendiente. Uso: !pagar_prestamo')
+    async def pagar_prestamo(self, ctx):
+        usuario = ctx.author
+        user_id = str(usuario.id)
+        guild_id = str(ctx.guild.id)
+
+        # logging.info(f"Solicitud de pago de préstamo por parte de {usuario.name} ({user_id}) en el guild {guild_id}")
+
+        # Cargar los datos del usuario
+        user_data = load_user_data(user_id, guild_id)
+        if user_data is None:
+            embed = discord.Embed(
+                title="❌ No Registrado",
+                description=f"{usuario.name}, no estás registrado. Usa el comando !registrar para registrarte.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        loan_amount = user_data.get('loan_amount', 0)
+        loan_due_time = user_data.get('loan_due_time')
+        balance = user_data.get('balance', 0)
+
+        # Verificar si hay un préstamo pendiente
+        if loan_amount <= 0:
+            embed = discord.Embed(
+                title="❌ Sin Préstamos Pendientes",
+                description="No tienes ningún préstamo pendiente que pagar.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        # Calcular el impuesto del 25% y los intereses si aplica
+        ahora = datetime.now()
+        impuesto_fijo = loan_amount * 0.25
+        interes_extra = 0
+
+        if ahora > loan_due_time:
+            tiempo_pasado = ahora - loan_due_time
+            dias_extra = tiempo_pasado.days
+            interes_extra = loan_amount * (0.014 * dias_extra)
+
+        total_a_pagar = loan_amount + impuesto_fijo + interes_extra
+
+        if balance < total_a_pagar:
+            embed = discord.Embed(
+                title="❌ Saldo Insuficiente",
+                description=f"No tienes suficiente saldo para pagar el préstamo. Necesitas {total_a_pagar - balance:.2f} MelladoCoins más.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        # Actualizar el saldo del usuario
+        user_data['balance'] -= total_a_pagar
+        save_loan_data(user_id, guild_id, user_data['balance'], last_loan_time=None, loan_amount=0, loan_due_time=None)
+
+        # Cargar el saldo del banco
+        bot_user_id = str(self.bot.user.id)
+        bot_data = load_user_data(bot_user_id, guild_id)
+
+        if bot_data is None:
+            logging.error(f"No se encontró el balance del bot en la base de datos (user_id: {bot_user_id}, guild_id: {guild_id})")
+            return
+
+        # Actualizar el saldo del banco
+        bot_data['balance'] += total_a_pagar
+        save_user_data(bot_user_id, guild_id, bot_data['balance'])
+
+        cantidad_formateada = f"${total_a_pagar:,.0f}".replace(",", ".")
+        saldo_formateado = f"${user_data['balance']:,.0f}".replace(",", ".")
+
+        # Respuesta del bot con embed para el usuario
+        embed = discord.Embed(
+            title="✅ Préstamo Pagado",
+            description=f"Has pagado {cantidad_formateada} MelladoCoins, incluyendo el impuesto del 10%.",
+            color=discord.Color.green()
+        )
+        embed.add_field(name="Nuevo Saldo", value=f"{saldo_formateado} MelladoCoins", inline=False)
+        embed.set_thumbnail(url=usuario.avatar.url)
+
+        await ctx.send(embed=embed)
+
+        # Embed del banco
+        saldo_bot_formateado = f"${bot_data['balance']:,.0f}".replace(",", ".")
+
+        embed_bot = discord.Embed(
+            title="💰 Préstamo Recibido",
+            description=f"El banco ha recibido el pago de {cantidad_formateada} MelladoCoins.",
+            color=discord.Color.blue()
+        )
+        embed_bot.add_field(name="Saldo del Banco", value=f"{saldo_bot_formateado} MelladoCoins", inline=False)
+        embed_bot.set_thumbnail(url=self.bot.user.avatar.url)
+
+        await ctx.send(embed=embed_bot)
 
     @commands.command(name='registrar')
     async def register_user(self, ctx):
@@ -142,7 +338,7 @@ class Economy(commands.Cog):
     @tasks.loop(minutes=60)
     async def mellado_coins_task(self):
         try:
-            logging.debug("mellado_coins_task is running.")
+            # logging.debug("mellado_coins_task is running.")
             for guild in self.bot.guilds:
                 guild_id = str(guild.id)
                 channel_id = load_channel_setting(guild_id)  # Cargar la configuración del canal
@@ -153,7 +349,7 @@ class Economy(commands.Cog):
                     if channel:
                         channel_id = channel.id
                         save_channel_setting(guild_id, channel_id)  # Guarda este canal como el predeterminado
-                        logging.info(f"Usando {channel.name} como canal por defecto en {guild.name}.")
+                        # logging.info(f"Usando {channel.name} como canal por defecto en {guild.name}.")
                     else:
                         logging.warning(f"No hay canales disponibles para enviar mensajes en {guild.name}.")
                         continue
@@ -165,7 +361,7 @@ class Economy(commands.Cog):
                         if channel:
                             channel_id = channel.id
                             save_channel_setting(guild_id, channel_id)  # Guarda este nuevo canal como el predeterminado
-                            logging.info(f"Canal {channel.name} seleccionado como predeterminado en {guild.name}.")
+                            # logging.info(f"Canal {channel.name} seleccionado como predeterminado en {guild.name}.")
                         else:
                             logging.warning(f"No hay canales disponibles para enviar mensajes en {guild.name}.")
                             continue
