@@ -2,9 +2,9 @@ import discord
 from discord.ext import commands, tasks
 from utils.custom_help import CustomHelpPaginator
 from market_module.property_events import pagar_renta_diaria, despenalizar_propietario, pagar_costo_mantenimiento, pagar_costo_diario, aplicar_desgaste_automatico, comprar_propiedad, obtener_evento_global, mejorar_desgaste, vender_propiedad
-from utils.market_data_manager import ( generar_propiedad,actualizar_estado_residencia_principal, obtener_propiedades_home, actualizar_estado_propiedad_arrendada, obtener_propiedades_por_usuario, obtener_saldo_usuario,
-                                       guardar_propiedad, register_investor,obtener_usuarios_penalizados,
-                                       verificar_estado_inversionista,es_inversionista,
+from utils.market_data_manager import (generar_propiedad, actualizar_estado_residencia_principal, obtener_propiedades_home, actualizar_estado_propiedad_arrendada, obtener_propiedades_por_usuario, obtener_saldo_usuario,
+                                       guardar_propiedad, register_investor, obtener_usuarios_penalizados,
+                                       verificar_estado_inversionista, es_inversionista,
                                        obtener_propiedad, obtener_usuarios_registrados)
 import logging
 from utils.channel_manager import save_channel_setting, load_channel_setting
@@ -64,13 +64,12 @@ class MarketCommands(commands.Cog):
         try:
             # Generar una propiedad y comprobar el saldo
             propiedad = generar_propiedad(tipo)
-            comprar_propiedad(usuario_id,guild_id, propiedad)
+            comprar_propiedad(usuario_id, guild_id, propiedad)
             await ctx.send(f"Has comprado una propiedad: {propiedad['nombre']}, nivel {propiedad['nivel']}.")
         except Exception as e:
             # Enviar mensaje de error al usuario
             await ctx.send(f"Error al comprar la propiedad: {str(e)}")
 
-    # Comando: !ver_propiedad_hogar
     @commands.command(name='ver_propiedad_hogar', help='Muestra una propiedad tipo hogar disponible en el mercado.')
     async def ver_propiedad_hogar(self, ctx):
         propiedad = generar_propiedad('hogar')
@@ -81,12 +80,12 @@ class MarketCommands(commands.Cog):
             description=f"**{propiedad['nombre']}** está disponible para compra.",
             color=discord.Color.from_str(propiedad['color'])  # Usar el color de la propiedad
         )
-        
+
         # Añadir más detalles de la propiedad con formato numérico
-        embed.add_field(name="Valor de Compra", value=f"{float(propiedad['valor_compra']):,.2f}", inline=False)
-        embed.add_field(name="Renta Diaria", value=f"{float(propiedad['renta_diaria']):,.2f}", inline=True)
-        embed.add_field(name="Costo Diario", value=f"{float(propiedad['costo_diario']):,.2f}", inline=True)
-        embed.add_field(name="Costo Mantenimiento", value=f"{float(propiedad['costo_mantenimiento']):,.2f}", inline=True)
+        embed.add_field(name="Valor de Compra", value=f"${int(propiedad['valor_compra']):,}".replace(",", "."), inline=False)
+        embed.add_field(name="Renta Diaria", value=f"${int(propiedad['renta_diaria']):,}".replace(",", "."), inline=True)
+        embed.add_field(name="Costo Diario", value=f"${int(propiedad['costo_diario']):,}".replace(",", "."), inline=True)
+        embed.add_field(name="Costo Mantenimiento", value=f"${int(propiedad['costo_mantenimiento']):,}".replace(",", "."), inline=True)
         embed.add_field(name="Nivel", value=f"{propiedad['nivel']}", inline=True)
         embed.add_field(name="Tier", value=f"{propiedad['tier']}", inline=True)
         embed.add_field(name="Barrio", value=f"{propiedad['barrio']}", inline=True)
@@ -97,7 +96,6 @@ class MarketCommands(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    # Comando: !ver_propiedad_tienda
     @commands.command(name='ver_propiedad_tienda', help='Muestra una propiedad tipo tienda disponible en el mercado.')
     async def ver_propiedad_tienda(self, ctx):
         propiedad = generar_propiedad('tienda')
@@ -110,10 +108,10 @@ class MarketCommands(commands.Cog):
         )
 
         # Añadir más detalles de la propiedad con formato numérico
-        embed.add_field(name="Valor de Compra", value=f"{float(propiedad['valor_compra']):,.2f}", inline=False)
-        embed.add_field(name="Renta Diaria", value=f"{float(propiedad['renta_diaria']):,.2f}", inline=True)
-        embed.add_field(name="Costo Diario", value=f"{float(propiedad['costo_diario']):,.2f}", inline=True)
-        embed.add_field(name="Costo Mantenimiento", value=f"{float(propiedad['costo_mantenimiento']):,.2f}", inline=True)
+        embed.add_field(name="Valor de Compra", value=f"${int(propiedad['valor_compra']):,}".replace(",", "."), inline=False)
+        embed.add_field(name="Renta Diaria", value=f"${int(propiedad['renta_diaria']):,}".replace(",", "."), inline=True)
+        embed.add_field(name="Costo Diario", value=f"${int(propiedad['costo_diario']):,}".replace(",", "."), inline=True)
+        embed.add_field(name="Costo Mantenimiento", value=f"${int(propiedad['costo_mantenimiento']):,}".replace(",", "."), inline=True)
         embed.add_field(name="Nivel", value=f"{propiedad['nivel']}", inline=True)
         embed.add_field(name="Tier", value=f"{propiedad['tier']}", inline=True)
         embed.add_field(name="Barrio", value=f"{propiedad['barrio']}", inline=True)
@@ -138,7 +136,7 @@ class MarketCommands(commands.Cog):
 
         try:
             # Intentar comprar la última propiedad generada
-            comprar_propiedad(usuario_id, guild_id , propiedad)
+            comprar_propiedad(usuario_id, guild_id, propiedad)
             await ctx.send(f"Has comprado la propiedad {propiedad['nombre']} por {propiedad['valor_compra']}.")
             # Limpiar la última propiedad generada
             self.ultima_propiedad_generada = None
@@ -156,7 +154,7 @@ class MarketCommands(commands.Cog):
             await ctx.send(f"Has vendido la propiedad {propiedad_id}. Tu nuevo saldo es {saldo_nuevo}.")
         else:
             await ctx.send(f"No se encontró la propiedad o no eres el dueño.")
-    
+
     # Comando: !global_event [propiedad_id]
     @commands.command(name='global_event', help='Ejecuta un evento global que afecta a todas las rentas.')
     async def global_event(self, ctx):
@@ -166,7 +164,6 @@ class MarketCommands(commands.Cog):
         else:
             await ctx.send(f"No hay ningun evento actulamente.")
 
-    # Comando: !listar_propiedades
     @commands.command(name='listar_propiedades', help='Lista todas tus propiedades.')
     async def listar_propiedades(self, ctx):
         usuario_id = str(ctx.author.id)
@@ -185,17 +182,15 @@ class MarketCommands(commands.Cog):
 
             # Añadir los campos con la información y el formato de los números
             embed.add_field(name="ID", value=f"{propiedad['id']}", inline=True)
-            embed.add_field(name="Renta Diaria", value=f"{float(propiedad['renta_diaria']):,.2f}", inline=True)
-            embed.add_field(name="Costo Diario", value=f"{float(propiedad['costo_diario']):,.2f}", inline=True)
+            embed.add_field(name="Renta Diaria", value=f"${int(propiedad['renta_diaria']):,}".replace(",", "."), inline=True)
+            embed.add_field(name="Costo Diario", value=f"${int(propiedad['costo_diario']):,}".replace(",", "."), inline=True)
 
             # Pie de página con una nota adicional
-            embed.set_footer(text=f"Propiedad en el barrio {propiedad['barrio']} | Costo Mantenimiento: {float(propiedad['costo_mantenimiento']):,.2f} | Nivel: {propiedad['nivel']} | Tier: {propiedad['tier']} | Suerte: {propiedad['suerte']} | Desgaste: {propiedad['desgaste']}")
+            embed.set_footer(text=f"Propiedad en el barrio {propiedad['barrio']} | Costo Mantenimiento: ${int(propiedad['costo_mantenimiento']):,}. | Nivel: {propiedad['nivel']} | Tier: {propiedad['tier']} | Suerte: {propiedad['suerte']} | Desgaste: {propiedad['desgaste']}")
 
             # Enviar el embed como una "carta"
             await ctx.send(embed=embed)
 
-
-    # Comando: !detalles_propiedad [propiedad_id]
     @commands.command(name='detalles_propiedad', help='Muestra los detalles de una propiedad específica.')
     async def detalles_propiedad(self, ctx, propiedad_id: int):
         propiedad = obtener_propiedad(propiedad_id)
@@ -210,13 +205,13 @@ class MarketCommands(commands.Cog):
             embed.add_field(name="Barrio", value=f"{propiedad['barrio']}", inline=True)
             embed.add_field(name="Nivel", value=f"{propiedad['nivel']}", inline=True)
             embed.add_field(name="Tier", value=f"{propiedad['tier']}", inline=True)
-            embed.add_field(name="Renta Diaria", value=f"{float(propiedad['renta_diaria']):,.2f}", inline=True)
-            embed.add_field(name="Costo Diario", value=f"{float(propiedad['costo_diario']):,.2f}", inline=True)
-            embed.add_field(name="Costo Mantenimiento", value=f"{float(propiedad['costo_mantenimiento']):,.2f}", inline=True)
+            embed.add_field(name="Renta Diaria", value=f"${int(propiedad['renta_diaria']):,}".replace(",", "."), inline=True)
+            embed.add_field(name="Costo Diario", value=f"${int(propiedad['costo_diario']):,}".replace(",", "."), inline=True)
+            embed.add_field(name="Costo Mantenimiento", value=f"${int(propiedad['costo_mantenimiento']):,}".replace(",", "."), inline=True)
             embed.add_field(name="Suerte", value=f"{propiedad['suerte']}", inline=True)
 
             # Pie de página con alguna nota adicional
-            embed.set_footer(text=f"Valor de compra: {float(propiedad['valor_compra']):,.2f} | Tamaño: {propiedad['tamaño']}m² | Piso/s: {propiedad['pisos']} | Desgaste: {propiedad['desgaste']} | Arrendada: {'Sí' if propiedad['arrendada'] else 'No'} | Residencia Principal: {'Sí' if propiedad['es_residencia_principal'] else 'No'}")
+            embed.set_footer(text=f"Valor de compra: ${int(propiedad['valor_compra']):,} | Tamaño: {propiedad['tamaño']}m² | Piso/s: {propiedad['pisos']} | Desgaste: {propiedad['desgaste']} | Arrendada: {'Sí' if propiedad['arrendada'] else 'No'} | Residencia Principal: {'Sí' if propiedad['es_residencia_principal'] else 'No'}")
 
             await ctx.send(embed=embed)
         else:
@@ -247,7 +242,7 @@ class MarketCommands(commands.Cog):
         except Exception as e:
             await ctx.send(f"Ocurrió un error al mejorar la propiedad: {str(e)}")
 
-    # Comando: !estado_inversionista
+      # Comando: !estado_inversionista
     @commands.command(name='estado_inversionista', help='Muestra el estado actual del inversionista.')
     async def estado_inversionista(self, ctx):
         usuario_id = str(ctx.author.id)
@@ -256,7 +251,8 @@ class MarketCommands(commands.Cog):
         saldo = obtener_saldo_usuario(usuario_id, guild_id)
 
         if estado is not None:
-            await ctx.send(f"Estado: Penalizado: {estado}, Saldo: {saldo}")
+            saldo_formateado = f"${int(saldo):,}".replace(",", ".")
+            await ctx.send(f"Estado: Penalizado: {estado}, Saldo: {saldo_formateado} MelladoCoins")
         else:
             await ctx.send("No estás registrado como inversionista.")
 
@@ -267,7 +263,8 @@ class MarketCommands(commands.Cog):
         propiedades = obtener_propiedades_por_usuario(usuario_id)
 
         renta_total = sum([propiedad['renta_diaria'] for propiedad in propiedades])
-        await ctx.send(f"Tu renta diaria total es de {renta_total} MelladoCoins.")
+        renta_total_formateada = f"${int(renta_total):,}".replace(",", ".")
+        await ctx.send(f"Tu renta diaria total es de {renta_total_formateada} MelladoCoins.")
 
     # Comando: !costo_diario
     @commands.command(name='costo_diario', help='Muestra el costo diario de todas tus propiedades.')
@@ -276,9 +273,11 @@ class MarketCommands(commands.Cog):
         propiedades = obtener_propiedades_por_usuario(usuario_id)
 
         costo_total = sum([propiedad['costo_diario'] for propiedad in propiedades])
-        await ctx.send(f"Tu costo diario total es de {costo_total} MelladoCoins.")
+        costo_total_formateado = f"${int(costo_total):,}".replace(",", ".")
+        await ctx.send(f"Tu costo diario total es de {costo_total_formateado} MelladoCoins.")
 
     # Comando: !eventos_diarios
+
     @commands.command(name='eventos_diarios', help='Muestra los eventos globales que afectan las rentas diarias.')
     async def eventos_diarios(self, ctx):
         evento = obtener_evento_global()
@@ -371,9 +370,8 @@ class MarketCommands(commands.Cog):
         except Exception as e:
             await ctx.send(f"Ocurrió un error al establecer la residencia principal: {str(e)}")
 
-
-
     # Comando: !home
+
     @commands.command(name='home', help='Lista todas tus propiedades tipo hogar que son tu residencia principal.')
     async def home(self, ctx):
         usuario_id = str(ctx.author.id)
@@ -388,11 +386,10 @@ class MarketCommands(commands.Cog):
             descripcion += f"ID: {propiedad['id']}, Nombre: {propiedad['nombre']}, Renta Diaria: {propiedad['renta_diaria']}, Costo Diario: {propiedad['costo_diario']}, Costo Mantenimiento: {propiedad['costo_mantenimiento']}\n"
         await ctx.send(descripcion)
 
-
-
     # --- Funciones automáticas con loop ---
 
     # Función para enviar notificaciones a un canal específico
+
     async def enviar_notificacion(self, guild_id, mensaje):
         channel_id = load_channel_setting(guild_id)  # Cargar la configuración del canal
         channel = self.bot.get_channel(channel_id)
@@ -407,7 +404,7 @@ class MarketCommands(commands.Cog):
             else:
                 logging.warning(f"No hay canales disponibles para enviar mensajes en {guild.name}.")
                 return
-        
+
         await channel.send(mensaje)
 
     # Aplicar desgaste a las propiedades cada 7 días
@@ -432,12 +429,12 @@ class MarketCommands(commands.Cog):
                 await self.enviar_notificacion(guild.id, "¡Se ha aplicado el desgaste a todas las propiedades!")
                 logging.info(f"Notificación enviada al servidor {guild.name}.")
 
-
     # Pago de renta diaria cada día
+
     @tasks.loop(hours=24)  # Cada día
     async def pago_renta_diaria(self):
         logging.info("Iniciando la tarea de pago de renta diaria.")
-        
+
         # Obtener todos los usuarios registrados (incluyendo guild_id)
         usuarios = obtener_usuarios_registrados()
 
@@ -458,13 +455,12 @@ class MarketCommands(commands.Cog):
                 await self.enviar_notificacion(guild.id, "¡Se han pagado las rentas diarias!")
                 logging.info(f"Notificación de pago de rentas enviada al servidor {guild.name}.")
 
-
-
     # Pago de mantenimiento cada 3 días
+
     @tasks.loop(hours=72)  # Cada 3 días
     async def pago_mantenimiento(self):
         logging.info("Iniciando la tarea de pago de mantenimiento.")
-        
+
         # Obtener todos los usuarios registrados (con su guild_id)
         usuarios = obtener_usuarios_registrados()
 
@@ -486,13 +482,12 @@ class MarketCommands(commands.Cog):
                 await self.enviar_notificacion(guild.id, "¡Se ha pagado el costo de mantenimiento de las propiedades!")
                 logging.info(f"Notificación de pago de mantenimiento enviada al servidor {guild.name}.")
 
-
-
     # Cobro de costos diarios cada día
+
     @tasks.loop(hours=24)  # Cada día
     async def pago_diario(self):
         logging.info("Iniciando la tarea de cobro de costos diarios.")
-        
+
         # Obtener todos los usuarios registrados (incluyendo guild_id)
         usuarios = obtener_usuarios_registrados()
 
@@ -512,7 +507,6 @@ class MarketCommands(commands.Cog):
             if any(usuario for usuario in usuarios if str(usuario['guild_id']) == str(guild.id)):
                 await self.enviar_notificacion(guild.id, "¡Se han cobrado los costos diarios de las propiedades!")
                 logging.info(f"Notificación de cobro de costos diarios enviada al servidor {guild.name}.")
-
 
     @tasks.loop(hours=72)  # Cada 3 días - Despenalización de usuarios
     async def despenalizar_usuarios(self):
@@ -535,9 +529,8 @@ class MarketCommands(commands.Cog):
                 await self.enviar_notificacion(guild.id, "¡Se ha despenalizado a los usuarios!")
                 logging.info(f"Notificación de despenalización enviada al servidor {guild.name}.")
 
-
     # --- Funciones auxiliares ---
-    
+
     async def verificar_inversionista(self, ctx):
         usuario_id = str(ctx.author.id)
         if not es_inversionista(usuario_id):
@@ -546,5 +539,7 @@ class MarketCommands(commands.Cog):
         return True
 
 # Setup para agregar el cog al bot
+
+
 async def setup(bot):
     await bot.add_cog(MarketCommands(bot))
