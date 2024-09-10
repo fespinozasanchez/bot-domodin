@@ -137,7 +137,8 @@ class MarketCommands(commands.Cog):
         try:
             # Intentar comprar la última propiedad generada
             comprar_propiedad(usuario_id, guild_id, propiedad)
-            await ctx.send(f"Has comprado la propiedad {propiedad['nombre']} por {propiedad['valor_compra']}.")
+            valor_compra_formateado = f"${int(propiedad['valor_compra']):,}".replace(",", ".")
+            await ctx.send(f"Has comprado la propiedad {propiedad['nombre']} por {valor_compra_formateado}.")
             # Limpiar la última propiedad generada
             self.ultima_propiedad_generada = None
         except Exception as e:
@@ -145,6 +146,7 @@ class MarketCommands(commands.Cog):
             await ctx.send(f"Error al comprar la propiedad generada: {str(e)}")
 
     # Comando: !vender_propiedad [propiedad_id]
+
     @commands.command(name='vender_propiedad', help='Vende una propiedad específica y recibe dinero según su valor.')
     async def vender_propiedad(self, ctx, propiedad_id: int):
         usuario_id = str(ctx.author.id)
