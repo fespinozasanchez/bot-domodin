@@ -33,7 +33,8 @@ class Betting(commands.Cog):
 
         if user_id in self.bets:
             equipo_actual = self.bets[user_id]['equipo']
-            await ctx.send(f'Ya has apostado {self.bets[user_id]["cantidad"]} en {equipo_actual}.')
+            apuesta_actual = f"${self.bets[user_id]['cantidad']:,.0f}".replace(",", ".")
+            await ctx.send(f'Ya has apostado {apuesta_actual} en {equipo_actual}.')
             return
 
         self.bets[user_id] = {'equipo': equipo, 'cantidad': cantidad}
@@ -41,7 +42,8 @@ class Betting(commands.Cog):
         save_user_data(user_id, guild_id, user_data['balance'])
         save_bet(user_id, equipo, cantidad)
 
-        await ctx.send(f'{usuario.name} ha apostado {cantidad} en {equipo}')
+        apuesta_formateada = f"${cantidad:,.0f}".replace(",", ".")
+        await ctx.send(f'{usuario.name} ha apostado {apuesta_formateada} en {equipo}')
 
     @commands.command(name='apuestas', help='Muestra las apuestas actuales')
     async def show_bets(self, ctx):
@@ -53,10 +55,11 @@ class Betting(commands.Cog):
             usuario = self.bot.get_user(int(user_id))
             if usuario is None:
                 usuario = await self.bot.fetch_user(int(user_id))
+            cantidad_formateada = f"${apuesta['cantidad']:,.0f}".replace(",", ".")
             if usuario:
-                mensaje += f'{usuario.name}: {apuesta["cantidad"]} en {apuesta["equipo"]}\n'
+                mensaje += f'{usuario.name}: {cantidad_formateada} en {apuesta["equipo"]}\n'
             else:
-                mensaje += f'Usuario desconocido (ID: {user_id}): {apuesta["cantidad"]} en {apuesta["equipo"]}\n'
+                mensaje += f'Usuario desconocido (ID: {user_id}): {cantidad_formateada} en {apuesta["equipo"]}\n'
         await ctx.send(mensaje)
 
     @commands.command(name='resultados', help='Muestra el resultado de un partido')
@@ -93,10 +96,11 @@ class Betting(commands.Cog):
                     ganador = self.bot.get_user(int(ganador_id))
                     if ganador is None:
                         ganador = await self.bot.fetch_user(int(ganador_id))
+                    ganancia_formateada = f"${ganancia:,.0f}".replace(",", ".")
                     if ganador:
-                        mensaje_ganadores += f'{ganador.name}: {ganancia} MelladoCoins\n'
+                        mensaje_ganadores += f'{ganador.name}: {ganancia_formateada} MelladoCoins\n'
                     else:
-                        mensaje_ganadores += f'Usuario desconocido (ID: {ganador_id}): {ganancia} MelladoCoins\n'
+                        mensaje_ganadores += f'Usuario desconocido (ID: {ganador_id}): {ganancia_formateada} MelladoCoins\n'
                 await ctx.send(mensaje_ganadores)
             else:
                 await ctx.send('Nadie ganó la apuesta.')
@@ -135,14 +139,17 @@ class Betting(commands.Cog):
             return
 
         resultado = random.choice([0, 1])
+        cantidad_formateada = f"${cantidad:,.0f}".replace(",", ".")
         if resultado == 1:
             ganancia = cantidad
             user_data['balance'] += ganancia
-            await ctx.send(f'{usuario.name}, ¡has ganado! Tu nuevo saldo es {user_data["balance"]} MelladoCoins.')
+            saldo_formateado = f"${user_data['balance']:,.0f}".replace(",", ".")
+            await ctx.send(f'{usuario.name}, ¡has ganado! Tu nuevo saldo es {saldo_formateado} MelladoCoins.')
         else:
             perdida = cantidad
             user_data['balance'] -= perdida
-            await ctx.send(f'{usuario.name}, has perdido. Tu nuevo saldo es {user_data["balance"]} MelladoCoins.')
+            saldo_formateado = f"${user_data['balance']:,.0f}".replace(",", ".")
+            await ctx.send(f'{usuario.name}, has perdido. Tu nuevo saldo es {saldo_formateado} MelladoCoins.')
 
         save_user_data(user_id, guild_id, user_data['balance'])
 
@@ -231,23 +238,27 @@ class Betting(commands.Cog):
         save_user_data(user_id, guild_id, user_data['balance'])
         save_user_data(destinatario_id, guild_id, destinatario_data['balance'])
 
+        cantidad_formateada = f"${cantidad:,.0f}".replace(",", ".")
+        saldo_usuario_formateado = f"${user_data['balance']:,.0f}".replace(",", ".")
+        saldo_destinatario_formateado = f"${destinatario_data['balance']:,.0f}".replace(",", ".")
+
         # Mensaje de confirmación para el usuario
         embed_usuario = discord.Embed(
             title="✅ Transferencia Exitosa",
-            description=f"Has transferido {cantidad} MelladoCoins a {destinatario.name}.",
+            description=f"Has transferido {cantidad_formateada} MelladoCoins a {destinatario.name}.",
             color=discord.Color.green()
         )
-        embed_usuario.add_field(name="Tu Nuevo Saldo", value=f"{user_data['balance']} MelladoCoins", inline=False)
+        embed_usuario.add_field(name="Tu Nuevo Saldo", value=f"{saldo_usuario_formateado} MelladoCoins", inline=False)
         embed_usuario.set_thumbnail(url=usuario.avatar.url)
         await ctx.send(embed=embed_usuario)
 
         # Mensaje de confirmación para el destinatario
         embed_destinatario = discord.Embed(
             title="💰 Has Recibido una Transferencia",
-            description=f"Has recibido {cantidad} MelladoCoins de {usuario.name}.",
+            description=f"Has recibido {cantidad_formateada} MelladoCoins de {usuario.name}.",
             color=discord.Color.green()
         )
-        embed_destinatario.add_field(name="Tu Nuevo Saldo", value=f"{destinatario_data['balance']} MelladoCoins", inline=False)
+        embed_destinatario.add_field(name="Tu Nuevo Saldo", value=f"{saldo_destinatario_formateado} MelladoCoins", inline=False)
         embed_destinatario.set_thumbnail(url=destinatario.avatar.url)
         await ctx.send(embed=embed_destinatario)
 
