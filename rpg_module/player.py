@@ -1,10 +1,13 @@
 # player.py
 
-from weapons import Weapon
-from armors import Armor
-from mage_skill import MageSkill
-from warrior_skill import WarriorSkill
-from thief_skill import ThiefSkill
+from rpg_module.weapons import Weapon
+from rpg_module.armors import Armor
+from rpg_module.mage_skill import MageSkill
+from rpg_module.warrior_skill import WarriorSkill
+from rpg_module.thief_skill import ThiefSkill
+from rpg_module.items import Item
+
+
 
 
 class Player:

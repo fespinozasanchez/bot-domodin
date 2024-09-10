@@ -1,201 +1,120 @@
-import mysql.connector
-from mysql.connector import Error
-import logging
-import time
-from contextlib import closing
+from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, Table, MetaData
+from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
 from config import DATABASE_CONFIG
 
-def connect_db():
-    try:
-        conn = mysql.connector.connect(**DATABASE_CONFIG)
-        if conn.is_connected():
-            return conn
-    except Error as e:
-        logging.error(f"Error: {e}")
-        return None
+# Definir la base para nuestros modelos
+Base = declarative_base()
 
-def retry_query(func, *args, **kwargs):
-    delay = 0.1
-    for _ in range(5):  # Intentar hasta 5 veces
-        try:
-            return func(*args, **kwargs)
-        except Error as e:
-            if "Lock wait timeout exceeded" in str(e):
-                time.sleep(delay)
-                delay *= 2  # Aumentar el tiempo de espera exponencialmente
-            else:
-                raise
-    raise Exception("Persistent database lock error")
+# Configuración de la base de datos usando DATABASE_CONFIG
+DATABASE_URL = f"mysql+pymysql://{DATABASE_CONFIG['user']}:{DATABASE_CONFIG['password']}@{DATABASE_CONFIG['host']}/{DATABASE_CONFIG['database']}"
 
-def create_tables():
-    def create():
-        conn = connect_db()
-        if conn:
-            with closing(conn.cursor()) as cursor:
-                # Crear la tabla users primero
-                cursor.execute('''CREATE TABLE IF NOT EXISTS users (
-                                    user_id VARCHAR(255),
-                                    guild_id VARCHAR(255),
-                                    balance FLOAT,
-                                    PRIMARY KEY (user_id, guild_id)
-                                  )''')
-                # Luego crear la tabla items
-                cursor.execute('''CREATE TABLE IF NOT EXISTS items (
-                                    item_id INTEGER AUTO_INCREMENT PRIMARY KEY,
-                                    name VARCHAR(255),
-                                    item_type VARCHAR(255),
-                                    description TEXT,
-                                    price FLOAT,
-                                    strength INTEGER,
-                                    intelligence INTEGER,
-                                    agility INTEGER,
-                                    mana INTEGER,
-                                    hp INTEGER
-                                  )''')
-                # Luego crear la tabla players con claves foráneas referenciadas
-                cursor.execute('''CREATE TABLE IF NOT EXISTS players (
-                                    player_id INT AUTO_INCREMENT PRIMARY KEY,
-                                    user_id VARCHAR(255),
-                                    guild_id VARCHAR(255),
-                                    level INT,
-                                    experience FLOAT,
-                                    health INT,
-                                    mana INT,
-                                    strength INT,
-                                    intelligence INT,
-                                    agility INT,
-                                    FOREIGN KEY(user_id, guild_id) REFERENCES users(user_id, guild_id)
-                                  )''')
-                # Luego crear la tabla player_items
-                cursor.execute('''CREATE TABLE IF NOT EXISTS player_items (
-                                    player_item_id INT AUTO_INCREMENT PRIMARY KEY,
-                                    player_id INT,
-                                    item_id INT,
-                                    quantity INT,
-                                    FOREIGN KEY(player_id) REFERENCES players(player_id),
-                                    FOREIGN KEY(item_id) REFERENCES items(item_id)
-                                  )''')
-                # Luego crear la tabla skills
-                cursor.execute('''CREATE TABLE IF NOT EXISTS skills (
-                                    skill_id INTEGER AUTO_INCREMENT PRIMARY KEY,
-                                    name VARCHAR(255),
-                                    mana_cost INTEGER,
-                                    damage INTEGER,
-                                    cooldown INTEGER
-                                  )''')
-                # Finalmente, crear la tabla player_skills
-                cursor.execute('''CREATE TABLE IF NOT EXISTS player_skills (
-                                    player_skill_id INT AUTO_INCREMENT PRIMARY KEY,
-                                    player_id INT,
-                                    skill_id INT,
-                                    FOREIGN KEY(player_id) REFERENCES players(player_id),
-                                    FOREIGN KEY(skill_id) REFERENCES skills(skill_id)
-                                  )''')
-                conn.commit()
-            conn.close()
+# Crear el motor de SQLAlchemy, asegurando que usamos InnoDB y el seguimiento de las consultas
+engine = create_engine(DATABASE_URL, echo=True)
 
-    retry_query(create)
+# Crear una sesión
+Session = sessionmaker(bind=engine)
+session = Session()
 
-def load_player_items(player_id):
-    def load():
-        conn = connect_db()
-        if conn:
-            try:
-                with closing(conn.cursor(dictionary=True)) as cursor:
-                    cursor.execute('SELECT * FROM player_items WHERE player_id=%s', (player_id,))
-                    return cursor.fetchall()
-            finally:
-                conn.close()
+# Definir la tabla player_skills como tabla Many-to-Many entre jugadores y habilidades
+player_skills = Table('player_skills', Base.metadata,
+    Column('player_id', Integer, ForeignKey('players.id', ondelete="CASCADE", onupdate="CASCADE"), primary_key=True),
+    Column('skill_id', Integer, ForeignKey('skills.id', ondelete="CASCADE", onupdate="CASCADE"), primary_key=True),
+)
 
-    items = retry_query(load)
-    return [{'item_id': item['item_id'], 'quantity': item['quantity']} for item in items]
+# Modelo de Jugador
+class Player(Base):
+    __tablename__ = 'players'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    level = Column(Integer, default=1)
+    health = Column(Float, default=100)
+    strength = Column(Float, default=10)
+    intelligence = Column(Float, default=10)
+    agility = Column(Float, default=10)
+    mana = Column(Float, default=100)
+    stats_points = Column(Integer, default=15)
+    weapon_id = Column(Integer, ForeignKey('weapons.id', ondelete="SET NULL", onupdate="CASCADE"))
+    armor_id = Column(Integer, ForeignKey('armors.id', ondelete="SET NULL", onupdate="CASCADE"))
 
-def save_player_item(player_id, item_id, quantity):
-    def save():
-        conn = connect_db()
-        if conn:
-            try:
-                with closing(conn.cursor()) as cursor:
-                    cursor.execute('''INSERT INTO player_items (player_id, item_id, quantity)
-                                      VALUES (%s, %s, %s)
-                                      ON DUPLICATE KEY UPDATE quantity=%s''',
-                                   (player_id, item_id, quantity, quantity))
-                    conn.commit()
-            except:
-                conn.rollback()
-                raise
-            finally:
-                conn.close()
+    weapon = relationship("Weapon", back_populates="players")
+    armor = relationship("Armor", back_populates="players")
+    skills = relationship("Skill", secondary=player_skills, back_populates="players")
 
-    retry_query(save)
+# Modelo de Habilidades
+class Skill(Base):
+    __tablename__ = 'skills'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    description = Column(String(255))
+    mana_cost = Column(Float)
+    multiplier = Column(Float)
+    damage = Column(Float)
 
-def load_player_skills(player_id):
-    def load():
-        conn = connect_db()
-        if conn:
-            try:
-                with closing(conn.cursor(dictionary=True)) as cursor:
-                    cursor.execute('SELECT * FROM player_skills WHERE player_id=%s', (player_id,))
-                    return cursor.fetchall()
-            finally:
-                conn.close()
+    players = relationship("Player", secondary=player_skills, back_populates="skills")
 
-    skills = retry_query(load)
-    return [{'skill_id': skill['skill_id']} for skill in skills]
+# Modelo de Armas
+class Weapon(Base):
+    __tablename__ = 'weapons'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    description = Column(String(255))
+    base_damage = Column(Float)
+    increase_stat = Column(String(255))
+    increase_amount = Column(Float)
 
-def save_player_skill(player_id, skill_id):
-    def save():
-        conn = connect_db()
-        if conn:
-            try:
-                with closing(conn.cursor()) as cursor:
-                    cursor.execute('''INSERT INTO player_skills (player_id, skill_id)
-                                      VALUES (%s, %s)
-                                      ON DUPLICATE KEY UPDATE skill_id=%s''',
-                                   (player_id, skill_id, skill_id))
-                    conn.commit()
-            except:
-                conn.rollback()
-                raise
-            finally:
-                conn.close()
+    players = relationship("Player", back_populates="weapon")
 
-    retry_query(save)
+# Modelo de Armaduras
+class Armor(Base):
+    __tablename__ = 'armors'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    description = Column(String(255))
+    defense_value = Column(Float)
+    increase_stat = Column(String(255))
+    increase_amount = Column(Float)
 
+    players = relationship("Player", back_populates="armor")
 
+# Función para inicializar la base de datos y crear las tablas si no existen
+def init_db():
+    """Crea todas las tablas en la base de datos si no existen."""
+    Base.metadata.create_all(engine)
 
-def register_player(user_id, guild_id, level, experience, health, mana, strength, intelligence, agility):
-    def register():
-        conn = connect_db()
-        if conn:
-            try:
-                with closing(conn.cursor()) as cursor:
-                    cursor.execute('''INSERT INTO players (user_id, guild_id, level, experience, health, mana, strength, intelligence, agility)
-                                      VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-                                   (user_id, guild_id, level, experience, health, mana, strength, intelligence, agility))
-                    conn.commit()
-            except Error as e:
-                print(f"Error: {e}")
-                conn.rollback()
-            finally:
-                conn.close()
+# Funciones útiles para interactuar con la base de datos
 
-    retry_query(register)
+def create_player(name):
+    """Crea un nuevo jugador y lo guarda en la base de datos."""
+    new_player = Player(name=name)
+    session.add(new_player)
+    session.commit()
+    return new_player
 
-def get_player_stats(user_id):
-    def load():
-        conn = connect_db()
-        if conn:
-            try:
-                with closing(conn.cursor(dictionary=True)) as cursor:
-                    cursor.execute('''SELECT user_id, guild_id, level, experience, health, mana, strength, intelligence, agility
-                                      FROM players
-                                      WHERE user_id=%s''', (user_id,))
-                    return cursor.fetchone()
-            finally:
-                conn.close()
+def get_player_by_name(name):
+    """Recupera un jugador por su nombre."""
+    return session.query(Player).filter_by(name=name).first()
 
-    stats = retry_query(load)
-    return stats
+def create_weapon(name, description, base_damage, increase_stat, increase_amount):
+    """Crea un arma y la guarda en la base de datos."""
+    new_weapon = Weapon(name=name, description=description, base_damage=base_damage,
+                        increase_stat=increase_stat, increase_amount=increase_amount)
+    session.add(new_weapon)
+    session.commit()
+    return new_weapon
 
-create_tables()
+def get_weapon_by_name(name):
+    """Recupera un arma por su nombre."""
+    return session.query(Weapon).filter_by(name=name).first()
+
+def create_armor(name, description, defense_value, increase_stat, increase_amount):
+    """Crea una armadura y la guarda en la base de datos."""
+    new_armor = Armor(name=name, description=description, defense_value=defense_value,
+                      increase_stat=increase_stat, increase_amount=increase_amount)
+    session.add(new_armor)
+    session.commit()
+    return new_armor
+
+def get_armor_by_name(name):
+    """Recupera una armadura por su nombre."""
+    return session.query(Armor).filter_by(name=name).first()

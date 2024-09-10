@@ -1,5 +1,6 @@
 # weapons.py
-from items import Item
+from rpg_module.items import Item
+
 
 
 class Weapon(Item):
