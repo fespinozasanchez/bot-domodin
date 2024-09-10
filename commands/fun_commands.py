@@ -83,9 +83,9 @@ def register_commands(bot):
     async def amongus(ctx):
         choice = ra.randint(0, 1)
         if choice == 1:
-            await ctx.send(f"@everyone Hora de jugar Among US 🥵🥵🥵🥵🥵 <a:amongus:1282901401369841664>")
+            await ctx.send(f"@everyone Hora de jugar Among US 🥵🥵🥵🥵🥵 \n<a:amongus:1282901401369841664>")
         if choice == 0:
-            await ctx.send(f"Hoy dia no toca <a:amongus:1282901401369841664>")
+            await ctx.send(f"Hoy dia no toca \n<a:amongus:1282901401369841664>")
 
     @bot.command(name="domodin", help="dueño de domodin esta vigilando")
     async def domodin(ctx):
