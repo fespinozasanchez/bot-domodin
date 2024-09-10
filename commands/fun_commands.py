@@ -4,6 +4,7 @@ from discord.ext import commands, tasks
 from commands.CONST.payas import PAYAS
 from PIL import Image
 from datetime import datetime
+from pathlib import Path
 
 
 def register_commands(bot):
@@ -95,8 +96,8 @@ def register_commands(bot):
     fecha_inicio = datetime(2024, 9, 4)
     fecha_limite = datetime(2024, 9, 18)
 
-    # Ruta de la imagen
-    imagen_mario = "commands\img\mario18.jpg"
+    # Ruta de la imagen (usamos pathlib para garantizar compatibilidad multiplataforma)
+    imagen_mario_path = Path("commands/img/mario18.jpg")
 
     # Función para ajustar la opacidad de una imagen
     def ajustar_opacidad(imagen, opacidad):
@@ -124,15 +125,18 @@ def register_commands(bot):
             opacidad = porcentaje_disponibilidad  # Opacidad entre 0.0 y 1.0
 
             # Cargar la imagen
-            imagen_mario = Image.open("commands\img\mario18.jpg")  # Asegúrate de usar la ruta correcta
-            imagen = ajustar_opacidad(imagen_mario, opacidad)
-            imagen.save("mario_opacidad.png")
+            if imagen_mario_path.exists():
+                imagen_mario = Image.open(imagen_mario_path)  # Usamos la ruta correcta multiplataforma
+                imagen = ajustar_opacidad(imagen_mario, opacidad)
+                imagen.save("mario_opacidad.png")
 
-            # Enviar imagen ajustada con opacidad
-            await ctx.send(
-                f"{usuario.mention}, tu disponibilidad es del {porcentaje_disponibilidad * 100:.2f}% ({dias_restantes} días restantes).",
-                file=discord.File("mario_opacidad.png")
-            )
+                # Enviar imagen ajustada con opacidad
+                await ctx.send(
+                    f"{usuario.mention}, tu disponibilidad es del {porcentaje_disponibilidad * 100:.2f}% ({dias_restantes} días restantes).",
+                    file=discord.File("mario_opacidad.png")
+                )
+            else:
+                await ctx.send("No se pudo encontrar la imagen especificada.")
         elif hoy < fecha_inicio:
             # Si la fecha actual es anterior al inicio de la cuenta regresiva
             await ctx.send(f"{usuario.mention}, tu disponibilidad aún no ha comenzado.")
