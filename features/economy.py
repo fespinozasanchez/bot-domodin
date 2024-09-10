@@ -195,7 +195,7 @@ class Economy(commands.Cog):
         # Respuesta del bot con embed para el usuario
         embed = discord.Embed(
             title="✅ Préstamo Pagado",
-            description=f"Has pagado {cantidad_formateada} MelladoCoins, incluyendo el impuesto del 10%.",
+            description=f"Has pagado {cantidad_formateada} MelladoCoins, incluyendo el impuesto del 25%.",
             color=discord.Color.green()
         )
         embed.add_field(name="Nuevo Saldo", value=f"{saldo_formateado} MelladoCoins", inline=False)
