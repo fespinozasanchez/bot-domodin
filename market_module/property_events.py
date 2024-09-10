@@ -64,7 +64,7 @@ def comprar_propiedad(usuario_id, guild_id, propiedad):
 
 
 # Evento: Venta de propiedad
-def vender_propiedad(usuario_id, propiedad_id):
+def vender_propiedad(usuario_id,guild_id, propiedad_id):
     """
     Evento para manejar la venta de una propiedad.
     La propiedad se elimina de la base de datos y el jugador recibe un porcentaje del valor de compra.
@@ -73,7 +73,7 @@ def vender_propiedad(usuario_id, propiedad_id):
     if propiedad and propiedad['usuario_id'] == usuario_id:
         suerte = propiedad['suerte']
         valor_venta = propiedad['valor_compra'] * (0.8 + suerte)
-        saldo_actual = obtener_saldo_usuario(usuario_id)
+        saldo_actual = obtener_saldo_usuario(usuario_id,guild_id)
         nuevo_saldo = saldo_actual + valor_venta
         actualizar_saldo_usuario(usuario_id, nuevo_saldo)
         eliminar_propiedad(propiedad_id)
@@ -148,7 +148,7 @@ def calcular_costo_desgaste_a_cero(id_propiedad):
         costo_mejora = (diferencia_desgaste / factor_eficiencia) * 10000.0
         return costo_mejora
 
-def pagar_renta_diaria(usuario_id):
+def pagar_renta_diaria(usuario_id,guild_id):
     """
     Maneja el pago de la renta diaria de todas las propiedades del usuario.
     Las propiedades hogar que son residencia principal (es_residencia_principal=1) no generan renta.
@@ -186,12 +186,12 @@ def pagar_renta_diaria(usuario_id):
 
             total_renta += renta_diaria
 
-        saldo_actual = obtener_saldo_usuario(usuario_id)
+        saldo_actual = obtener_saldo_usuario(usuario_id,guild_id)
         nuevo_saldo = saldo_actual + total_renta
-        actualizar_saldo_usuario(usuario_id, nuevo_saldo)
+        actualizar_saldo_usuario(usuario_id,guild_id, nuevo_saldo)
 
 # Evento: Pago de costo diario
-def pagar_costo_diario(usuario_id):
+def pagar_costo_diario(usuario_id,guild_id):
     """
     Maneja el pago del costo diario de todas las propiedades del usuario.
     Si el saldo es insuficiente o el usuario está penalizado, se aplica la penalización.
@@ -201,7 +201,7 @@ def pagar_costo_diario(usuario_id):
 
     propiedades = obtener_costo_diario_propiedades(usuario_id)
     if propiedades:
-        saldo_usuario = obtener_saldo_usuario(usuario_id)
+        saldo_usuario = obtener_saldo_usuario(usuario_id,guild_id)
         total_costo_diario = sum(propiedad['costo_diario'] for propiedad in propiedades)
 
         if saldo_usuario < total_costo_diario:
@@ -209,10 +209,10 @@ def pagar_costo_diario(usuario_id):
             penalizar_propietario(usuario_id)
         else:
             nuevo_saldo = saldo_usuario - total_costo_diario
-            actualizar_saldo_usuario(usuario_id, nuevo_saldo)
+            actualizar_saldo_usuario(usuario_id,guild_id, nuevo_saldo)
 
 # Evento: Pago de costo de mantenimiento
-def pagar_costo_mantenimiento(usuario_id):
+def pagar_costo_mantenimiento(usuario_id,guild_id):
     """
     Maneja el pago del costo de mantenimiento de todas las propiedades del usuario.
     """
@@ -221,7 +221,7 @@ def pagar_costo_mantenimiento(usuario_id):
 
     propiedades = obtener_mantencion_propiedades(usuario_id)
     if propiedades:
-        saldo_usuario = obtener_saldo_usuario(usuario_id)
+        saldo_usuario = obtener_saldo_usuario(usuario_id,guild_id)
         total_costo_mantenimiento = sum(propiedad['costo_mantenimiento'] for propiedad in propiedades)
 
         if saldo_usuario < total_costo_mantenimiento:
@@ -229,7 +229,7 @@ def pagar_costo_mantenimiento(usuario_id):
             penalizar_propietario(usuario_id)
         else:
             nuevo_saldo = saldo_usuario - total_costo_mantenimiento
-            actualizar_saldo_usuario(usuario_id, nuevo_saldo)
+            actualizar_saldo_usuario(usuario_id,guild_id, nuevo_saldo)
 
 # Función: Penalizar propietario
 def penalizar_propietario(usuario_id):

@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands, tasks
+from utils.custom_help import CustomHelpPaginator
 from market_module.property_events import pagar_renta_diaria, despenalizar_propietario, pagar_costo_mantenimiento, pagar_costo_diario, aplicar_desgaste_automatico, comprar_propiedad, obtener_evento_global, mejorar_desgaste, vender_propiedad
 from utils.market_data_manager import ( generar_propiedad,actualizar_estado_residencia_principal, obtener_propiedades_home, actualizar_estado_propiedad_arrendada, obtener_propiedades_por_usuario, obtener_saldo_usuario,
                                        guardar_propiedad, register_investor,obtener_usuarios_penalizados,
@@ -37,9 +38,15 @@ class MarketCommands(commands.Cog):
             register_investor(usuario_id, guild_id)
             propiedad_inicial = generar_propiedad(tipo='hogar')
             propiedad_inicial["es_residencia_principal"] = True
-            comprar_propiedad(usuario_id, guild_id, propiedad_inicial)
+            propiedad_inicial['usuario_id'] = usuario_id
+            guardar_propiedad(propiedad_inicial)
 
-            await ctx.send(f"Te has registrado como inversionista y has recibido una propiedad inicial tipo hogar: {propiedad_inicial['nombre']}.")
+            embed = discord.Embed(
+                title="¡Registro exitoso!",
+                description=f"Te has registrado como inversionista y has recibido una propiedad inicial tipo hogar: **{propiedad_inicial['nombre']}**.",
+                color=discord.Color.blue()
+            )
+            await ctx.send(embed=embed)
         except Exception as e:
             await ctx.send(f"Ocurrió un error al registrarte: {str(e)}")
 
@@ -63,7 +70,59 @@ class MarketCommands(commands.Cog):
             # Enviar mensaje de error al usuario
             await ctx.send(f"Error al comprar la propiedad: {str(e)}")
 
+    # Comando: !ver_propiedad_hogar
+    @commands.command(name='ver_propiedad_hogar', help='Muestra una propiedad tipo hogar disponible en el mercado.')
+    async def ver_propiedad_hogar(self, ctx):
+        propiedad = generar_propiedad('hogar')
+        self.ultima_propiedad_generada = propiedad
 
+        embed = discord.Embed(
+            title="Propiedad Hogar en Venta",
+            description=f"**{propiedad['nombre']}** está disponible para compra.",
+            color=discord.Color.from_str(propiedad['color'])  # Usar el color de la propiedad
+        )
+        
+        # Añadir más detalles de la propiedad con formato numérico
+        embed.add_field(name="Valor de Compra", value=f"{float(propiedad['valor_compra']):,.2f}", inline=False)
+        embed.add_field(name="Renta Diaria", value=f"{float(propiedad['renta_diaria']):,.2f}", inline=True)
+        embed.add_field(name="Costo Diario", value=f"{float(propiedad['costo_diario']):,.2f}", inline=True)
+        embed.add_field(name="Costo Mantenimiento", value=f"{float(propiedad['costo_mantenimiento']):,.2f}", inline=True)
+        embed.add_field(name="Nivel", value=f"{propiedad['nivel']}", inline=True)
+        embed.add_field(name="Tier", value=f"{propiedad['tier']}", inline=True)
+        embed.add_field(name="Barrio", value=f"{propiedad['barrio']}", inline=True)
+        embed.add_field(name="Tamaño", value=f"{propiedad['tamaño']}", inline=True)
+        embed.add_field(name="Pisos", value=f"{propiedad['pisos']}", inline=True)
+        embed.add_field(name="Desgaste", value=f"{propiedad['desgaste']}", inline=True)
+        embed.add_field(name="Suerte", value=f"{propiedad['suerte']}", inline=True)
+
+        await ctx.send(embed=embed)
+
+    # Comando: !ver_propiedad_tienda
+    @commands.command(name='ver_propiedad_tienda', help='Muestra una propiedad tipo tienda disponible en el mercado.')
+    async def ver_propiedad_tienda(self, ctx):
+        propiedad = generar_propiedad('tienda')
+        self.ultima_propiedad_generada = propiedad
+
+        embed = discord.Embed(
+            title="Propiedad Tienda en Venta",
+            description=f"**{propiedad['nombre']}** está disponible para compra.",
+            color=discord.Color.from_str(propiedad['color'])  # Usar el color de la propiedad
+        )
+
+        # Añadir más detalles de la propiedad con formato numérico
+        embed.add_field(name="Valor de Compra", value=f"{float(propiedad['valor_compra']):,.2f}", inline=False)
+        embed.add_field(name="Renta Diaria", value=f"{float(propiedad['renta_diaria']):,.2f}", inline=True)
+        embed.add_field(name="Costo Diario", value=f"{float(propiedad['costo_diario']):,.2f}", inline=True)
+        embed.add_field(name="Costo Mantenimiento", value=f"{float(propiedad['costo_mantenimiento']):,.2f}", inline=True)
+        embed.add_field(name="Nivel", value=f"{propiedad['nivel']}", inline=True)
+        embed.add_field(name="Tier", value=f"{propiedad['tier']}", inline=True)
+        embed.add_field(name="Barrio", value=f"{propiedad['barrio']}", inline=True)
+        embed.add_field(name="Tamaño", value=f"{propiedad['tamaño']}", inline=True)
+        embed.add_field(name="Pisos", value=f"{propiedad['pisos']}", inline=True)
+        embed.add_field(name="Desgaste", value=f"{propiedad['desgaste']}", inline=True)
+        embed.add_field(name="Suerte", value=f"{propiedad['suerte']}", inline=True)
+
+        await ctx.send(embed=embed)
 
     # Comando: !comprar_propiedad_generada
     @commands.command(name='comprar_propiedad_generada', help='Compra la última propiedad generada en el mercado. Uso: !comprar_propiedad_generada')
@@ -91,7 +150,8 @@ class MarketCommands(commands.Cog):
     @commands.command(name='vender_propiedad', help='Vende una propiedad específica y recibe dinero según su valor.')
     async def vender_propiedad(self, ctx, propiedad_id: int):
         usuario_id = str(ctx.author.id)
-        saldo_nuevo = vender_propiedad(usuario_id, propiedad_id)
+        guild_id = str(ctx.guild.id)
+        saldo_nuevo = vender_propiedad(usuario_id, guild_id, propiedad_id)
         if saldo_nuevo:
             await ctx.send(f"Has vendido la propiedad {propiedad_id}. Tu nuevo saldo es {saldo_nuevo}.")
         else:
@@ -107,7 +167,7 @@ class MarketCommands(commands.Cog):
             await ctx.send(f"No hay ningun evento actulamente.")
 
     # Comando: !listar_propiedades
-    @commands.command(name='listar_propiedades',help='Lista todas tus propiedades.')
+    @commands.command(name='listar_propiedades', help='Lista todas tus propiedades.')
     async def listar_propiedades(self, ctx):
         usuario_id = str(ctx.author.id)
         propiedades = obtener_propiedades_por_usuario(usuario_id)
@@ -116,32 +176,49 @@ class MarketCommands(commands.Cog):
             await ctx.send("No tienes propiedades.")
             return
 
-        descripcion = "**Tus Propiedades:**\n"
         for propiedad in propiedades:
-            descripcion += f"ID: {propiedad['id']}, Nombre: {propiedad['nombre']}, Renta Diaria: {propiedad['renta_diaria']}, Costo Diario: {propiedad['costo_diario']}, Costo Mantenimiento: {propiedad['costo_mantenimiento']}, nivel: {propiedad['nivel']}, tier: {propiedad['tier']}, barrio: {propiedad['barrio']}, color: {propiedad['color']}, tamaño: {propiedad['tamaño']}, pisos: {propiedad['pisos']}. \n"
-        await ctx.send(descripcion)
+            embed = discord.Embed(
+                title=f"Propiedad: {propiedad['nombre']}",
+                description=f"Pequeña descripción de la propiedad.",
+                color=discord.Color.from_str(propiedad['color'])  # Usar el color de la propiedad
+            )
+
+            # Añadir los campos con la información y el formato de los números
+            embed.add_field(name="ID", value=f"{propiedad['id']}", inline=True)
+            embed.add_field(name="Renta Diaria", value=f"{float(propiedad['renta_diaria']):,.2f}", inline=True)
+            embed.add_field(name="Costo Diario", value=f"{float(propiedad['costo_diario']):,.2f}", inline=True)
+
+            # Pie de página con una nota adicional
+            embed.set_footer(text=f"Propiedad en el barrio {propiedad['barrio']} | Costo Mantenimiento: {float(propiedad['costo_mantenimiento']):,.2f} | Nivel: {propiedad['nivel']} | Tier: {propiedad['tier']} | Suerte: {propiedad['suerte']} | Desgaste: {propiedad['desgaste']}")
+
+            # Enviar el embed como una "carta"
+            await ctx.send(embed=embed)
+
 
     # Comando: !detalles_propiedad [propiedad_id]
     @commands.command(name='detalles_propiedad', help='Muestra los detalles de una propiedad específica.')
     async def detalles_propiedad(self, ctx, propiedad_id: int):
         propiedad = obtener_propiedad(propiedad_id)
         if propiedad:
-            mensaje = f"**Detalles de la propiedad {propiedad['nombre']}:**\n"
-            mensaje += f"Tipo: {propiedad['tipo']}\n"
-            mensaje += f"Renta Diaria: {propiedad['renta_diaria']}\n"
-            mensaje += f"Costo Diario: {propiedad['costo_diario']}\n"
-            mensaje += f"Costo Mantenimiento: {propiedad['costo_mantenimiento']}\n"
-            mensaje += f"Desgaste Actual: {propiedad['desgaste']}\n"
-            mensaje += f"Tamaño: {propiedad['tamaño']}\n"
-            mensaje += f"Pisos: {propiedad['pisos']}\n"
-            mensaje += f"Nivel: {propiedad['nivel']}\n"
-            mensaje += f"Tier: {propiedad['tier']}\n"
-            mensaje += f"Barrio: {propiedad['barrio']}\n"
-            mensaje += f"Color: {propiedad['color']}\n"
-            mensaje += f"Suerte: {propiedad['suerte']}\n"
-            mensaje += f"Esta arrendada: {propiedad['arrendada']}\n"
-            mensaje += f"Es residencia: {propiedad['es_residencia_principal']}\n"
-            await ctx.send(mensaje)
+            embed = discord.Embed(
+                title=f"Detalles de la Propiedad: {propiedad['nombre']}",
+                color=discord.Color.from_str(propiedad['color'])  # Usar el color de la propiedad
+            )
+
+            # Añadir campos con formato numérico para los valores monetarios
+            embed.add_field(name="Tipo", value=propiedad['tipo'], inline=True)
+            embed.add_field(name="Barrio", value=f"{propiedad['barrio']}", inline=True)
+            embed.add_field(name="Nivel", value=f"{propiedad['nivel']}", inline=True)
+            embed.add_field(name="Tier", value=f"{propiedad['tier']}", inline=True)
+            embed.add_field(name="Renta Diaria", value=f"{float(propiedad['renta_diaria']):,.2f}", inline=True)
+            embed.add_field(name="Costo Diario", value=f"{float(propiedad['costo_diario']):,.2f}", inline=True)
+            embed.add_field(name="Costo Mantenimiento", value=f"{float(propiedad['costo_mantenimiento']):,.2f}", inline=True)
+            embed.add_field(name="Suerte", value=f"{propiedad['suerte']}", inline=True)
+
+            # Pie de página con alguna nota adicional
+            embed.set_footer(text=f"Valor de compra: {float(propiedad['valor_compra']):,.2f} | Tamaño: {propiedad['tamaño']}m² | Piso/s: {propiedad['pisos']} | Desgaste: {propiedad['desgaste']} | Arrendada: {'Sí' if propiedad['arrendada'] else 'No'} | Residencia Principal: {'Sí' if propiedad['es_residencia_principal'] else 'No'}")
+
+            await ctx.send(embed=embed)
         else:
             await ctx.send("No se encontró la propiedad.")
 
@@ -174,8 +251,9 @@ class MarketCommands(commands.Cog):
     @commands.command(name='estado_inversionista', help='Muestra el estado actual del inversionista.')
     async def estado_inversionista(self, ctx):
         usuario_id = str(ctx.author.id)
+        guild_id = str(ctx.guild.id)
         estado = verificar_estado_inversionista(usuario_id)
-        saldo = obtener_saldo_usuario(usuario_id)
+        saldo = obtener_saldo_usuario(usuario_id, guild_id)
 
         if estado is not None:
             await ctx.send(f"Estado: Penalizado: {estado}, Saldo: {saldo}")
@@ -208,24 +286,6 @@ class MarketCommands(commands.Cog):
             await ctx.send(f"Evento actual: {evento}")
         else:
             await ctx.send("No hay eventos activos por el momento.")
-
-    # Comando: !ver_propiedad_hogar
-    @commands.command(name='ver_propiedad_hogar', help='Muestra una propiedad tipo hogar disponible en el mercado.')
-    async def ver_propiedad_hogar(self, ctx):
-        propiedad = generar_propiedad('hogar')
-        self.ultima_propiedad_generada = propiedad
-
-        detalles = f"**Propiedad Hogar en Venta**\nNombre: {propiedad['nombre']}\nValor de Compra: {propiedad['valor_compra']}\nRenta Diaria: {propiedad['renta_diaria']}\nCosto Diario: {propiedad['costo_diario']}\n¿Quieres comprarla? Usa !comprar_propiedad_generada"
-        await ctx.send(detalles)
-
-    # Comando: !ver_propiedad_tienda
-    @commands.command(name='ver_propiedad_tienda', help='Muestra una propiedad tipo tienda disponible en el mercado.')
-    async def ver_propiedad_tienda(self, ctx):
-        propiedad = generar_propiedad('tienda')
-        self.ultima_propiedad_generada = propiedad
-
-        detalles = f"**Propiedad Tienda en Venta**\nNombre: {propiedad['nombre']}\nValor de Compra: {propiedad['valor_compra']}\nRenta Diaria: {propiedad['renta_diaria']}\nCosto Diario: {propiedad['costo_diario']}\n¿Quieres comprarla? Usa !comprar_propiedad_generada"
-        await ctx.send(detalles)
 
     # Comando: !ver_penalizacion [usuario_id]
     @commands.command(name='ver_penalizacion', help='Consulta el estado de penalización de un usuario.')
@@ -377,15 +437,20 @@ class MarketCommands(commands.Cog):
     @tasks.loop(hours=24)  # Cada día
     async def pago_renta_diaria(self):
         logging.info("Iniciando la tarea de pago de renta diaria.")
+        
+        # Obtener todos los usuarios registrados (incluyendo guild_id)
         usuarios = obtener_usuarios_registrados()
 
         if not usuarios:
             logging.info("No se encontraron usuarios registrados para pagar renta diaria.")
             return
 
+        # Pagar la renta diaria a cada usuario por servidor
         for usuario in usuarios:
-            pagar_renta_diaria(usuario['usuario_id'])
-            logging.info(f"Renta diaria pagada al {usuario['usuario_id']}.")
+            guild_id = usuario['guild_id']
+            usuario_id = usuario['usuario_id']
+            pagar_renta_diaria(usuario_id, guild_id)  # Pasar guild_id como argumento
+            logging.info(f"Renta diaria pagada al usuario {usuario_id} en el servidor {guild_id}.")
 
         # Notificación de rentas pagadas solo a servidores con inversionistas
         for guild in self.bot.guilds:
@@ -394,46 +459,60 @@ class MarketCommands(commands.Cog):
                 logging.info(f"Notificación de pago de rentas enviada al servidor {guild.name}.")
 
 
+
     # Pago de mantenimiento cada 3 días
     @tasks.loop(hours=72)  # Cada 3 días
     async def pago_mantenimiento(self):
         logging.info("Iniciando la tarea de pago de mantenimiento.")
+        
+        # Obtener todos los usuarios registrados (con su guild_id)
         usuarios = obtener_usuarios_registrados()
 
         if not usuarios:
             logging.info("No se encontraron usuarios registrados para pagar el mantenimiento.")
             return
 
+        # Pagar el costo de mantenimiento para cada usuario y servidor (guild)
         for usuario in usuarios:
-            pagar_costo_mantenimiento(usuario['usuario_id'])
-            logging.info(f"Pago de mantenimiento realizado para el usuario {usuario['usuario_id']}.")
+            guild_id = usuario['guild_id']
+            usuario_id = usuario['usuario_id']
+            pagar_costo_mantenimiento(usuario_id, guild_id)  # Pasa el guild_id también
+            logging.info(f"Pago de mantenimiento realizado para el usuario {usuario_id} en el servidor {guild_id}.")
 
         # Notificación de pago de mantenimiento solo a servidores con inversionistas
         for guild in self.bot.guilds:
+            # Verificar si el servidor tiene inversionistas registrados
             if any(usuario for usuario in usuarios if str(usuario['guild_id']) == str(guild.id)):
                 await self.enviar_notificacion(guild.id, "¡Se ha pagado el costo de mantenimiento de las propiedades!")
                 logging.info(f"Notificación de pago de mantenimiento enviada al servidor {guild.name}.")
+
 
 
     # Cobro de costos diarios cada día
     @tasks.loop(hours=24)  # Cada día
     async def pago_diario(self):
         logging.info("Iniciando la tarea de cobro de costos diarios.")
+        
+        # Obtener todos los usuarios registrados (incluyendo guild_id)
         usuarios = obtener_usuarios_registrados()
 
         if not usuarios:
             logging.info("No se encontraron usuarios registrados para cobrar los costos diarios.")
             return
 
+        # Cobrar el costo diario a cada usuario por servidor
         for usuario in usuarios:
-            pagar_costo_diario(usuario['usuario_id'])
-            logging.info(f"Costo diario cobrado al usuario {usuario['usuario_id']}.")
+            guild_id = usuario['guild_id']
+            usuario_id = usuario['usuario_id']
+            pagar_costo_diario(usuario_id, guild_id)  # Pasar guild_id como argumento
+            logging.info(f"Costo diario cobrado al usuario {usuario_id} en el servidor {guild_id}.")
 
         # Notificación de costos diarios cobrados solo a servidores con inversionistas
         for guild in self.bot.guilds:
             if any(usuario for usuario in usuarios if str(usuario['guild_id']) == str(guild.id)):
                 await self.enviar_notificacion(guild.id, "¡Se han cobrado los costos diarios de las propiedades!")
                 logging.info(f"Notificación de cobro de costos diarios enviada al servidor {guild.name}.")
+
 
     @tasks.loop(hours=72)  # Cada 3 días - Despenalización de usuarios
     async def despenalizar_usuarios(self):

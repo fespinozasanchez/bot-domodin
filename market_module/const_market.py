@@ -3,7 +3,15 @@ import numpy as np  # Librería para cálculos numéricos y estadísticos
 
 
 # Lista de colores disponibles para las propiedades
-COLORS = ['Rojo', 'Azul', 'Verde', 'Amarillo', 'Naranja', 'Morado', 'Rosa']
+COLORS = [
+    '#FF0000',  # Rojo (Red)
+    '#0000FF',  # Azul (Blue)
+    '#00FF00',  # Verde (Green)
+    '#FFFF00',  # Amarillo (Yellow)
+    '#FFA500',  # Naranja (Orange)
+    '#800080',  # Morado (Purple)
+    '#FFC0CB'   # Rosa (Pink)
+]
 
 # Distribución de probabilidad para los barrios (no lineal)
 BARRIOS = list(range(1, 11))

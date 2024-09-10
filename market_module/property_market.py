@@ -50,7 +50,7 @@ def calcular_valor_compra(nivel, tier, tamaño, pisos, suerte):
 
 # Función para calcular la renta diaria con controladores ajustados
 def calcular_renta_diaria(nivel, tier, suerte, desgaste, controladores, porcentajes, color, valor_compra):
-    valor_base = 0.15 * suerte + 0.01 # Entre 0% y 15% del valor base de compra
+    valor_base = 0.25 * suerte + 0.1 # Entre 10% y 35% del valor base de compra
     base_rent = valor_compra * valor_base
     suerte_factor = suerte * 1.5  # A mayor suerte, mayor renta diaria
     desgaste_factor = (1.0 - desgaste) + 0.5 # A mayor desgaste, menor renta
@@ -70,7 +70,7 @@ def calcular_renta_diaria(nivel, tier, suerte, desgaste, controladores, porcenta
 
 # Función para calcular el costo diario
 def calcular_costo_diario(nivel, tier, tamaño, pisos, suerte,renta_diaria):
-    valor_base = 0.45 *(1-suerte)  +0.15 # Entre el 15% y 60% de la renta diaria
+    valor_base = 0.1 *(1-suerte)  +0.05 # Entre el 05% y 15% de la renta diaria
     base_cost = renta_diaria * valor_base + (tamaño/pisos) * valor_base  # Influencia del tamaño y pisos
     suerte_factor = (1.0 - suerte) + 0.5  # A mayor suerte, menor costo diario
     tier_factor = 1.0 + TIERS[tier] * nivel  # Factor basado en el tier y nivel

@@ -501,7 +501,7 @@ def obtener_usuarios_registrados():
         usuarios = []
         if conn:
             with closing(conn.cursor(dictionary=True)) as cursor:
-                cursor.execute('SELECT usuario_id FROM inversionistas')
+                cursor.execute('SELECT * FROM inversionistas')
                 usuarios = cursor.fetchall()
             conn.close()
         return usuarios
