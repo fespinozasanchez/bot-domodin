@@ -1,3 +1,4 @@
+from datetime import datetime
 import mysql.connector
 from mysql.connector import Error
 import logging
@@ -71,7 +72,24 @@ def load_user_data(user_id, guild_id):
 
     user_data = retry_query(load)
     if user_data:
-        return {'user_id': user_data['user_id'], 'guild_id': user_data['guild_id'], 'balance': user_data['balance']}
+        # Asegúrate de que 'last_loan_time' y 'loan_due_time' se manejen correctamente
+        last_loan_time = user_data.get('last_loan_time')
+        loan_due_time = user_data.get('loan_due_time')
+
+        # Convertir las fechas a objetos datetime si son cadenas
+        if last_loan_time and isinstance(last_loan_time, str):
+            last_loan_time = datetime.fromisoformat(last_loan_time)
+        if loan_due_time and isinstance(loan_due_time, str):
+            loan_due_time = datetime.fromisoformat(loan_due_time)
+
+        return {
+            'user_id': user_data['user_id'],
+            'guild_id': user_data['guild_id'],
+            'balance': user_data['balance'],
+            'last_loan_time': last_loan_time,
+            'loan_amount': user_data.get('loan_amount', 0),
+            'loan_due_time': loan_due_time  # Puede ser None si no se ha solicitado préstamo antes
+        }
     return None
 
 
@@ -79,17 +97,42 @@ def save_user_data(user_id, guild_id, balance):
     def save():
         conn = connect_db()
         if conn:
+            conn.autocommit = True  # Activar autocommit
             with closing(conn.cursor()) as cursor:
-                cursor.execute(
-                    'INSERT INTO users (user_id, guild_id, balance) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE balance=%s',
-                    (user_id, guild_id, balance, balance))
+                query = '''
+                UPDATE users 
+                SET balance = %s 
+                WHERE user_id = %s 
+                AND guild_id = %s
+                '''
+                logging.info(f"Ejecutando consulta: {query} con valores: {balance}, {user_id}, {guild_id}")
+                cursor.execute(query, (balance, user_id, guild_id))  # Utiliza los placeholders correctamente
                 conn.commit()
             conn.close()
 
     retry_query(save)
 
 
-# En utils/data_manager.py
+def save_loan_data(user_id, guild_id, balance, last_loan_time, loan_amount, loan_due_time):
+    logging.info(f"Guardando datos de préstamo para el usuario: {user_id}, guild: {guild_id}, balance: {balance}, last_loan_time: {last_loan_time}, loan_amount: {loan_amount}, loan_due_time: {loan_due_time}")
+
+    def save():
+        conn = connect_db()
+        if conn:
+            with closing(conn.cursor()) as cursor:
+                cursor.execute(
+                    '''
+                    UPDATE users 
+                    SET balance=%s, last_loan_time=%s, loan_amount=%s, loan_due_time=%s 
+                    WHERE user_id=%s AND guild_id=%s
+                    ''', (balance, last_loan_time, loan_amount, loan_due_time, user_id, guild_id)
+                )
+                conn.commit()
+                logging.info(f"Datos de préstamo guardados correctamente para el usuario {user_id} en el servidor {guild_id}")
+            conn.close()
+
+    retry_query(save)
+
 
 def load_all_users(guild_id=None):
     def load_all():
