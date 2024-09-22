@@ -1,54 +1,26 @@
-# player.py
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Table
+from sqlalchemy.orm import relationship
+from utils.rpg_data_manager import Base
 
-from rpg_module.weapons import Weapon
-from rpg_module.armors import Armor
-from rpg_module.mage_skill import MageSkill
-from rpg_module.warrior_skill import WarriorSkill
-from rpg_module.thief_skill import ThiefSkill
-from rpg_module.items import Item
+class Player(Base):
+    __tablename__ = 'players'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    level = Column(Integer, default=1)
+    health = Column(Float, default=100)
+    strength = Column(Float, default=10)
+    intelligence = Column(Float, default=10)
+    agility = Column(Float, default=10)
+    mana = Column(Float, default=100)
+    stats_points = Column(Integer, default=15)
+    weapon_id = Column(Integer, ForeignKey('weapons.id', ondelete="SET NULL"))
+    armor_id = Column(Integer, ForeignKey('armors.id', ondelete="SET NULL"))
 
+    weapon = relationship("Weapon", back_populates="players")
+    armor = relationship("Armor", back_populates="players")
+    skills = relationship("Skill", secondary='player_skills', back_populates="players")
 
-
-
-class Player:
-
-    def __init__(self, name, level=1, health=100, strength=10, intelligence=10, agility=10, mana=100, stats_points=15,
-                 weapon=None, armor=None, boots=None, helmet=None, exp=0):
-        """
-        name: Nombre del jugador.
-        level: Nivel del jugador.
-        health: Salud del jugador.
-        strength: Fuerza del jugador.
-        intelligence: Inteligencia del jugador.
-        agility: Agilidad del jugador.
-        mana: Mana del jugador.
-        stats_points: Puntos de estadísticas disponibles para mejorar.
-        weapon: Arma inicial del jugador (opcional).
-        armor: Armadura inicial del jugador (opcional).
-        boots: Botas iniciales del jugador (opcional).
-        helmet: Casco inicial del jugador (opcional).
-        exp: Experiencia inicial del jugador.
-        """
-        self.name = name
-        self.level = level
-        self.health = health
-        self.strength = strength
-        self.intelligence = intelligence
-        self.agility = agility
-        self.mana = mana + (self.intelligence * 0.3)
-        self.stats_points = stats_points
-        self.weapon = weapon
-        self.armor = armor
-        self.boots = boots
-        self.helmet = helmet
-        self.exp = exp
-        self.inventory = []
-        self.skills = []
-        self.evasion = 0
-        self.defense = 0  # Atributo de defensa que puede ser modificado por armaduras
-        self.status_effects = []  # Efectos de estado que afectan al jugador
-
-        self.equip_initial_items()
+    inventory = relationship("PlayerInventory", back_populates="player")
 
     def equip_initial_items(self):
         """
@@ -180,18 +152,7 @@ class Player:
             "defense": self.defense,
         }
 
-    def use_skill(self, skill_name, enemy=None):
-        """
-        Usa una habilidad del jugador contra un enemigo o por sí mismo.
-        """
-        for skill in self.skills:
-            if skill.name == skill_name:
-                if isinstance(skill, WarriorSkill):
-                    damage = skill.use(self, enemy)
-                else:
-                    damage = skill.use(self)
-                return f"{self.name} uses {skill_name}, causing {damage} damage!"
-        return f"{self.name} doesn't have the skill {skill_name}."
+    
 
     def apply_status_effect(self, effect):
         """
@@ -209,15 +170,12 @@ class Player:
                 self.status_effects.remove(effect)
 
     def end_turn(self):
-        """
-        Lógica de fin de turno, como reducir el cooldown de las habilidades y actualizar efectos de estado.
-        """
-        for skill in self.skills:
-            if isinstance(skill, MageSkill):
-                skill.reduce_cooldown()
+        
 
         # Actualizar efectos de estado al final del turno
         self.update_status_effects()
 
         # Reset evasion boost after turn ends
         self.evasion = 0
+
+
