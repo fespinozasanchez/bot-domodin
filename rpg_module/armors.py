@@ -1,19 +1,18 @@
-# armors.py
-from rpg_module.items import Item
+from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy.orm import relationship
+from utils.rpg_data_manager import Base
 
+class Armor(Base):
+    __tablename__ = 'armors'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    description = Column(String(255))
+    defense_value = Column(Float)
+    increase_stat = Column(String(255))
+    increase_amount = Column(Float)
+    price = Column(Float, default=100)
 
-class Armor(Item):
-    def __init__(self, name, description, increase_stat, increase_amount, defense_value=0):
-        """
-        name: Nombre de la armadura.
-        description: Descripción de la armadura.
-        increase_stat: El atributo que se verá incrementado al equipar la armadura (ej. 'mana', 'health').
-        increase_amount: La cantidad que se incrementará al equipar la armadura.
-        defense_value: El valor de defensa que otorga la armadura (opcional).
-        """
-        super().__init__(name, "Armor", description, increase_stat, increase_amount)
-        # Valor de defensa adicional que proporciona la armadura
-        self.defense_value = defense_value
+    players = relationship("Player", back_populates="armor")
 
     def apply_bonus(self, player):
         """

@@ -1,21 +1,18 @@
-# weapons.py
-from rpg_module.items import Item
+from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy.orm import relationship
+from utils.rpg_data_manager import Base
 
+class Weapon(Base):
+    __tablename__ = 'weapons'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    description = Column(String(255))
+    base_damage = Column(Float)
+    increase_stat = Column(String(255))
+    increase_amount = Column(Float)
+    price = Column(Float, default=100)
 
-
-class Weapon(Item):
-    def __init__(self, name, description, increase_stat, increase_amount, weapon_type, base_damage):
-        """
-        name: Nombre del arma.
-        description: Descripción del arma.
-        increase_stat: Atributo que incrementa al equipar el arma (ej. 'strength').
-        increase_amount: Cantidad que se incrementa al equipar el arma.
-        weapon_type: Tipo de arma (ej. 'Sword', 'Bow').
-        base_damage: Daño base que inflige el arma.
-        """
-        super().__init__(name, "Weapon", description, increase_stat, increase_amount)
-        self.weapon_type = weapon_type
-        self.base_damage = base_damage
+    players = relationship("Player", back_populates="weapon")
 
     def apply_bonus(self, player):
         """

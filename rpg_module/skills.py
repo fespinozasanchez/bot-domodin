@@ -1,30 +1,17 @@
-# skill.py
+from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy.orm import relationship
+from utils.rpg_data_manager import Base
 
-class Skill:
-    def __init__(self, name, description, main_attribute, secondary_attribute, skill_type, mana_cost, multiplier, damage, effect=None, cooldown=0):
-        """
-        name: Nombre de la habilidad.
-        description: Descripción de la habilidad.
-        main_attribute: Atributo principal que afecta el poder de la habilidad (ej. 'strength', 'intelligence').
-        secondary_attribute: Atributo secundario que puede influir en la habilidad (opcional).
-        skill_type: Tipo de habilidad (ej. 'offensive', 'defensive').
-        mana_cost: Costo de mana para usar la habilidad.
-        multiplier: Multiplicador que se aplica al atributo principal para calcular el daño.
-        damage: Daño base adicional que causa la habilidad.
-        effect: Efecto adicional que puede aplicar la habilidad (opcional, puede ser una función).
-        cooldown: Turnos de cooldown antes de que la habilidad pueda ser utilizada de nuevo.
-        """
-        self.name = name
-        self.description = description
-        self.main_attribute = main_attribute
-        self.secondary_attribute = secondary_attribute
-        self.skill_type = skill_type
-        self.mana_cost = mana_cost
-        self.multiplier = multiplier
-        self.damage = damage
-        self.effect = effect  # Efecto adicional que la habilidad puede aplicar
-        self.cooldown = cooldown
-        self.current_cooldown = 0
+class Skill(Base):
+    __tablename__ = 'skills'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    description = Column(String(255))
+    mana_cost = Column(Float)
+    multiplier = Column(Float)
+    damage = Column(Float)
+
+    players = relationship("Player", secondary='player_skills', back_populates="skills")
 
     def can_use(self, player):
         """
