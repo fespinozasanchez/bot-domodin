@@ -1,15 +1,15 @@
 import io
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import discord
 from discord.ext import commands, tasks
 from utils.data_manager import load_user_data, save_loan_data, save_user_data, load_all_users
 import logging
-import matplotlib
+# import matplotlib
 import random as ra
 from utils.channel_manager import save_channel_setting, load_channel_setting
 from datetime import datetime, timedelta
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -263,45 +263,45 @@ class Economy(commands.Cog):
 
             await ctx.send(embed=embed)
 
-    @commands.command(name='grafico_saldos')
-    async def grafico_saldos(self, ctx):
-        guild_id = str(ctx.guild.id)
-        all_users = load_all_users(guild_id)
-        user_names = []
-        balances = []
-        for user_key, user_data in all_users.items():
-            user = await self.bot.fetch_user(user_key.split('_')[0])
-            user_names.append(user.name)
-            balances.append(round(user_data['balance'], 0))  # Redondear saldos a 0 decimales
+    # @commands.command(name='grafico_saldos')
+    # async def grafico_saldos(self, ctx):
+    #     guild_id = str(ctx.guild.id)
+    #     all_users = load_all_users(guild_id)
+    #     user_names = []
+    #     balances = []
+    #     for user_key, user_data in all_users.items():
+    #         user = await self.bot.fetch_user(user_key.split('_')[0])
+    #         user_names.append(user.name)
+    #         balances.append(round(user_data['balance'], 0))  # Redondear saldos a 0 decimales
 
-        # Configuración del gráfico
-        plt.figure(figsize=(12, 8))
-        bars = plt.bar(user_names, balances, color=plt.cm.viridis(
-            np.linspace(0, 1, len(user_names))))
+    #     # Configuración del gráfico
+    #     plt.figure(figsize=(12, 8))
+    #     bars = plt.bar(user_names, balances, color=plt.cm.viridis(
+    #         np.linspace(0, 1, len(user_names))))
 
-        plt.xlabel('Usuarios', fontsize=14)
-        plt.ylabel('Saldo (MelladoCoins)', fontsize=14)
-        plt.title(f'Saldo de Usuarios en {ctx.guild.name}', fontsize=16)
-        plt.xticks(rotation=45, ha='right', fontsize=12)
-        plt.yticks(fontsize=12)
-        plt.grid(axis='y', linestyle='--', alpha=0.7)
+    #     plt.xlabel('Usuarios', fontsize=14)
+    #     plt.ylabel('Saldo (MelladoCoins)', fontsize=14)
+    #     plt.title(f'Saldo de Usuarios en {ctx.guild.name}', fontsize=16)
+    #     plt.xticks(rotation=45, ha='right', fontsize=12)
+    #     plt.yticks(fontsize=12)
+    #     plt.grid(axis='y', linestyle='--', alpha=0.7)
 
-        # Añadir etiquetas a las barras
-        for bar in bars:
-            yval = bar.get_height()
-            # Agregar formato de puntos de mil y signo de moneda
-            formatted_value = f"${yval:,.0f}".replace(",", ".")
-            plt.text(bar.get_x() + bar.get_width() / 2, yval, formatted_value,
-                     ha='center', va='bottom', fontsize=10, color='black')
+    #     # Añadir etiquetas a las barras
+    #     for bar in bars:
+    #         yval = bar.get_height()
+    #         # Agregar formato de puntos de mil y signo de moneda
+    #         formatted_value = f"${yval:,.0f}".replace(",", ".")
+    #         plt.text(bar.get_x() + bar.get_width() / 2, yval, formatted_value,
+    #                  ha='center', va='bottom', fontsize=10, color='black')
 
-        buf = io.BytesIO()
-        plt.tight_layout()
-        plt.savefig(buf, format='png')
-        buf.seek(0)
-        plt.close()
+    #     buf = io.BytesIO()
+    #     plt.tight_layout()
+    #     plt.savefig(buf, format='png')
+    #     buf.seek(0)
+    #     plt.close()
 
-        file = discord.File(buf, filename='grafico_saldos.png')
-        await ctx.send(file=file)
+    #     file = discord.File(buf, filename='grafico_saldos.png')
+    #     await ctx.send(file=file)
 
     def update_balance(self, user_id, guild_id, amount):
         user_data = load_user_data(user_id, guild_id)
