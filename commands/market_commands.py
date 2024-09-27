@@ -1,18 +1,23 @@
 import discord
 from discord.ext import commands, tasks
 from utils.custom_help import CustomHelpPaginator
-from market_module.property_events import pagar_renta_diaria, despenalizar_propietario, pagar_costo_mantenimiento, pagar_costo_diario, aplicar_desgaste_automatico, comprar_propiedad, obtener_evento_global, mejorar_desgaste, vender_propiedad
-from utils.market_data_manager import (generar_propiedad, actualizar_estado_residencia_principal, obtener_propiedades_home, actualizar_estado_propiedad_arrendada, obtener_propiedades_por_usuario, obtener_saldo_usuario,
-                                       guardar_propiedad, register_investor, obtener_usuarios_penalizados,
-                                       verificar_estado_inversionista, es_inversionista,
-                                       obtener_propiedad, obtener_usuarios_registrados)
+from market_module.property_events import (pagar_renta_diaria, despenalizar_propietario, pagar_costo_mantenimiento, 
+                                           pagar_costo_diario, aplicar_desgaste_automatico, comprar_propiedad, 
+                                           obtener_evento_global, mejorar_desgaste, vender_propiedad)
+from utils.market_data_manager import (generar_propiedad, actualizar_estado_residencia_principal, 
+                                       obtener_propiedades_home, actualizar_estado_propiedad_arrendada, 
+                                       obtener_propiedades_por_usuario, obtener_saldo_usuario, guardar_propiedad, 
+                                       register_investor, obtener_usuarios_penalizados, verificar_estado_inversionista, 
+                                       es_inversionista, obtener_propiedad, obtener_usuarios_registrados)
 import logging
 from utils.channel_manager import save_channel_setting, load_channel_setting
+from discord import app_commands
 
 
 class MarketCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.tree = bot.tree
         self.ultima_propiedad_generada = None  # Para almacenar la última propiedad generada
 
         # Tareas automatizadas
@@ -22,18 +27,26 @@ class MarketCommands(commands.Cog):
         self.pago_mantenimiento.start()
         self.despenalizar_usuarios.start()
 
-    # Comando: !registrar_inversionista
+    # Comando con prefijo
     @commands.command(name='registrar_inversionista', help='Registra al usuario como inversionista. Uso: !registrar_inversionista')
     async def registrar_inversionista(self, ctx):
-        usuario_id = str(ctx.author.id)
-        guild_id = str(ctx.guild.id)  # Usar guild_id para diferenciar servidores
+        await self._registrar_inversionista(ctx)
 
-        # Verificar si el usuario ya está registrado como inversionista
+    # Slash Command
+    @app_commands.command(name='registrar_inversionista', description='Registra al usuario como inversionista')
+    async def slash_registrar_inversionista(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._registrar_inversionista(ctx)
+
+    # Función compartida por ambos comandos
+    async def _registrar_inversionista(self, ctx):
+        usuario_id = str(ctx.author.id)
+        guild_id = str(ctx.guild.id)
+
         if es_inversionista(usuario_id, guild_id):
-            await ctx.send("Ya estás registrado como inversionista. No puedes registrarte de nuevo.")
+            await ctx.send("Ya estás registrado como inversionista.")
             return
 
-        # Generar propiedad inicial
         try:
             register_investor(usuario_id, guild_id)
             propiedad_inicial = generar_propiedad(tipo='hogar')
@@ -53,6 +66,15 @@ class MarketCommands(commands.Cog):
     # Comando: !comprar_propiedad [tipo]
     @commands.command(name='comprar_propiedad', help="Compra una propiedad aleatoria del tipo especificado (hogar o tienda). Uso: !comprar_propiedad [tipo]")
     async def comprar_propiedad(self, ctx, tipo: str):
+        await self._comprar_propiedad(ctx, tipo)
+
+    # Slash Command
+    @app_commands.command(name='comprar_propiedad', description='Compra una propiedad aleatoria del tipo especificado')
+    async def slash_comprar_propiedad(self, interaction: discord.Interaction, tipo: str):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._comprar_propiedad(ctx, tipo)
+
+    async def _comprar_propiedad(self, ctx, tipo: str):
         usuario_id = str(ctx.author.id)
         guild_id = str(ctx.guild.id)
 
@@ -62,26 +84,33 @@ class MarketCommands(commands.Cog):
             return
 
         try:
-            # Generar una propiedad y comprobar el saldo
             propiedad = generar_propiedad(tipo)
             comprar_propiedad(usuario_id, guild_id, propiedad)
             await ctx.send(f"Has comprado una propiedad: {propiedad['nombre']}, nivel {propiedad['nivel']}.")
         except Exception as e:
-            # Enviar mensaje de error al usuario
             await ctx.send(f"Error al comprar la propiedad: {str(e)}")
 
+    # Comando: !ver_propiedad_hogar
     @commands.command(name='ver_propiedad_hogar', help='Muestra una propiedad tipo hogar disponible en el mercado.')
     async def ver_propiedad_hogar(self, ctx):
+        await self._ver_propiedad_hogar(ctx)
+
+    # Slash Command
+    @app_commands.command(name='ver_propiedad_hogar', description='Muestra una propiedad tipo hogar disponible en el mercado')
+    async def slash_ver_propiedad_hogar(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._ver_propiedad_hogar(ctx)
+
+    async def _ver_propiedad_hogar(self, ctx):
         propiedad = generar_propiedad('hogar')
         self.ultima_propiedad_generada = propiedad
 
         embed = discord.Embed(
             title="Propiedad Hogar en Venta",
             description=f"**{propiedad['nombre']}** está disponible para compra.",
-            color=discord.Color.from_str(propiedad['color'])  # Usar el color de la propiedad
+            color=discord.Color.from_str(propiedad['color'])
         )
 
-        # Añadir más detalles de la propiedad con formato numérico
         embed.add_field(name="Valor de Compra", value=f"${int(propiedad['valor_compra']):,}".replace(",", "."), inline=False)
         embed.add_field(name="Renta Diaria", value=f"${int(propiedad['renta_diaria']):,}".replace(",", "."), inline=True)
         embed.add_field(name="Costo Diario", value=f"${int(propiedad['costo_diario']):,}".replace(",", "."), inline=True)
@@ -96,18 +125,27 @@ class MarketCommands(commands.Cog):
 
         await ctx.send(embed=embed)
 
+    # Comando: !ver_propiedad_tienda
     @commands.command(name='ver_propiedad_tienda', help='Muestra una propiedad tipo tienda disponible en el mercado.')
     async def ver_propiedad_tienda(self, ctx):
+        await self._ver_propiedad_tienda(ctx)
+
+    # Slash Command
+    @app_commands.command(name='ver_propiedad_tienda', description='Muestra una propiedad tipo tienda disponible en el mercado')
+    async def slash_ver_propiedad_tienda(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._ver_propiedad_tienda(ctx)
+
+    async def _ver_propiedad_tienda(self, ctx):
         propiedad = generar_propiedad('tienda')
         self.ultima_propiedad_generada = propiedad
 
         embed = discord.Embed(
             title="Propiedad Tienda en Venta",
             description=f"**{propiedad['nombre']}** está disponible para compra.",
-            color=discord.Color.from_str(propiedad['color'])  # Usar el color de la propiedad
+            color=discord.Color.from_str(propiedad['color'])
         )
 
-        # Añadir más detalles de la propiedad con formato numérico
         embed.add_field(name="Valor de Compra", value=f"${int(propiedad['valor_compra']):,}".replace(",", "."), inline=False)
         embed.add_field(name="Renta Diaria", value=f"${int(propiedad['renta_diaria']):,}".replace(",", "."), inline=True)
         embed.add_field(name="Costo Diario", value=f"${int(propiedad['costo_diario']):,}".replace(",", "."), inline=True)
@@ -125,7 +163,15 @@ class MarketCommands(commands.Cog):
     # Comando: !comprar_propiedad_generada
     @commands.command(name='comprar_propiedad_generada', help='Compra la última propiedad generada en el mercado. Uso: !comprar_propiedad_generada')
     async def comprar_propiedad_generada(self, ctx):
-        # Verificar si hay una propiedad generada
+        await self._comprar_propiedad_generada(ctx)
+
+    # Slash Command
+    @app_commands.command(name='comprar_propiedad_generada', description='Compra la última propiedad generada en el mercado')
+    async def slash_comprar_propiedad_generada(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._comprar_propiedad_generada(ctx)
+
+    async def _comprar_propiedad_generada(self, ctx):
         if not self.ultima_propiedad_generada:
             await ctx.send("No hay ninguna propiedad generada. Usa !ver_propiedad_hogar o !ver_propiedad_tienda primero.")
             return
@@ -135,20 +181,25 @@ class MarketCommands(commands.Cog):
         propiedad = self.ultima_propiedad_generada
 
         try:
-            # Intentar comprar la última propiedad generada
             comprar_propiedad(usuario_id, guild_id, propiedad)
             valor_compra_formateado = f"${int(propiedad['valor_compra']):,}".replace(",", ".")
             await ctx.send(f"Has comprado la propiedad {propiedad['nombre']} por {valor_compra_formateado}.")
-            # Limpiar la última propiedad generada
             self.ultima_propiedad_generada = None
         except Exception as e:
-            # Enviar mensaje de error si no pudo comprarse la propiedad
             await ctx.send(f"Error al comprar la propiedad generada: {str(e)}")
 
     # Comando: !vender_propiedad [propiedad_id]
-
     @commands.command(name='vender_propiedad', help='Vende una propiedad específica y recibe dinero según su valor.')
     async def vender_propiedad(self, ctx, propiedad_id: int):
+        await self._vender_propiedad(ctx, propiedad_id)
+
+    # Slash Command
+    @app_commands.command(name='vender_propiedad', description='Vende una propiedad específica y recibe dinero según su valor')
+    async def slash_vender_propiedad(self, interaction: discord.Interaction, propiedad_id: int):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._vender_propiedad(ctx, propiedad_id)
+
+    async def _vender_propiedad(self, ctx, propiedad_id: int):
         usuario_id = str(ctx.author.id)
         guild_id = str(ctx.guild.id)
         saldo_nuevo = vender_propiedad(usuario_id, guild_id, propiedad_id)
@@ -157,17 +208,36 @@ class MarketCommands(commands.Cog):
         else:
             await ctx.send(f"No se encontró la propiedad o no eres el dueño.")
 
-    # Comando: !global_event [propiedad_id]
+    # Comando: !global_event
     @commands.command(name='global_event', help='Ejecuta un evento global que afecta a todas las rentas.')
     async def global_event(self, ctx):
+        await self._global_event(ctx)
+
+    # Slash Command
+    @app_commands.command(name='global_event', description='Ejecuta un evento global que afecta a todas las rentas')
+    async def slash_global_event(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._global_event(ctx)
+
+    async def _global_event(self, ctx):
         event = obtener_evento_global()
         if event:
             await ctx.send(f"El evento actual es {event}")
         else:
-            await ctx.send(f"No hay ningun evento actulamente.")
+            await ctx.send("No hay ningún evento actualmente.")
 
+    # Comando: !listar_propiedades
     @commands.command(name='listar_propiedades', help='Lista todas tus propiedades.')
     async def listar_propiedades(self, ctx):
+        await self._listar_propiedades(ctx)
+
+    # Slash Command
+    @app_commands.command(name='listar_propiedades', description='Lista todas tus propiedades')
+    async def slash_listar_propiedades(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._listar_propiedades(ctx)
+
+    async def _listar_propiedades(self, ctx):
         usuario_id = str(ctx.author.id)
         propiedades = obtener_propiedades_por_usuario(usuario_id)
 
@@ -179,30 +249,36 @@ class MarketCommands(commands.Cog):
             embed = discord.Embed(
                 title=f"Propiedad: {propiedad['nombre']}",
                 description=f"Pequeña descripción de la propiedad.",
-                color=discord.Color.from_str(propiedad['color'])  # Usar el color de la propiedad
+                color=discord.Color.from_str(propiedad['color'])
             )
 
-            # Añadir los campos con la información y el formato de los números
             embed.add_field(name="ID", value=f"{propiedad['id']}", inline=True)
             embed.add_field(name="Renta Diaria", value=f"${int(propiedad['renta_diaria']):,}".replace(",", "."), inline=True)
             embed.add_field(name="Costo Diario", value=f"${int(propiedad['costo_diario']):,}".replace(",", "."), inline=True)
 
-            # Pie de página con una nota adicional
             embed.set_footer(text=f"Propiedad en el barrio {propiedad['barrio']} | Costo Mantenimiento: ${int(propiedad['costo_mantenimiento']):,}. | Nivel: {propiedad['nivel']} | Tier: {propiedad['tier']} | Suerte: {propiedad['suerte']} | Desgaste: {propiedad['desgaste']}")
 
-            # Enviar el embed como una "carta"
             await ctx.send(embed=embed)
 
+    # Comando: !detalles_propiedad
     @commands.command(name='detalles_propiedad', help='Muestra los detalles de una propiedad específica.')
     async def detalles_propiedad(self, ctx, propiedad_id: int):
+        await self._detalles_propiedad(ctx, propiedad_id)
+
+    # Slash Command
+    @app_commands.command(name='detalles_propiedad', description='Muestra los detalles de una propiedad específica')
+    async def slash_detalles_propiedad(self, interaction: discord.Interaction, propiedad_id: int):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._detalles_propiedad(ctx, propiedad_id)
+
+    async def _detalles_propiedad(self, ctx, propiedad_id: int):
         propiedad = obtener_propiedad(propiedad_id)
         if propiedad:
             embed = discord.Embed(
                 title=f"Detalles de la Propiedad: {propiedad['nombre']}",
-                color=discord.Color.from_str(propiedad['color'])  # Usar el color de la propiedad
+                color=discord.Color.from_str(propiedad['color'])
             )
 
-            # Añadir campos con formato numérico para los valores monetarios
             embed.add_field(name="Tipo", value=propiedad['tipo'], inline=True)
             embed.add_field(name="Barrio", value=f"{propiedad['barrio']}", inline=True)
             embed.add_field(name="Nivel", value=f"{propiedad['nivel']}", inline=True)
@@ -212,18 +288,25 @@ class MarketCommands(commands.Cog):
             embed.add_field(name="Costo Mantenimiento", value=f"${int(propiedad['costo_mantenimiento']):,}".replace(",", "."), inline=True)
             embed.add_field(name="Suerte", value=f"{propiedad['suerte']}", inline=True)
 
-            # Pie de página con alguna nota adicional
             embed.set_footer(text=f"Valor de compra: ${int(propiedad['valor_compra']):,} | Tamaño: {propiedad['tamaño']}m² | Piso/s: {propiedad['pisos']} | Desgaste: {propiedad['desgaste']} | Arrendada: {'Sí' if propiedad['arrendada'] else 'No'} | Residencia Principal: {'Sí' if propiedad['es_residencia_principal'] else 'No'}")
 
             await ctx.send(embed=embed)
         else:
             await ctx.send("No se encontró la propiedad.")
 
-    # Comando: !mejorar_propiedad [propiedad_id], [cantidad melladocoins]
+    # Comando: !mejorar_propiedad
     @commands.command(name='mejorar_propiedad', help='Mejora el desgaste de una propiedad pagando una cantidad. Uso: !mejorar_propiedad [propiedad_id] [cantidad_pago]')
     async def mejorar_propiedad(self, ctx, propiedad_id: int, cantidad_pago: int):
-        usuario_id = str(ctx.author.id)
+        await self._mejorar_propiedad(ctx, propiedad_id, cantidad_pago)
 
+    # Slash Command
+    @app_commands.command(name='mejorar_propiedad', description='Mejora el desgaste de una propiedad pagando una cantidad')
+    async def slash_mejorar_propiedad(self, interaction: discord.Interaction, propiedad_id: int, cantidad_pago: int):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._mejorar_propiedad(ctx, propiedad_id, cantidad_pago)
+
+    async def _mejorar_propiedad(self, ctx, propiedad_id: int, cantidad_pago: int):
+        usuario_id = str(ctx.author.id)
         propiedad = obtener_propiedad(propiedad_id)
 
         if not propiedad:
@@ -244,9 +327,18 @@ class MarketCommands(commands.Cog):
         except Exception as e:
             await ctx.send(f"Ocurrió un error al mejorar la propiedad: {str(e)}")
 
-      # Comando: !estado_inversionista
+    # Comando: !estado_inversionista
     @commands.command(name='estado_inversionista', help='Muestra el estado actual del inversionista.')
     async def estado_inversionista(self, ctx):
+        await self._estado_inversionista(ctx)
+
+    # Slash Command
+    @app_commands.command(name='estado_inversionista', description='Muestra el estado actual del inversionista')
+    async def slash_estado_inversionista(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._estado_inversionista(ctx)
+
+    async def _estado_inversionista(self, ctx):
         usuario_id = str(ctx.author.id)
         guild_id = str(ctx.guild.id)
         estado = verificar_estado_inversionista(usuario_id)
@@ -261,6 +353,15 @@ class MarketCommands(commands.Cog):
     # Comando: !renta_diaria
     @commands.command(name='renta_diaria', help='Muestra la renta diaria total de tus propiedades.')
     async def renta_diaria(self, ctx):
+        await self._renta_diaria(ctx)
+
+    # Slash Command
+    @app_commands.command(name='renta_diaria', description='Muestra la renta diaria total de tus propiedades')
+    async def slash_renta_diaria(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._renta_diaria(ctx)
+
+    async def _renta_diaria(self, ctx):
         usuario_id = str(ctx.author.id)
         propiedades = obtener_propiedades_por_usuario(usuario_id)
 
@@ -271,6 +372,15 @@ class MarketCommands(commands.Cog):
     # Comando: !costo_diario
     @commands.command(name='costo_diario', help='Muestra el costo diario de todas tus propiedades.')
     async def costo_diario(self, ctx):
+        await self._costo_diario(ctx)
+
+    # Slash Command
+    @app_commands.command(name='costo_diario', description='Muestra el costo diario de todas tus propiedades')
+    async def slash_costo_diario(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._costo_diario(ctx)
+
+    async def _costo_diario(self, ctx):
         usuario_id = str(ctx.author.id)
         propiedades = obtener_propiedades_por_usuario(usuario_id)
 
@@ -279,18 +389,35 @@ class MarketCommands(commands.Cog):
         await ctx.send(f"Tu costo diario total es de {costo_total_formateado} MelladoCoins.")
 
     # Comando: !eventos_diarios
-
     @commands.command(name='eventos_diarios', help='Muestra los eventos globales que afectan las rentas diarias.')
     async def eventos_diarios(self, ctx):
+        await self._eventos_diarios(ctx)
+
+    # Slash Command
+    @app_commands.command(name='eventos_diarios', description='Muestra los eventos globales que afectan las rentas diarias')
+    async def slash_eventos_diarios(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._eventos_diarios(ctx)
+
+    async def _eventos_diarios(self, ctx):
         evento = obtener_evento_global()
         if evento:
             await ctx.send(f"Evento actual: {evento}")
         else:
             await ctx.send("No hay eventos activos por el momento.")
 
-    # Comando: !ver_penalizacion [usuario_id]
+    # Comando: !ver_penalizacion
     @commands.command(name='ver_penalizacion', help='Consulta el estado de penalización de un usuario.')
     async def ver_penalizacion(self, ctx, usuario_id: int):
+        await self._ver_penalizacion(ctx, usuario_id)
+
+    # Slash Command
+    @app_commands.command(name='ver_penalizacion', description='Consulta el estado de penalización de un usuario')
+    async def slash_ver_penalizacion(self, interaction: discord.Interaction, usuario_id: int):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._ver_penalizacion(ctx, usuario_id)
+
+    async def _ver_penalizacion(self, ctx, usuario_id: int):
         estado = verificar_estado_inversionista(usuario_id)
 
         if estado:
@@ -298,9 +425,18 @@ class MarketCommands(commands.Cog):
         else:
             await ctx.send(f"El usuario {usuario_id} no está penalizado.")
 
-    # Comando: !arrendar_propiedad [propiedad_id]
+    # Comando: !arrendar_propiedad
     @commands.command(name='arrendar_propiedad', help='Arrenda una propiedad tipo hogar. Uso: !arrendar_propiedad [propiedad_id]')
     async def arrendar_propiedad(self, ctx, propiedad_id: int):
+        await self._arrendar_propiedad(ctx, propiedad_id)
+
+    # Slash Command
+    @app_commands.command(name='arrendar_propiedad', description='Arrenda una propiedad tipo hogar')
+    async def slash_arrendar_propiedad(self, interaction: discord.Interaction, propiedad_id: int):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._arrendar_propiedad(ctx, propiedad_id)
+
+    async def _arrendar_propiedad(self, ctx, propiedad_id: int):
         usuario_id = str(ctx.author.id)
         propiedad = obtener_propiedad(propiedad_id)
 
@@ -316,9 +452,7 @@ class MarketCommands(commands.Cog):
             await ctx.send("Solo puedes arrendar propiedades de tipo hogar.")
             return
 
-        # Si la propiedad es la residencia principal
         if propiedad['es_residencia_principal']:
-            # Verificar si el usuario tiene otras propiedades hogar marcadas como residencia principal
             propiedades_home = obtener_propiedades_home(usuario_id)
             if len(propiedades_home) <= 1:
                 await ctx.send("No puedes arrendar tu residencia principal porque no tienes otra propiedad hogar marcada como residencia principal.")
@@ -329,16 +463,24 @@ class MarketCommands(commands.Cog):
             return
 
         try:
-            # Establecer la propiedad como arrendada y quitar el estado de residencia principal
             actualizar_estado_propiedad_arrendada(propiedad_id, arrendada=True)
             actualizar_estado_residencia_principal(propiedad_id, es_residencia_principal=False)
             await ctx.send(f"La propiedad {propiedad['nombre']} ha sido arrendada.")
         except Exception as e:
             await ctx.send(f"Ocurrió un error al arrendar la propiedad: {str(e)}")
 
-    # Comando: !establecer_residencia_principal [propiedad_id]
+    # Comando: !establecer_residencia_principal
     @commands.command(name='establecer_residencia_principal', help='Establece una propiedad hogar como residencia principal. Uso: !establecer_residencia_principal [propiedad_id]')
     async def establecer_residencia_principal(self, ctx, propiedad_id: int):
+        await self._establecer_residencia_principal(ctx, propiedad_id)
+
+    # Slash Command
+    @app_commands.command(name='establecer_residencia_principal', description='Establece una propiedad hogar como residencia principal')
+    async def slash_establecer_residencia_principal(self, interaction: discord.Interaction, propiedad_id: int):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._establecer_residencia_principal(ctx, propiedad_id)
+
+    async def _establecer_residencia_principal(self, ctx, propiedad_id: int):
         usuario_id = str(ctx.author.id)
         propiedad = obtener_propiedad(propiedad_id)
 
@@ -354,28 +496,32 @@ class MarketCommands(commands.Cog):
             await ctx.send("Solo puedes establecer propiedades de tipo hogar como residencia principal.")
             return
 
-        # Actualizar la propiedad seleccionada como residencia principal
         try:
-            # Marcar la propiedad como no arrendada
             if propiedad['arrendada']:
                 actualizar_estado_propiedad_arrendada(propiedad_id, arrendada=False)
 
-            # Buscar todas las propiedades hogar actuales y quitar el estado de residencia principal
             propiedades_home = obtener_propiedades_por_usuario(usuario_id)
             for prop in propiedades_home:
                 if prop['tipo'] == 'hogar' and prop['es_residencia_principal']:
                     actualizar_estado_residencia_principal(prop['id'], es_residencia_principal=False)
 
-            # Establecer la propiedad seleccionada como residencia principal
             actualizar_estado_residencia_principal(propiedad_id, es_residencia_principal=True)
             await ctx.send(f"La propiedad {propiedad['nombre']} ha sido establecida como tu residencia principal.")
         except Exception as e:
             await ctx.send(f"Ocurrió un error al establecer la residencia principal: {str(e)}")
 
     # Comando: !home
-
     @commands.command(name='home', help='Lista todas tus propiedades tipo hogar que son tu residencia principal.')
     async def home(self, ctx):
+        await self._home(ctx)
+
+    # Slash Command
+    @app_commands.command(name='home', description='Lista todas tus propiedades tipo hogar que son tu residencia principal')
+    async def slash_home(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._home(ctx)
+
+    async def _home(self, ctx):
         usuario_id = str(ctx.author.id)
         propiedades_home = obtener_propiedades_home(usuario_id)
 
