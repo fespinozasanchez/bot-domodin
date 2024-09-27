@@ -43,16 +43,25 @@ fun_commands.register_commands(bot)
 
 
 async def load_cogs():
-    await bot.load_extension('cogs.hangman')
-    await bot.load_extension('commands.music_commands')
-    await bot.load_extension('features.betting_system')
-    await bot.load_extension('features.economy')
-    await bot.load_extension('moderation.moderation_commands')
-    await bot.load_extension('commands.reminder_commands')
-    await bot.load_extension('features.prediction_system')
-    await bot.load_extension('commands.rpg_commands')
-    await bot.load_extension('riot.leagueoflegends')
-    await bot.load_extension('commands.market_commands')
+    cogs = [
+        'cogs.hangman',
+        'commands.music_commands',
+        'features.betting_system',
+        'features.economy',
+        'moderation.moderation_commands',
+        'commands.reminder_commands',
+        'features.prediction_system',
+        'commands.rpg_commands',
+        'riot.leagueoflegends',
+        'commands.market_commands'
+    ]
+
+    for cog in cogs:
+        try:
+            await bot.load_extension(cog)
+            print(f'Loaded cog: {cog}')
+        except Exception as e:
+            print(f'Failed to load cog {cog}: {e}')
 
 
 @tasks.loop(seconds=60)
@@ -62,19 +71,42 @@ async def check_reminders():
 
 @bot.event
 async def on_ready():
+    # Inicia la tarea de recordatorios
     check_reminders.start()
+
+    # Cambia la presencia del bot
     await bot.change_presence(
         activity=discord.Activity(type=discord.ActivityType.watching,
                                   name='Dom domo din, el sabio dueño de Domodin, está vigilando...'),
         status=discord.Status.dnd
     )
-print(f'We have logged in as {bot.user}')
+
+    # Sincroniza los slash commands
+    try:
+        await bot.tree.sync()  # Sincroniza los comandos en Discord
+        print(f"Slash commands synced successfully.")
+    except Exception as e:
+        print(f"Error syncing slash commands: {e}")
+
+    # Mensaje cuando el bot esté listo
+    print(f'We have logged in as {bot.user}')
 
 
 async def main():
-    setup_logger()
-    await load_cogs()
-    await bot.start(token)
+    @bot.command()
+    async def sync(ctx):
+        await bot.tree.sync()
+        await ctx.send("Sincronizado")
+
+    try:
+        setup_logger()
+        await load_cogs()
+        await bot.start(token)
+    except KeyboardInterrupt:
+        await bot.close()
+    except Exception as e:
+        logging.error(f"An error occurred: {str(e)}")
+        await bot.close()
 
 
 if __name__ == '__main__':
