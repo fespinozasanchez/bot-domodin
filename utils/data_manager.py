@@ -105,7 +105,7 @@ def save_user_data(user_id, guild_id, balance):
                 WHERE user_id = %s 
                 AND guild_id = %s
                 '''
-                logging.info(f"Ejecutando consulta: {query} con valores: {balance}, {user_id}, {guild_id}")
+                # logging.info(f"Ejecutando consulta: {query} con valores: {balance}, {user_id}, {guild_id}")
                 cursor.execute(query, (balance, user_id, guild_id))  # Utiliza los placeholders correctamente
                 conn.commit()
             conn.close()
@@ -114,7 +114,7 @@ def save_user_data(user_id, guild_id, balance):
 
 
 def save_loan_data(user_id, guild_id, balance, last_loan_time, loan_amount, loan_due_time):
-    logging.info(f"Guardando datos de préstamo para el usuario: {user_id}, guild: {guild_id}, balance: {balance}, last_loan_time: {last_loan_time}, loan_amount: {loan_amount}, loan_due_time: {loan_due_time}")
+    # logging.info(f"Guardando datos de préstamo para el usuario: {user_id}, guild: {guild_id}, balance: {balance}, last_loan_time: {last_loan_time}, loan_amount: {loan_amount}, loan_due_time: {loan_due_time}")
 
     def save():
         conn = connect_db()
@@ -128,7 +128,7 @@ def save_loan_data(user_id, guild_id, balance, last_loan_time, loan_amount, loan
                     ''', (balance, last_loan_time, loan_amount, loan_due_time, user_id, guild_id)
                 )
                 conn.commit()
-                logging.info(f"Datos de préstamo guardados correctamente para el usuario {user_id} en el servidor {guild_id}")
+                # logging.info(f"Datos de préstamo guardados correctamente para el usuario {user_id} en el servidor {guild_id}")
             conn.close()
 
     retry_query(save)
