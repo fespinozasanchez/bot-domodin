@@ -12,7 +12,7 @@ from rpg_module.player_inventory import PlayerInventory
 DATABASE_URL = f"mysql+pymysql://{DATABASE_CONFIG['user']}:{DATABASE_CONFIG['password']}@{DATABASE_CONFIG['host']}/{DATABASE_CONFIG['database']}"
 
 # Crear el motor de SQLAlchemy, asegurando que usamos InnoDB
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL)
 
 # Crear una sesión
 Session = sessionmaker(bind=engine)
@@ -25,11 +25,14 @@ player_skills = Table('player_skills', Base.metadata,
                       )
 
 # Función para inicializar la base de datos y crear las tablas si no existen
+
+
 def init_db():
     """Crea todas las tablas en la base de datos si no existen."""
     Base.metadata.create_all(engine)
 
 # Funciones útiles para interactuar con la base de datos
+
 
 def create_player(name):
     """Crea un nuevo jugador y lo guarda en la base de datos."""
@@ -38,13 +41,16 @@ def create_player(name):
     session.commit()
     return new_player
 
+
 def get_player_by_name(name):
     """Recupera un jugador por su nombre."""
     return session.query(Player).filter_by(name=name).first()
 
+
 def get_player_by_id(player_id):
     """Recupera un jugador por su ID."""
     return session.query(Player).filter_by(id=player_id).first()
+
 
 def create_weapon(name, description, base_damage, increase_stat, increase_amount):
     """Crea un arma y la guarda en la base de datos."""
@@ -54,13 +60,16 @@ def create_weapon(name, description, base_damage, increase_stat, increase_amount
     session.commit()
     return new_weapon
 
+
 def get_weapon_by_name(name):
     """Recupera un arma por su nombre."""
     return session.query(Weapon).filter_by(name=name).first()
 
+
 def get_weapon_by_id(weapon_id):
     """Recupera un arma por su ID."""
     return session.query(Weapon).filter_by(id=weapon_id).first()
+
 
 def create_armor(name, description, defense_value, increase_stat, increase_amount):
     """Crea una armadura y la guarda en la base de datos."""
@@ -70,13 +79,16 @@ def create_armor(name, description, defense_value, increase_stat, increase_amoun
     session.commit()
     return new_armor
 
+
 def get_armor_by_name(name):
     """Recupera una armadura por su nombre."""
     return session.query(Armor).filter_by(name=name).first()
 
+
 def get_armor_by_id(armor_id):
     """Recupera una armadura por su ID."""
     return session.query(Armor).filter_by(id=armor_id).first()
+
 
 def add_item_to_inventory(player_id, item_id, item_type):
     inventory_item = PlayerInventory(player_id=player_id)
