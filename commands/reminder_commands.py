@@ -10,9 +10,10 @@ class Reminder(commands.Cog):
         self.reminder_manager = reminder_manager
 
     @commands.command(help="Establece un recordatorio para una fecha y hora específicas. Usa el formato DD/MM/YYYY HH:MM.")
-    async def recordar(self, ctx, datetime_str: str, *, message: str):
+    async def recordar(self, ctx, date: str, time: str, *, message: str):
         try:
-            # Intentamos convertir la entrada a un objeto datetime
+            # Combinar fecha y hora en un solo string y luego convertirlo a datetime
+            datetime_str = f"{date} {time}"
             reminder_datetime = datetime.strptime(datetime_str, '%d/%m/%Y %H:%M')
             now = datetime.now()
 
@@ -20,7 +21,7 @@ class Reminder(commands.Cog):
                 await ctx.send("La fecha y hora proporcionadas ya han pasado. Por favor, proporciona una fecha futura.")
                 return
 
-            # Guardamos el recordatorio
+            # Guardar el recordatorio
             self.reminder_manager.add_reminder(
                 reminder_datetime, message, ctx.channel.id)
             await ctx.send(f"Recordatorio establecido para {reminder_datetime.strftime('%d/%m/%Y %H:%M')} con el mensaje: {message}")
