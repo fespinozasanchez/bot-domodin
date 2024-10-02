@@ -1,13 +1,14 @@
 import discord
 from discord.ext import commands, tasks
 from utils.custom_help import CustomHelpPaginator
-from market_module.property_events import (pagar_renta_diaria, despenalizar_propietario, pagar_costo_mantenimiento, 
-                                           pagar_costo_diario, aplicar_desgaste_automatico, comprar_propiedad, 
+from datetime import datetime, timedelta
+from market_module.property_events import (pagar_renta_diaria, despenalizar_propietario, pagar_costo_mantenimiento,
+                                           pagar_costo_diario, aplicar_desgaste_automatico, comprar_propiedad,
                                            obtener_evento_global, mejorar_desgaste, vender_propiedad)
-from utils.market_data_manager import (generar_propiedad, actualizar_estado_residencia_principal, 
-                                       obtener_propiedades_home, actualizar_estado_propiedad_arrendada, 
-                                       obtener_propiedades_por_usuario, obtener_saldo_usuario, guardar_propiedad, 
-                                       register_investor, obtener_usuarios_penalizados, verificar_estado_inversionista, 
+from utils.market_data_manager import (actualizar_desgaste_propiedad, actualizar_fecha_tarea, generar_propiedad, actualizar_estado_residencia_principal, get_user_inversionista, obtener_id_inversionista,
+                                       obtener_propiedades_home, actualizar_estado_propiedad_arrendada,
+                                       obtener_propiedades_por_usuario, obtener_saldo_usuario, guardar_propiedad, obtener_usuarios_con_fecha,
+                                       register_investor, obtener_usuarios_penalizados, verificar_estado_inversionista,
                                        es_inversionista, obtener_propiedad, obtener_usuarios_registrados)
 import logging
 from utils.channel_manager import save_channel_setting, load_channel_setting
@@ -25,45 +26,64 @@ class MarketCommands(commands.Cog):
         self.pago_renta_diaria.start()
         self.pago_diario.start()
         self.pago_mantenimiento.start()
-        self.despenalizar_usuarios.start()
+        # self.despenalizar_usuarios.start()
 
     # Comando con prefijo
     @commands.command(name='registrar_inversionista', help='Registra al usuario como inversionista. Uso: !registrar_inversionista')
     async def registrar_inversionista(self, ctx):
         await self._registrar_inversionista(ctx)
 
-    # Slash Command
     @app_commands.command(name='registrar_inversionista', description='Registra al usuario como inversionista')
     async def slash_registrar_inversionista(self, interaction: discord.Interaction):
         ctx = await commands.Context.from_interaction(interaction)
         await self._registrar_inversionista(ctx)
 
     # Función compartida por ambos comandos
+
     async def _registrar_inversionista(self, ctx):
         usuario_id = str(ctx.author.id)
         guild_id = str(ctx.guild.id)
 
+        # Verificamos si el usuario ya está registrado como inversionista
         if es_inversionista(usuario_id, guild_id):
-            await ctx.send("Ya estás registrado como inversionista.")
-            return
+            embed = discord.Embed(
+                title="¡Registro Fallido!",
+                description="Ya estás registrado como inversionista.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
 
         try:
-            register_investor(usuario_id, guild_id)
+            # Registramos al usuario como inversionista y obtenemos su ID
+            user_id = register_investor(usuario_id, guild_id)
+
             propiedad_inicial = generar_propiedad(tipo='hogar')
             propiedad_inicial["es_residencia_principal"] = True
-            propiedad_inicial['usuario_id'] = usuario_id
+            propiedad_inicial['usuario_id'] = user_id
+
+            # Guardamos la propiedad asociada al usuario registrado
             guardar_propiedad(propiedad_inicial)
 
+            # Enviamos un mensaje de éxito
             embed = discord.Embed(
                 title="¡Registro exitoso!",
                 description=f"Te has registrado como inversionista y has recibido una propiedad inicial tipo hogar: **{propiedad_inicial['nombre']}**.",
                 color=discord.Color.blue()
             )
             await ctx.send(embed=embed)
+
         except Exception as e:
-            await ctx.send(f"Ocurrió un error al registrarte: {str(e)}")
+            # Enviamos un mensaje de éxito
+            logging.error(f"Error al registrar al inversionista: {str(e)}")
+            embed = discord.Embed(
+                title="¡Registro Fallido!",
+                description=f"Ocurrió un error al registrarte como inversionista.\nPor favor, intenta nuevamente.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
 
     # Comando: !comprar_propiedad [tipo]
+
     @commands.command(name='comprar_propiedad', help="Compra una propiedad aleatoria del tipo especificado (hogar o tienda). Uso: !comprar_propiedad [tipo]")
     async def comprar_propiedad(self, ctx, tipo: str):
         await self._comprar_propiedad(ctx, tipo)
@@ -83,12 +103,38 @@ class MarketCommands(commands.Cog):
             await ctx.send("Tipo de propiedad no válido. Usa 'hogar' o 'tienda'.")
             return
 
+        if not es_inversionista(usuario_id, guild_id):
+            embed = discord.Embed(
+                title="¡Compra Fallida!",
+                description="No estás registrado como inversionista. Usa **/registrar_inversionista** para registrarte.",
+                color=discord.Color.red(),
+                timestamp=ctx.message.created_at
+            )
+            await ctx.send(embed=embed)
+            return
+
         try:
             propiedad = generar_propiedad(tipo)
+            user_id = obtener_id_inversionista(usuario_id, guild_id)
+            propiedad['usuario_id'] = user_id
             comprar_propiedad(usuario_id, guild_id, propiedad)
-            await ctx.send(f"Has comprado una propiedad: {propiedad['nombre']}, nivel {propiedad['nivel']}.")
+            embed = discord.Embed(
+                title="¡Compra Exitosa!",
+                description=f"Has comprado una propiedad: **{propiedad['nombre']}** de tipo **{tipo}** y nivel **{propiedad['nivel']}**.",
+                color=discord.Color.green(),
+                timestamp=ctx.message.created_at
+            )
+            await ctx.send(embed=embed)
+
         except Exception as e:
-            await ctx.send(f"Error al comprar la propiedad: {str(e)}")
+            logging.error(f"Error al comprar la propiedad: {str(e)}")
+            embed = discord.Embed(
+                title="¡Compra Fallida!",
+                description=f"Ocurrió un error al comprar la propiedad.",
+                color=discord.Color.red(),
+                timestamp=ctx.message.created_at
+            )
+            await ctx.send(embed=embed)
 
     # Comando: !ver_propiedad_hogar
     @commands.command(name='ver_propiedad_hogar', help='Muestra una propiedad tipo hogar disponible en el mercado.')
@@ -173,20 +219,49 @@ class MarketCommands(commands.Cog):
 
     async def _comprar_propiedad_generada(self, ctx):
         if not self.ultima_propiedad_generada:
-            await ctx.send("No hay ninguna propiedad generada. Usa !ver_propiedad_hogar o !ver_propiedad_tienda primero.")
+            embed = discord.Embed(
+                title="Error",
+                description="No hay ninguna propiedad generada. Usa /ver_propiedad_hogar o /ver_propiedad_tienda primero.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
             return
 
         usuario_id = str(ctx.author.id)
         guild_id = str(ctx.guild.id)
+
+        if not es_inversionista(usuario_id, guild_id):
+            embed = discord.Embed(
+                title="Error",
+                description="No estás registrado como inversionista. Usa **/registrar_inversionista** para registrarte.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        id_inversionista = obtener_id_inversionista(usuario_id, guild_id)
         propiedad = self.ultima_propiedad_generada
+        propiedad['usuario_id'] = id_inversionista
 
         try:
             comprar_propiedad(usuario_id, guild_id, propiedad)
             valor_compra_formateado = f"${int(propiedad['valor_compra']):,}".replace(",", ".")
-            await ctx.send(f"Has comprado la propiedad {propiedad['nombre']} por {valor_compra_formateado}.")
+            embed = discord.Embed(
+                title="¡Compra Exitosa!",
+                description=f"Has comprado la propiedad: **{propiedad['nombre']}**.",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="Valor de Compra", value=valor_compra_formateado, inline=False)
+            await ctx.send(embed=embed)
             self.ultima_propiedad_generada = None
         except Exception as e:
-            await ctx.send(f"Error al comprar la propiedad generada: {str(e)}")
+            logging.error(f"Error al comprar la propiedad: {str(e)}")
+            embed = discord.Embed(
+                title="¡Compra Fallida!",
+                description=f"Ocurrió un error al comprar la propiedad.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
 
     # Comando: !vender_propiedad [propiedad_id]
     @commands.command(name='vender_propiedad', help='Vende una propiedad específica y recibe dinero según su valor.')
@@ -202,11 +277,22 @@ class MarketCommands(commands.Cog):
     async def _vender_propiedad(self, ctx, propiedad_id: int):
         usuario_id = str(ctx.author.id)
         guild_id = str(ctx.guild.id)
-        saldo_nuevo = vender_propiedad(usuario_id, guild_id, propiedad_id)
+        id_inversionista = obtener_id_inversionista(usuario_id, guild_id)
+        saldo_nuevo = vender_propiedad(id_inversionista, usuario_id, guild_id, propiedad_id)
         if saldo_nuevo:
-            await ctx.send(f"Has vendido la propiedad {propiedad_id}. Tu nuevo saldo es {saldo_nuevo}.")
+            embed = discord.Embed(
+                title="¡Venta Exitosa!",
+                description=f"Has vendido la propiedad {propiedad_id}. Tu nuevo saldo es {saldo_nuevo}.",
+                color=discord.Color.green()
+            )
+            await ctx.send(embed=embed)
         else:
-            await ctx.send(f"No se encontró la propiedad o no eres el dueño.")
+            embed = discord.Embed(
+                title="¡Venta Fallida!",
+                description="Ocurrió un error al vender la propiedad.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
 
     # Comando: !global_event
     @commands.command(name='global_event', help='Ejecuta un evento global que afecta a todas las rentas.')
@@ -239,7 +325,9 @@ class MarketCommands(commands.Cog):
 
     async def _listar_propiedades(self, ctx):
         usuario_id = str(ctx.author.id)
-        propiedades = obtener_propiedades_por_usuario(usuario_id)
+        guild_id = str(ctx.guild.id)
+        inversionista_id = obtener_id_inversionista(usuario_id, guild_id)
+        propiedades = obtener_propiedades_por_usuario(inversionista_id)
 
         if not propiedades:
             await ctx.send("No tienes propiedades.")
@@ -307,13 +395,15 @@ class MarketCommands(commands.Cog):
 
     async def _mejorar_propiedad(self, ctx, propiedad_id: int, cantidad_pago: int):
         usuario_id = str(ctx.author.id)
+        guild_id = str(ctx.guild.id)
+        inversionista_id = obtener_id_inversionista(usuario_id, guild_id)
         propiedad = obtener_propiedad(propiedad_id)
 
         if not propiedad:
             await ctx.send(f"No se encontró la propiedad con ID {propiedad_id}.")
             return
 
-        if propiedad['usuario_id'] != usuario_id:
+        if propiedad['inversionista_id'] != inversionista_id:
             await ctx.send("No tienes permisos para mejorar esta propiedad.")
             return
 
@@ -323,9 +413,20 @@ class MarketCommands(commands.Cog):
 
         try:
             mejorar_desgaste(propiedad_id, cantidad_pago)
-            await ctx.send(f"El desgaste de la propiedad con ID {propiedad_id} ha sido mejorado.")
+            embed = discord.Embed(
+                title="¡Mejora Exitosa!",
+                description=f"El desgaste de la propiedad con ID {propiedad_id} ha sido mejorado.",
+                color=discord.Color.green()
+            )
+            await ctx.send(embed=embed)
         except Exception as e:
-            await ctx.send(f"Ocurrió un error al mejorar la propiedad: {str(e)}")
+            logging.error(f"Error al mejorar la propiedad: {str(e)}")
+            embed = discord.Embed(
+                title="¡Mejora Fallida!",
+                description=f"Ocurrió un error al mejorar la propiedad.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
 
     # Comando: !estado_inversionista
     @commands.command(name='estado_inversionista', help='Muestra el estado actual del inversionista.')
@@ -341,16 +442,48 @@ class MarketCommands(commands.Cog):
     async def _estado_inversionista(self, ctx):
         usuario_id = str(ctx.author.id)
         guild_id = str(ctx.guild.id)
-        estado = verificar_estado_inversionista(usuario_id)
-        saldo = obtener_saldo_usuario(usuario_id, guild_id)
 
-        if estado is not None:
-            saldo_formateado = f"${int(saldo):,}".replace(",", ".")
-            await ctx.send(f"Estado: Penalizado: {estado}, Saldo: {saldo_formateado} MelladoCoins")
-        else:
-            await ctx.send("No estás registrado como inversionista.")
+        if not es_inversionista(usuario_id, guild_id):
+            embed = discord.Embed(
+                title="Error",
+                description="No estás registrado como inversionista. Usa **/registrar_inversionista** para registrarte.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        id_inversionista = obtener_id_inversionista(usuario_id, guild_id)
+
+        try:
+            estado = verificar_estado_inversionista(id_inversionista)
+            saldo = obtener_saldo_usuario(usuario_id, guild_id)
+
+            if estado is not None:
+                saldo_formateado = f"${int(saldo):,}".replace(",", ".")
+                embed = discord.Embed(
+                    title="Estado del Inversionista",
+                    description=f"Estado: Penalizado: {estado}, Saldo: {saldo_formateado} MelladoCoins",
+                    color=discord.Color.blue()
+                )
+                await ctx.send(embed=embed)
+            else:
+                embed = discord.Embed(
+                    title="Error",
+                    description="No estás registrado como inversionista.",
+                    color=discord.Color.red()
+                )
+                await ctx.send(embed=embed)
+        except Exception as e:
+            logging.error(f"Error al obtener el estado del inversionista: {str(e)}")
+            embed = discord.Embed(
+                title="Error",
+                description="Ocurrió un error al obtener el estado del inversionista.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
 
     # Comando: !renta_diaria
+
     @commands.command(name='renta_diaria', help='Muestra la renta diaria total de tus propiedades.')
     async def renta_diaria(self, ctx):
         await self._renta_diaria(ctx)
@@ -363,11 +496,36 @@ class MarketCommands(commands.Cog):
 
     async def _renta_diaria(self, ctx):
         usuario_id = str(ctx.author.id)
-        propiedades = obtener_propiedades_por_usuario(usuario_id)
+        guild = str(ctx.guild.id)
 
-        renta_total = sum([propiedad['renta_diaria'] for propiedad in propiedades])
-        renta_total_formateada = f"${int(renta_total):,}".replace(",", ".")
-        await ctx.send(f"Tu renta diaria total es de {renta_total_formateada} MelladoCoins.")
+        if not es_inversionista(usuario_id, guild):
+            embed = discord.Embed(
+                title="Error",
+                description="No estás registrado como inversionista.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        id_inversionista = obtener_id_inversionista(usuario_id, guild)
+        try:
+            propiedades = obtener_propiedades_por_usuario(id_inversionista)
+            renta_total = sum([propiedad['renta_diaria'] for propiedad in propiedades])
+            renta_total_formateada = f"${int(renta_total):,}".replace(",", ".")
+            embed = discord.Embed(
+                title="Renta Diaria",
+                description=f"Tu renta diaria total es de {renta_total_formateada} MelladoCoins.",
+                color=discord.Color.blue()
+            )
+            await ctx.send(embed=embed)
+        except Exception as e:
+            logging.error(f"Error al obtener la renta diaria: {str(e)}")
+            embed = discord.Embed(
+                title="Error",
+                description="Ocurrió un error al obtener la renta diaria.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
 
     # Comando: !costo_diario
     @commands.command(name='costo_diario', help='Muestra el costo diario de todas tus propiedades.')
@@ -382,11 +540,37 @@ class MarketCommands(commands.Cog):
 
     async def _costo_diario(self, ctx):
         usuario_id = str(ctx.author.id)
-        propiedades = obtener_propiedades_por_usuario(usuario_id)
+        guild = str(ctx.guild.id)
 
-        costo_total = sum([propiedad['costo_diario'] for propiedad in propiedades])
-        costo_total_formateado = f"${int(costo_total):,}".replace(",", ".")
-        await ctx.send(f"Tu costo diario total es de {costo_total_formateado} MelladoCoins.")
+        if not es_inversionista(usuario_id, guild):
+            embed = discord.Embed(
+                title="Error",
+                description="No estás registrado como inversionista.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        id_inversionista = obtener_id_inversionista(usuario_id, guild)
+        try:
+            propiedades = obtener_propiedades_por_usuario(id_inversionista)
+
+            costo_total = sum([propiedad['costo_diario'] for propiedad in propiedades])
+            costo_total_formateado = f"${int(costo_total):,}".replace(",", ".")
+            embed = discord.Embed(
+                title="Costo Diario",
+                description=f"Tu costo diario total es de {costo_total_formateado} MelladoCoins.",
+                color=discord.Color.blue()
+            )
+            await ctx.send(embed=embed)
+        except Exception as e:
+            logging.error(f"Error al obtener el costo diario: {str(e)}")
+            embed = discord.Embed(
+                title="Error",
+                description="Ocurrió un error al obtener el costo diario.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
 
     # Comando: !eventos_diarios
     @commands.command(name='eventos_diarios', help='Muestra los eventos globales que afectan las rentas diarias.')
@@ -402,28 +586,52 @@ class MarketCommands(commands.Cog):
     async def _eventos_diarios(self, ctx):
         evento = obtener_evento_global()
         if evento:
-            await ctx.send(f"Evento actual: {evento}")
+            embed = discord.Embed(
+                title="Evento Global",
+                description=f"Evento actual: {evento}",
+                color=discord.Color.yellow()
+            )
+            await ctx.send(embed=embed)
         else:
-            await ctx.send("No hay eventos activos por el momento.")
+            embed = discord.Embed(
+                title="Evento Global",
+                description="No hay eventos globales actualmente.",
+                color=discord.Color.blue()
+            )
+            await ctx.send(embed=embed)
 
     # Comando: !ver_penalizacion
     @commands.command(name='ver_penalizacion', help='Consulta el estado de penalización de un usuario.')
-    async def ver_penalizacion(self, ctx, usuario_id: int):
-        await self._ver_penalizacion(ctx, usuario_id)
+    async def ver_penalizacion(self, ctx, usuario: discord.Member):
+        await self._ver_penalizacion(ctx, usuario)
 
     # Slash Command
     @app_commands.command(name='ver_penalizacion', description='Consulta el estado de penalización de un usuario')
-    async def slash_ver_penalizacion(self, interaction: discord.Interaction, usuario_id: int):
+    async def slash_ver_penalizacion(self, interaction: discord.Interaction, usuario: discord.Member):
         ctx = await commands.Context.from_interaction(interaction)
-        await self._ver_penalizacion(ctx, usuario_id)
+        await self._ver_penalizacion(ctx, usuario)
 
-    async def _ver_penalizacion(self, ctx, usuario_id: int):
-        estado = verificar_estado_inversionista(usuario_id)
+    async def _ver_penalizacion(self, ctx, usuario: discord.Member):
+        usuario_id = str(usuario.id)
+        guild_id = str(ctx.guild.id)
+        id_inversionista = obtener_id_inversionista(usuario_id, guild_id)
+
+        estado = verificar_estado_inversionista(id_inversionista)
 
         if estado:
-            await ctx.send(f"El usuario {usuario_id} está penalizado.")
+            embed = discord.Embed(
+                title="Penalización",
+                description=f"El usuario {usuario} con id {id_inversionista} está penalizado.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
         else:
-            await ctx.send(f"El usuario {usuario_id} no está penalizado.")
+            embed = discord.Embed(
+                title="Penalización",
+                description=f"El usuario {usuario} con id {id_inversionista} no está penalizado.",
+                color=discord.Color.green()
+            )
+            await ctx.send(embed=embed)
 
     # Comando: !arrendar_propiedad
     @commands.command(name='arrendar_propiedad', help='Arrenda una propiedad tipo hogar. Uso: !arrendar_propiedad [propiedad_id]')
@@ -438,36 +646,84 @@ class MarketCommands(commands.Cog):
 
     async def _arrendar_propiedad(self, ctx, propiedad_id: int):
         usuario_id = str(ctx.author.id)
+        guild_id = str(ctx.guild.id)
+
+        if not es_inversionista(usuario_id, guild_id):
+            embed = discord.Embed(
+                title="Error",
+                description="No estás registrado como inversionista. Usa **/registrar_inversionista** para registrarte.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        id_inversionista = obtener_id_inversionista(usuario_id, guild_id)
         propiedad = obtener_propiedad(propiedad_id)
 
         if not propiedad:
-            await ctx.send(f"No se encontró la propiedad con ID {propiedad_id}.")
+            embed = discord.Embed(
+                title="Error",
+                description=f"No se encontró la propiedad con ID {propiedad_id}.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
             return
 
-        if propiedad['usuario_id'] != usuario_id:
-            await ctx.send("No tienes permisos para arrendar esta propiedad.")
+        if propiedad['inversionista_id'] != id_inversionista:
+            embed = discord.Embed(
+                title="Error",
+                description="No tienes permisos para arrendar esta propiedad.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
             return
 
         if propiedad['tipo'] != 'hogar':
-            await ctx.send("Solo puedes arrendar propiedades de tipo hogar.")
+            embed = discord.Embed(
+                title="Error",
+                description="Solo puedes arrendar propiedades de tipo hogar.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
             return
 
         if propiedad['es_residencia_principal']:
-            propiedades_home = obtener_propiedades_home(usuario_id)
+            propiedades_home = obtener_propiedades_home(id_inversionista)
             if len(propiedades_home) <= 1:
-                await ctx.send("No puedes arrendar tu residencia principal porque no tienes otra propiedad hogar marcada como residencia principal.")
+                embed = discord.Embed(
+                    title="Error",
+                    description="No puedes arrendar tu residencia principal porque no tienes otra propiedad hogar marcada como residencia principal.",
+                    color=discord.Color.red()
+                )
+                await ctx.send(embed=embed)
                 return
 
         if propiedad['arrendada']:
-            await ctx.send(f"La propiedad {propiedad['nombre']} ya está arrendada.")
+            embed = discord.Embed(
+                title="Error",
+                description=f"La propiedad {propiedad['nombre']} ya está arrendada.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
             return
 
         try:
             actualizar_estado_propiedad_arrendada(propiedad_id, arrendada=True)
             actualizar_estado_residencia_principal(propiedad_id, es_residencia_principal=False)
-            await ctx.send(f"La propiedad {propiedad['nombre']} ha sido arrendada.")
+            embed = discord.Embed(
+                title="Arriendo Exitoso",
+                description=f"La propiedad {propiedad['nombre']} ha sido arrendada.",
+                color=discord.Color.green()
+            )
+            await ctx.send(embed=embed)
         except Exception as e:
-            await ctx.send(f"Ocurrió un error al arrendar la propiedad: {str(e)}")
+            logging.error(f"Error al arrendar la propiedad: {str(e)}")
+            embed = discord.Embed(
+                title="Error",
+                description=f"Ocurrió un error al arrendar la propiedad: {str(e)}",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
 
     # Comando: !establecer_residencia_principal
     @commands.command(name='establecer_residencia_principal', help='Establece una propiedad hogar como residencia principal. Uso: !establecer_residencia_principal [propiedad_id]')
@@ -482,18 +738,45 @@ class MarketCommands(commands.Cog):
 
     async def _establecer_residencia_principal(self, ctx, propiedad_id: int):
         usuario_id = str(ctx.author.id)
+        guild_id = str(ctx.guild.id)
+
+        if not es_inversionista(usuario_id, guild_id):
+            embed = discord.Embed(
+                title="Error",
+                description="No estás registrado como inversionista. Usa **/registrar_inversionista** para registrarte.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        id_inversionista = obtener_id_inversionista(usuario_id, guild_id)
         propiedad = obtener_propiedad(propiedad_id)
 
         if not propiedad:
-            await ctx.send(f"No se encontró la propiedad con ID {propiedad_id}.")
+            embed = discord.Embed(
+                title="Error",
+                description=f"No se encontró la propiedad con ID {propiedad_id}.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
             return
 
-        if propiedad['usuario_id'] != usuario_id:
-            await ctx.send("No tienes permisos para modificar esta propiedad.")
+        if propiedad['inversionista_id'] != id_inversionista:
+            embed = discord.Embed(
+                title="Error",
+                description="No tienes permisos para modificar esta propiedad.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
             return
 
         if propiedad['tipo'] != 'hogar':
-            await ctx.send("Solo puedes establecer propiedades de tipo hogar como residencia principal.")
+            embed = discord.Embed(
+                title="Error",
+                description="Solo puedes establecer propiedades de tipo hogar como residencia principal.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
             return
 
         try:
@@ -506,9 +789,20 @@ class MarketCommands(commands.Cog):
                     actualizar_estado_residencia_principal(prop['id'], es_residencia_principal=False)
 
             actualizar_estado_residencia_principal(propiedad_id, es_residencia_principal=True)
-            await ctx.send(f"La propiedad {propiedad['nombre']} ha sido establecida como tu residencia principal.")
+            embed = discord.Embed(
+                title="Residencia Principal",
+                description=f"La propiedad {propiedad['nombre']} ha sido establecida como residencia principal.",
+                color=discord.Color.green()
+            )
+            await ctx.send(embed=embed)
         except Exception as e:
-            await ctx.send(f"Ocurrió un error al establecer la residencia principal: {str(e)}")
+            logging.error(f"Error al establecer la residencia principal: {str(e)}")
+            embed = discord.Embed(
+                title="Error",
+                description="Ocurrió un error al establecer la residencia principal",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
 
     # Comando: !home
     @commands.command(name='home', help='Lista todas tus propiedades tipo hogar que son tu residencia principal.')
@@ -523,18 +817,46 @@ class MarketCommands(commands.Cog):
 
     async def _home(self, ctx):
         usuario_id = str(ctx.author.id)
-        propiedades_home = obtener_propiedades_home(usuario_id)
+        guild_id = str(ctx.guild.id)
 
-        if not propiedades_home:
-            await ctx.send("No tienes ninguna propiedad marcada como residencia principal.")
+        if not es_inversionista(usuario_id, guild_id):
+            embed = discord.Embed(
+                title="Error",
+                description="No estás registrado como inversionista. Usa **/registrar_inversionista** para registrarte.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
             return
 
-        descripcion = "**Tus Propiedades Hogar:**\n"
-        for propiedad in propiedades_home:
-            descripcion += f"ID: {propiedad['id']}, Nombre: {propiedad['nombre']}, Renta Diaria: {propiedad['renta_diaria']}, Costo Diario: {propiedad['costo_diario']}, Costo Mantenimiento: {propiedad['costo_mantenimiento']}\n"
-        await ctx.send(descripcion)
+        id_inversionista = obtener_id_inversionista(usuario_id, guild_id)
+        propiedades_home = obtener_propiedades_home(id_inversionista)
 
-    # --- Funciones automáticas con loop ---
+        if not propiedades_home:
+            embed = discord.Embed(
+                title="Error",
+                description="No tienes ninguna propiedad marcada como residencia principal.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        # Crear un embed para mostrar la información de las propiedades hogar
+        embed = discord.Embed(
+            title="Tus Propiedades Hogar",
+            description="Aquí están todas tus propiedades hogar marcadas como residencia principal.",
+            color=discord.Color.blue()
+        )
+
+        # Agregar cada propiedad al embed
+        for propiedad in propiedades_home:
+            embed.add_field(
+                name=f"{propiedad['nombre']} (ID: {propiedad['id']})",
+                value=f"Renta Diaria: ${int(propiedad['renta_diaria']):,} | Costo Diario: ${int(propiedad['costo_diario']):,} | Costo Mantenimiento: ${int(propiedad['costo_mantenimiento']):,}",
+                inline=False
+            )
+
+        # Enviar el embed al canal
+        await ctx.send(embed=embed)
 
     # Función para enviar notificaciones a un canal específico
 
@@ -556,77 +878,110 @@ class MarketCommands(commands.Cog):
         await channel.send(mensaje)
 
     # Aplicar desgaste a las propiedades cada 7 días
-    @tasks.loop(hours=168)  # Cada 7 días
+    @tasks.loop(hours=1)
     async def aplicar_desgaste(self):
-        logging.info("Iniciando la tarea de aplicar desgaste.")
-        usuarios = obtener_usuarios_registrados()
+        logging.info("Iniciando la verificación para aplicar desgaste.")
+
+        # Obtener usuarios que tienen el próximo desgaste programado antes de la fecha actual
+        usuarios = obtener_usuarios_con_fecha('next_desgaste', datetime.now())
 
         if not usuarios:
-            logging.info("No se encontraron usuarios registrados para aplicar desgaste.")
+            logging.info("No se encontraron usuarios para aplicar desgaste.")
             return
 
         for usuario in usuarios:
             propiedades = obtener_propiedades_por_usuario(usuario['usuario_id'])
             for propiedad in propiedades:
-                aplicar_desgaste_automatico(propiedad)
+                nuevo_desaste = aplicar_desgaste_automatico(propiedad)
+                actualizar_desgaste_propiedad(propiedad['id'], nuevo_desaste, propiedad['desgaste_minimo'])
                 logging.info(f"Desgaste aplicado a la propiedad {propiedad['nombre']} del usuario {usuario['usuario_id']}.")
 
-        # Notificación de desgaste aplicado solo a servidores con inversionistas
+            # Actualizamos la fecha del próximo desgaste para 7 días después
+            nueva_fecha = datetime.now() + timedelta(days=7)
+            actualizar_fecha_tarea('next_desgaste', usuario['usuario_id'], nueva_fecha)
+
+        # Notificación de desgaste aplicado
         for guild in self.bot.guilds:
             if any(usuario for usuario in usuarios if str(usuario['guild_id']) == str(guild.id)):
                 await self.enviar_notificacion(guild.id, "¡Se ha aplicado el desgaste a todas las propiedades!")
                 logging.info(f"Notificación enviada al servidor {guild.name}.")
 
-    # Pago de renta diaria cada día
-
-    @tasks.loop(hours=24)  # Cada día
+    # Pago de renta diaria cada 24 horas
+    @tasks.loop(hours=1)
     async def pago_renta_diaria(self):
-        logging.info("Iniciando la tarea de pago de renta diaria.")
+        logging.info("Iniciando la verificación para el pago de renta diaria.")
 
-        # Obtener todos los usuarios registrados (incluyendo guild_id)
-        usuarios = obtener_usuarios_registrados()
+        # Obtener inversionistas que tienen la próxima renta programada antes de la fecha actual
+        inversionistas = obtener_usuarios_con_fecha('next_renta', datetime.now())
 
-        if not usuarios:
-            logging.info("No se encontraron usuarios registrados para pagar renta diaria.")
+        if not inversionistas:
+            logging.info("No se encontraron inversionistas registrados para pagar renta diaria.")
             return
 
-        # Pagar la renta diaria a cada usuario por servidor
-        for usuario in usuarios:
-            guild_id = usuario['guild_id']
-            usuario_id = usuario['usuario_id']
-            pagar_renta_diaria(usuario_id, guild_id)  # Pasar guild_id como argumento
-            logging.info(f"Renta diaria pagada al usuario {usuario_id} en el servidor {guild_id}.")
+        # Para guardar las notificaciones de cada guild
+        notificaciones_guild = {}
 
-        # Notificación de rentas pagadas solo a servidores con inversionistas
+        for inversionista in inversionistas:
+            usuario_id = inversionista['usuario_id']
+            user = get_user_inversionista(usuario_id)  # Consulta para obtener los datos del usuario desde 'users'
+            guild_id = user['guild_id']  # Ahora obtenemos el guild_id desde la tabla 'users'
+            user_id = user['user_id']
+
+            pagar_renta_diaria(usuario_id, guild_id, user_id)
+            logging.info(f"Renta diaria pagada al usuario {user_id} en el servidor {guild_id}.")
+
+            # Actualizamos la fecha de la próxima renta para el día siguiente
+            nueva_fecha = datetime.now() + timedelta(days=1)
+            actualizar_fecha_tarea('next_renta', usuario_id, nueva_fecha)
+
+            # Acumulamos notificaciones por guild
+            if guild_id not in notificaciones_guild:
+                notificaciones_guild[guild_id] = []
+            notificaciones_guild[guild_id].append(user_id)
+
+        # Notificación de rentas pagadas por cada guild
         for guild in self.bot.guilds:
-            if any(usuario for usuario in usuarios if str(usuario['guild_id']) == str(guild.id)):
-                await self.enviar_notificacion(guild.id, "¡Se han pagado las rentas diarias!")
+            if str(guild.id) in notificaciones_guild:
+                await self.enviar_notificacion(guild.id, "¡Se han pagado las rentas diarias de todas las propiedades!")
                 logging.info(f"Notificación de pago de rentas enviada al servidor {guild.name}.")
 
     # Pago de mantenimiento cada 3 días
-
-    @tasks.loop(hours=72)  # Cada 3 días
+    @tasks.loop(hours=1)  # Verificamos cada hora
     async def pago_mantenimiento(self):
-        logging.info("Iniciando la tarea de pago de mantenimiento.")
+        logging.info("Iniciando la verificación para el pago de mantenimiento.")
 
-        # Obtener todos los usuarios registrados (con su guild_id)
-        usuarios = obtener_usuarios_registrados()
+        # Obtener inversionistas que tienen el próximo mantenimiento programado antes de la fecha actual
+        inversionistas = obtener_usuarios_con_fecha('next_mantenimiento', datetime.now())
 
-        if not usuarios:
-            logging.info("No se encontraron usuarios registrados para pagar el mantenimiento.")
+        if not inversionistas:
+            logging.info("No se encontraron inversionistas para pagar el mantenimiento.")
             return
 
-        # Pagar el costo de mantenimiento para cada usuario y servidor (guild)
-        for usuario in usuarios:
-            guild_id = usuario['guild_id']
-            usuario_id = usuario['usuario_id']
-            pagar_costo_mantenimiento(usuario_id, guild_id)  # Pasa el guild_id también
-            logging.info(f"Pago de mantenimiento realizado para el usuario {usuario_id} en el servidor {guild_id}.")
+        # Diccionario para agrupar las notificaciones por guild
+        notificaciones_guild = {}
 
-        # Notificación de pago de mantenimiento solo a servidores con inversionistas
+        for inversionista in inversionistas:
+            usuario_id = inversionista['usuario_id']
+            user = get_user_inversionista(usuario_id)  # Consulta a la tabla 'users' para obtener guild_id
+            guild_id = user['guild_id']  # Obtenemos el guild_id desde la tabla 'users'
+            user_id = user['user_id']
+
+            # Pago del mantenimiento
+            pagar_costo_mantenimiento(usuario_id, guild_id, user_id)
+            logging.info(f"Pago de mantenimiento realizado para el usuario {user_id} en el servidor {guild_id}.")
+
+            # Actualizamos la fecha del próximo mantenimiento para 3 días después
+            nueva_fecha = datetime.now() + timedelta(days=3)
+            actualizar_fecha_tarea('next_mantenimiento', usuario_id, nueva_fecha)
+
+            # Acumulamos notificaciones por guild
+            if guild_id not in notificaciones_guild:
+                notificaciones_guild[guild_id] = []
+            notificaciones_guild[guild_id].append(user_id)
+
+        # Enviar una notificación por cada guild
         for guild in self.bot.guilds:
-            # Verificar si el servidor tiene inversionistas registrados
-            if any(usuario for usuario in usuarios if str(usuario['guild_id']) == str(guild.id)):
+            if str(guild.id) in notificaciones_guild:
                 await self.enviar_notificacion(guild.id, "¡Se ha pagado el costo de mantenimiento de las propiedades!")
                 logging.info(f"Notificación de pago de mantenimiento enviada al servidor {guild.name}.")
 
@@ -636,23 +991,39 @@ class MarketCommands(commands.Cog):
     async def pago_diario(self):
         logging.info("Iniciando la tarea de cobro de costos diarios.")
 
-        # Obtener todos los usuarios registrados (incluyendo guild_id)
-        usuarios = obtener_usuarios_registrados()
+        # Obtener inversionistas que tienen el próximo cobro de costos diarios programado antes de la fecha actual
+        inversionistas = obtener_usuarios_con_fecha('next_costos_diarios', datetime.now())
 
-        if not usuarios:
-            logging.info("No se encontraron usuarios registrados para cobrar los costos diarios.")
+        if not inversionistas:
+            logging.info("No se encontraron inversionistas para cobrar los costos diarios.")
             return
 
-        # Cobrar el costo diario a cada usuario por servidor
-        for usuario in usuarios:
-            guild_id = usuario['guild_id']
-            usuario_id = usuario['usuario_id']
-            pagar_costo_diario(usuario_id, guild_id)  # Pasar guild_id como argumento
-            logging.info(f"Costo diario cobrado al usuario {usuario_id} en el servidor {guild_id}.")
+        # Diccionario para agrupar las notificaciones por guild
+        notificaciones_guild = {}
 
-        # Notificación de costos diarios cobrados solo a servidores con inversionistas
+        # Cobrar el costo diario a cada inversionista
+        for inversionista in inversionistas:
+            usuario_id = inversionista['usuario_id']
+            user = get_user_inversionista(usuario_id)  # Consulta para obtener el 'guild_id'
+            guild_id = user['guild_id']  # Obtenemos el 'guild_id' desde la tabla 'users'
+            user_id = user['user_id']
+
+            # Cobrar el costo diario
+            pagar_costo_diario(usuario_id, guild_id, user_id)
+            logging.info(f"Costo diario cobrado al usuario {user_id} en el servidor {guild_id}.")
+
+            # Actualizamos la fecha del próximo cobro de costos diarios para el día siguiente
+            nueva_fecha = datetime.now() + timedelta(days=1)
+            actualizar_fecha_tarea('next_costos_diarios', usuario_id, nueva_fecha)
+
+            # Acumulamos notificaciones por guild
+            if guild_id not in notificaciones_guild:
+                notificaciones_guild[guild_id] = []
+            notificaciones_guild[guild_id].append(user_id)
+
+        # Notificación de costos diarios cobrados por cada guild
         for guild in self.bot.guilds:
-            if any(usuario for usuario in usuarios if str(usuario['guild_id']) == str(guild.id)):
+            if str(guild.id) in notificaciones_guild:
                 await self.enviar_notificacion(guild.id, "¡Se han cobrado los costos diarios de las propiedades!")
                 logging.info(f"Notificación de cobro de costos diarios enviada al servidor {guild.name}.")
 
