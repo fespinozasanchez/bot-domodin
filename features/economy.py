@@ -227,7 +227,7 @@ class Economy(commands.Cog):
         if user_data:
             await ctx.send(f'{ctx.author.name}, ya estás registrado.')
         else:
-            self.data[key] = {'guild_id': guild_id, 'balance': 1000}
+            self.data[key] = {'guild_id': guild_id, 'balance': 50000}
             print(self.data)
             save_user_data(user_id, guild_id, 1000)
             await ctx.send(f'{ctx.author.name}, has sido registrado con un saldo inicial de $1.000 MelladoCoins.')
@@ -411,8 +411,8 @@ class Economy(commands.Cog):
                     key = f"{user_id}_{guild_id}"
                     if key not in self.data:
                         self.data[key] = {
-                            'guild_id': guild_id, 'balance': 1000}
-                        set_balance(user_id, guild_id, 1000)
+                            'guild_id': guild_id, 'balance': 50000}
+                        set_balance(user_id, guild_id, 50000)
 
 
 async def setup(bot):
