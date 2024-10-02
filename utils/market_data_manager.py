@@ -1,3 +1,4 @@
+from datetime import datetime
 import mysql.connector
 from mysql.connector import Error
 import logging
@@ -5,10 +6,12 @@ import time
 import random
 from contextlib import closing
 from config import DATABASE_CONFIG
-from market_module.const_market import TIERS, COLORS,BARRIOS,NOMBRES_HOGAR,NOMBRES_TIENDA,NIVEL_WEIGHTS,TIER_WEIGHTS,BARRIO_WEIGHTS
+from market_module.const_market import TIERS, COLORS, BARRIOS, NOMBRES_HOGAR, NOMBRES_TIENDA, NIVEL_WEIGHTS, TIER_WEIGHTS, BARRIO_WEIGHTS
 from market_module.property_market import elegir_valor_ponderado_por_suerte, calcular_costo_mantenimiento, calcular_costo_diario, calcular_valor_compra, generar_controladores, calcular_desgaste, calcular_renta_diaria, calcular_suerte
 
 # Conexión a la base de datos
+
+
 def connect_db():
     try:
         conn = mysql.connector.connect(**DATABASE_CONFIG)
@@ -19,6 +22,8 @@ def connect_db():
         return None
 
 # Función para generar una propiedad aleatoria
+
+
 def generar_propiedad(tipo):
     # Selección de nivel, tier y barrio usando distribuciones ponderadas
     suerte = calcular_suerte()
@@ -27,7 +32,7 @@ def generar_propiedad(tipo):
     # Tier ajustado por suerte
     tier = elegir_valor_ponderado_por_suerte(list(TIERS.keys()), TIER_WEIGHTS, suerte)
 
-    barrio = elegir_valor_ponderado_por_suerte(BARRIOS, BARRIO_WEIGHTS,suerte)
+    barrio = elegir_valor_ponderado_por_suerte(BARRIOS, BARRIO_WEIGHTS, suerte)
 
     tamaño = random.randint(2, 100 * nivel)  # A mayor nivel, mayor tamaño, pero no lineal
     pisos = random.randint(1, nivel * 2)  # Más pisos para niveles superiores
@@ -52,7 +57,7 @@ def generar_propiedad(tipo):
     # Calcular valores
     valor_compra = calcular_valor_compra(nivel, tier, tamaño, pisos, suerte)
     renta_diaria = calcular_renta_diaria(nivel, tier, suerte, desgaste, controladores, porcentajes_colores, color, valor_compra)
-    costo_diario = calcular_costo_diario(nivel, tier, tamaño, pisos, suerte,renta_diaria)
+    costo_diario = calcular_costo_diario(nivel, tier, tamaño, pisos, suerte, renta_diaria)
     costo_mantenimiento = calcular_costo_mantenimiento(nivel, tier, tamaño, pisos, suerte)
 
     # Crear la propiedad
@@ -80,20 +85,39 @@ def generar_propiedad(tipo):
 
     return propiedad
 
-def obtener_propiedades_home(usuario_id):
+
+def obtener_propiedades_home(id_inversionista):
     def query():
         conn = connect_db()
         propiedades = []
         if conn:
             with closing(conn.cursor(dictionary=True)) as cursor:
                 cursor.execute('''SELECT * FROM propiedades 
-                                  WHERE usuario_id = %s AND tipo = 'hogar' AND es_residencia_principal = 1 AND arrendada = 0''',
-                               (usuario_id,))
+                                  WHERE inversionista_id = %s AND tipo = 'hogar' AND es_residencia_principal = 1 AND arrendada = 0''',
+                               (id_inversionista,))
                 propiedades = cursor.fetchall()
             conn.close()
         return propiedades
     return retry_query(query)
 
+
+def obtener_id_inversionista(usuario_id, guild_id):
+    def query():
+        conn = connect_db()
+        inversionista_id = None
+        if conn:
+            with closing(conn.cursor(dictionary=True)) as cursor:
+                cursor.execute('SELECT id FROM users WHERE user_id = %s AND guild_id = %s', (usuario_id, guild_id))
+                user_data = cursor.fetchone()
+                if user_data:
+                    user_id = user_data['id']
+                    cursor.execute('SELECT id FROM inversionistas WHERE usuario_id = %s', (user_id,))
+                    inversionista = cursor.fetchone()
+                    if inversionista:
+                        inversionista_id = inversionista['id']
+            conn.close()
+        return inversionista_id
+    return retry_query(query)
 
 
 # Intentar consultas con reintento en caso de errores de bloqueo
@@ -110,55 +134,63 @@ def retry_query(func, *args, **kwargs):
                 raise
     raise Exception("Persistent database lock error")
 
-# Crear tablas necesarias para propiedades, barrios y registro de inversionistas
-# Crear tablas necesarias para propiedades, barrios y registro de inversionistas con referencias de claves primarias y foráneas
+
 def create_property_tables():
     def create():
         conn = connect_db()
         if conn:
             with closing(conn.cursor()) as cursor:
                 # Tabla de inversionistas con clave foránea referenciada a la tabla users
-                cursor.execute('''CREATE TABLE IF NOT EXISTS inversionistas (
-                                    usuario_id VARCHAR(255),
-                                    penalizado BOOLEAN DEFAULT FALSE,
-                                    guild_id VARCHAR(255),
-                                    PRIMARY KEY (usuario_id),
-                                    FOREIGN KEY (usuario_id) REFERENCES users(user_id)
-                                )''')
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS inversionistas (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        usuario_id INT,
+                        penalizado BOOLEAN DEFAULT FALSE,
+                        next_desgaste TIMESTAMP NULL,
+                        next_renta TIMESTAMP NULL,
+                        next_mantenimiento TIMESTAMP NULL,
+                        next_costos_diarios TIMESTAMP NULL,
+                        FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE
+                    )
+                ''')
 
                 # Tabla de propiedades con clave foránea a inversionistas
-                cursor.execute('''CREATE TABLE IF NOT EXISTS propiedades (
-                                    id INT AUTO_INCREMENT PRIMARY KEY,
-                                    usuario_id VARCHAR(255),
-                                    tipo VARCHAR(255),
-                                    nombre VARCHAR(255),
-                                    nivel INT,
-                                    valor_compra FLOAT,
-                                    renta_diaria FLOAT,
-                                    costo_diario FLOAT,
-                                    costo_mantenimiento FLOAT,
-                                    tier VARCHAR(10),
-                                    barrio INT,
-                                    color VARCHAR(255),
-                                    tamaño INT,
-                                    pisos INT,
-                                    suerte FLOAT,
-                                    desgaste FLOAT,
-                                    desgaste_minimo FLOAT,
-                                    controladores VARCHAR(255),
-                                    arrendada BOOLEAN,
-                                    es_residencia_principal BOOLEAN,
-                                    FOREIGN KEY (usuario_id) REFERENCES inversionistas(usuario_id) ON DELETE CASCADE
-                                )''')
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS propiedades (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        inversionista_id INT,
+                        tipo VARCHAR(255),
+                        nombre VARCHAR(255),
+                        nivel INT,
+                        valor_compra FLOAT,
+                        renta_diaria FLOAT,
+                        costo_diario FLOAT,
+                        costo_mantenimiento FLOAT,
+                        tier VARCHAR(10),
+                        barrio INT,
+                        color VARCHAR(255),
+                        tamaño INT,
+                        pisos INT,
+                        suerte FLOAT,
+                        desgaste FLOAT,
+                        desgaste_minimo FLOAT,
+                        controladores VARCHAR(255),
+                        arrendada BOOLEAN,
+                        es_residencia_principal BOOLEAN,
+                        FOREIGN KEY (inversionista_id) REFERENCES inversionistas(id) ON DELETE CASCADE
+                    )
+                ''')
 
                 # Tabla de barrios con clave foránea a propiedades
-                cursor.execute('''CREATE TABLE IF NOT EXISTS barrios (
-                                    barrio_id INT,
-                                    color VARCHAR(255),
-                                    propiedad_id INT,
-                                    PRIMARY KEY (barrio_id, propiedad_id),
-                                    FOREIGN KEY (propiedad_id) REFERENCES propiedades(id) ON DELETE CASCADE
-                                  )''')
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS barrios (
+                        barrio_id INT,
+                        color VARCHAR(255),
+                        propiedad_id INT,
+                        PRIMARY KEY (barrio_id, propiedad_id),
+                        FOREIGN KEY (propiedad_id) REFERENCES propiedades(id) ON DELETE CASCADE
+                    )
+                ''')
 
                 conn.commit()
             conn.close()
@@ -166,46 +198,74 @@ def create_property_tables():
     retry_query(create)
 
 
-# Registrar inversionista
 def register_investor(usuario_id, guild_id):
     def query():
         conn = connect_db()
         if conn:
-            with closing(conn.cursor()) as cursor:
+            with closing(conn.cursor(dictionary=True)) as cursor:
                 try:
-                    cursor.execute('''INSERT INTO inversionistas (usuario_id, guild_id, penalizado) VALUES (%s, %s, %s)''', 
-                                   (usuario_id, guild_id, False))
-                    conn.commit()
-                except Error:
+                    # Obtenemos el ID del usuario en base a user_id y guild_id
+                    cursor.execute('SELECT id FROM users WHERE user_id = %s AND guild_id = %s', (usuario_id, guild_id))
+                    user_data = cursor.fetchone()
+
+                    if user_data:
+                        user_id = user_data['id']
+                        # Insertamos al usuario como inversionista con el id obtenido
+                        cursor.execute('''INSERT INTO inversionistas (
+                                        usuario_id, penalizado, 
+                                        next_desgaste, next_renta, 
+                                        next_mantenimiento, next_costos_diarios) 
+                                        VALUES (%s, %s, %s, %s, %s, %s)''',
+                                       (user_id, False, datetime.now(), datetime.now(), datetime.now(), datetime.now()))
+
+                        conn.commit()
+
+                        # Obtenemos el último ID insertado en la tabla inversionistas
+                        cursor.execute('SELECT LAST_INSERT_ID() AS inversionista_id')
+                        inversionista_data = cursor.fetchone()
+
+                        if inversionista_data:
+                            return inversionista_data['inversionista_id']  # Devolvemos el ID del inversionista registrado
+                        else:
+                            raise Exception("Error al obtener el ID del inversionista.")
+                    else:
+                        raise Exception("El usuario no fue encontrado en la tabla 'users'.")
+                except Error as e:
                     conn.rollback()
+                    raise Exception(f"Error al registrar inversionista: {str(e)}")
                 finally:
                     conn.close()
-    
-    retry_query(query)
+
+    return retry_query(query)
+
 
 # Guardar una propiedad en la base de datos
+
+
 def guardar_propiedad(propiedad):
     def query():
         conn = connect_db()
         if conn:
             with closing(conn.cursor()) as cursor:
                 cursor.execute('''INSERT INTO propiedades (
-                                usuario_id, tipo, nombre, nivel, valor_compra, renta_diaria, 
+                                inversionista_id, tipo, nombre, nivel, valor_compra, renta_diaria, 
                                 costo_diario, costo_mantenimiento, tier, barrio, color, 
                                 tamaño, pisos, suerte, desgaste, desgaste_minimo, controladores,
                                 arrendada, es_residencia_principal)
                                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
                                         %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-                            (propiedad['usuario_id'], propiedad['tipo'], propiedad['nombre'], propiedad['nivel'], 
-                                propiedad['valor_compra'], propiedad['renta_diaria'], propiedad['costo_diario'], 
-                                propiedad['costo_mantenimiento'], propiedad['tier'], propiedad['barrio'], propiedad['color'], 
-                                propiedad['tamaño'], propiedad['pisos'], propiedad['suerte'], propiedad['desgaste'], 
+                               (propiedad['usuario_id'], propiedad['tipo'], propiedad['nombre'], propiedad['nivel'],
+                                propiedad['valor_compra'], propiedad['renta_diaria'], propiedad['costo_diario'],
+                                propiedad['costo_mantenimiento'], propiedad['tier'], propiedad['barrio'], propiedad['color'],
+                                propiedad['tamaño'], propiedad['pisos'], propiedad['suerte'], propiedad['desgaste'],
                                 propiedad['desgaste_minimo'], str(propiedad['controladores']), propiedad['arrendada'], propiedad['es_residencia_principal']))
                 conn.commit()
             conn.close()
     retry_query(query)
 
 # Obtener una propiedad de la base de datos por ID
+
+
 def obtener_propiedad(id_propiedad):
     def load():
         conn = connect_db()
@@ -222,13 +282,13 @@ def obtener_propiedad(id_propiedad):
 
 
 # Obtener todas las propiedades de un usuario
-def obtener_propiedades_por_usuario(usuario_id):
+def obtener_propiedades_por_usuario(inversionista_id):
     def query():
         conn = connect_db()
         propiedades = []
         if conn:
             with closing(conn.cursor(dictionary=True)) as cursor:
-                cursor.execute('SELECT * FROM propiedades WHERE usuario_id = %s', (usuario_id,))
+                cursor.execute('SELECT * FROM propiedades WHERE inversionista_id = %s', (inversionista_id,))
                 propiedades = cursor.fetchall()
             conn.close()
         return propiedades
@@ -246,10 +306,10 @@ def actualizar_desgaste_propiedad(id_propiedad, nuevo_desgaste, nuevo_desgaste_m
                     cursor.execute('''UPDATE propiedades 
                                       SET desgaste = %s, desgaste_minimo = %s 
                                       WHERE id = %s''', (nuevo_desgaste, nuevo_desgaste_minimo, id_propiedad))
-                    
+
                     # Recalcular la renta diaria basada en el nuevo desgaste
                     recalcular_renta_diaria(cursor, id_propiedad)
-                    
+
                     conn.commit()
             except Exception as e:
                 conn.rollback()
@@ -260,6 +320,8 @@ def actualizar_desgaste_propiedad(id_propiedad, nuevo_desgaste, nuevo_desgaste_m
     retry_query(update)
 
 # Actualizar el estado de una propiedad para indicar si es residencia principal o no
+
+
 def actualizar_estado_residencia_principal(propiedad_id, es_residencia_principal):
     def query():
         conn = connect_db()
@@ -273,6 +335,8 @@ def actualizar_estado_residencia_principal(propiedad_id, es_residencia_principal
     retry_query(query)
 
 # Actualizar el estado de una propiedad para indicar si está arrendada o no
+
+
 def actualizar_estado_propiedad_arrendada(propiedad_id, arrendada):
     def query():
         conn = connect_db()
@@ -286,6 +350,8 @@ def actualizar_estado_propiedad_arrendada(propiedad_id, arrendada):
     retry_query(query)
 
 # Recalcular la renta diaria de una propiedad utilizando el cursor existente
+
+
 def recalcular_renta_diaria(cursor, id_propiedad):
     cursor.execute('''SELECT nivel, tier, tamaño, pisos, suerte, desgaste, controladores, color, barrio, valor_compra
                       FROM propiedades WHERE id = %s''', (id_propiedad,))
@@ -295,19 +361,18 @@ def recalcular_renta_diaria(cursor, id_propiedad):
 
         # Calcular la nueva renta
         nueva_renta = calcular_renta_diaria(
-            propiedad['nivel'], 
-            propiedad['tier'], 
-            propiedad['suerte'], 
-            propiedad['desgaste'], 
+            propiedad['nivel'],
+            propiedad['tier'],
+            propiedad['suerte'],
+            propiedad['desgaste'],
             propiedad['controladores'],
             porcentajes_colores,
             propiedad['color'],
             propiedad['valor_compra']
         )
         # Actualizar la renta diaria en la base de datos
-        cursor.execute('''UPDATE propiedades SET renta_diaria = %s WHERE id = %s''', 
+        cursor.execute('''UPDATE propiedades SET renta_diaria = %s WHERE id = %s''',
                        (nueva_renta, id_propiedad))
-
 
 
 # Actualizar los controladores de las propiedades en el barrio en la base de datos
@@ -337,10 +402,10 @@ def actualizar_controladores_barrio(barrio_id, porcentajes):
                         # Actualizar controladores en la propiedad
                         cursor.execute('''UPDATE propiedades SET controladores = %s WHERE id = %s''',
                                        (str(controladores), propiedad_id))
-                        
+
                         # Recalcular la renta dentro de la misma transacción
                         recalcular_renta_diaria(cursor, propiedad_id)
-                    
+
                     conn.commit()
             except Exception as e:
                 conn.rollback()
@@ -351,6 +416,8 @@ def actualizar_controladores_barrio(barrio_id, porcentajes):
     retry_query(query)
 
 # Obtener el saldo del usuario
+
+
 def obtener_saldo_usuario(usuario_id, guild_id):
     def query():
         conn = connect_db()
@@ -366,6 +433,8 @@ def obtener_saldo_usuario(usuario_id, guild_id):
     return retry_query(query)
 
 # Actualizar el saldo del usuario
+
+
 def actualizar_saldo_usuario(usuario_id, guild_id, nuevo_saldo):
     def query():
         conn = connect_db()
@@ -378,6 +447,8 @@ def actualizar_saldo_usuario(usuario_id, guild_id, nuevo_saldo):
 
 # Obtener las proporciones de colores en un barrio
 # Obtener las proporciones de colores en un barrio
+
+
 def obtener_proporciones_barrio(barrio_id):
     def query():
         conn = connect_db()
@@ -397,6 +468,8 @@ def obtener_proporciones_barrio(barrio_id):
     return retry_query(query)
 
 # Actualizar el controlador[3] de todas las propiedades del usuario en la base de datos
+
+
 def actualizar_controlador_penalizacion(usuario_id, penalizado):
     def query():
         conn = connect_db()
@@ -410,13 +483,15 @@ def actualizar_controlador_penalizacion(usuario_id, penalizado):
     retry_query(query)
 
 # Verificar si el inversionista está penalizado
-def verificar_estado_inversionista(usuario_id):
+
+
+def verificar_estado_inversionista(id_inversionista):
     def query():
         conn = connect_db()
         penalizado = False
         if conn:
             with closing(conn.cursor(dictionary=True)) as cursor:
-                cursor.execute('SELECT penalizado FROM inversionistas WHERE usuario_id = %s', (usuario_id,))
+                cursor.execute('SELECT penalizado FROM inversionistas WHERE id = %s', (id_inversionista,))
                 inversionista = cursor.fetchone()
                 if inversionista:
                     penalizado = inversionista['penalizado']
@@ -425,6 +500,8 @@ def verificar_estado_inversionista(usuario_id):
     return retry_query(query)
 
 # Eliminar una propiedad de la base de datos
+
+
 def eliminar_propiedad(propiedad_id):
     def query():
         conn = connect_db()
@@ -436,11 +513,15 @@ def eliminar_propiedad(propiedad_id):
     retry_query(query)
 
 # Actualizar los controladores de las propiedades en el barrio
+
+
 def actualizar_controladores_propiedades_barrio(barrio_id):
     porcentajes_colores = obtener_proporciones_barrio(barrio_id)
     actualizar_controladores_barrio(barrio_id, porcentajes_colores)
 
 # Actualizar el estado del inversionista
+
+
 def actualizar_estado_inversionista(usuario_id, penalizado):
     def query():
         conn = connect_db()
@@ -448,7 +529,7 @@ def actualizar_estado_inversionista(usuario_id, penalizado):
             with closing(conn.cursor()) as cursor:
                 cursor.execute('''INSERT INTO inversionistas (usuario_id, penalizado)
                                   VALUES (%s, %s)
-                                  ON DUPLICATE KEY UPDATE penalizado = %s''', 
+                                  ON DUPLICATE KEY UPDATE penalizado = %s''',
                                (usuario_id, penalizado, penalizado))
                 conn.commit()
             conn.close()
@@ -469,32 +550,38 @@ def obtener_renta_propiedades(usuario_id):
     return retry_query(query)
 
 # Obtener los costos diarios de las propiedades de un usuario
+
+
 def obtener_costo_diario_propiedades(usuario_id):
     def query():
         conn = connect_db()
         costos = []
         if conn:
             with closing(conn.cursor(dictionary=True)) as cursor:
-                cursor.execute('SELECT costo_diario FROM propiedades WHERE usuario_id = %s', (usuario_id,))
+                cursor.execute('SELECT costo_diario FROM propiedades WHERE inversionista_id = %s', (usuario_id,))
                 costos = cursor.fetchall()
             conn.close()
         return costos
     return retry_query(query)
 
 # Obtener los costos de mantenimiento de las propiedades de un usuario
+
+
 def obtener_mantencion_propiedades(usuario_id):
     def query():
         conn = connect_db()
         costos = []
         if conn:
             with closing(conn.cursor(dictionary=True)) as cursor:
-                cursor.execute('SELECT costo_mantenimiento FROM propiedades WHERE usuario_id = %s', (usuario_id,))
+                cursor.execute('SELECT costo_mantenimiento FROM propiedades WHERE inversionista_id = %s', (usuario_id,))
                 costos = cursor.fetchall()
             conn.close()
         return costos
     return retry_query(query)
 
 # Obtener todos los usuarios registrados como inversionistas
+
+
 def obtener_usuarios_registrados():
     def query():
         conn = connect_db()
@@ -507,20 +594,64 @@ def obtener_usuarios_registrados():
         return usuarios
     return retry_query(query)
 
+
+def obtener_usuarios_con_fecha(columna_fecha, fecha_actual):
+    conn = connect_db()
+    if conn:
+        with closing(conn.cursor(dictionary=True)) as cursor:
+            cursor.execute(f'SELECT * FROM inversionistas WHERE {columna_fecha} <= %s', (fecha_actual,))
+            return cursor.fetchall()
+    return []
+
+
+def actualizar_fecha_tarea(columna_fecha, usuario_id, nueva_fecha):
+    conn = connect_db()
+    if conn:
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(f'UPDATE inversionistas SET {columna_fecha} = %s WHERE usuario_id = %s', (nueva_fecha, usuario_id))
+            conn.commit()
+
+
+def get_user_inversionista(user_id):
+    conn = connect_db()
+    if conn:
+        with closing(conn.cursor(dictionary=True)) as cursor:
+            query = '''
+                SELECT users.*
+                FROM inversionistas
+                JOIN users ON inversionistas.usuario_id = users.id
+                WHERE inversionistas.usuario_id = %s
+            '''
+            cursor.execute(query, (user_id,))
+            return cursor.fetchone()
+    return None
+
 # Verificar si un usuario está registrado como inversionista
+
+
 def es_inversionista(usuario_id, guild_id):
     def query():
         conn = connect_db()
         inversionista = False
         if conn:
             with closing(conn.cursor(dictionary=True)) as cursor:
-                cursor.execute('SELECT usuario_id FROM inversionistas WHERE usuario_id = %s AND guild_id = %s', (usuario_id, guild_id))
-                inversionista = cursor.fetchone() is not None
+                # Buscamos el ID del usuario en la tabla users primero
+                cursor.execute('SELECT id FROM users WHERE user_id = %s AND guild_id = %s', (usuario_id, guild_id))
+                user_data = cursor.fetchone()
+
+                if user_data:
+                    # Verificamos si el usuario está en la tabla inversionistas usando su ID
+                    user_id = user_data['id']
+                    cursor.execute('SELECT usuario_id FROM inversionistas WHERE usuario_id = %s', (user_id,))
+                    inversionista = cursor.fetchone() is not None
             conn.close()
         return inversionista
     return retry_query(query)
 
+
 # Obtener todos los usuarios penalizados actualmente
+
+
 def obtener_usuarios_penalizados():
     def query():
         conn = connect_db()
@@ -532,6 +663,7 @@ def obtener_usuarios_penalizados():
             conn.close()
         return usuarios_penalizados
     return retry_query(query)
+
 
 # Crear las tablas si no existen
 create_property_tables()
