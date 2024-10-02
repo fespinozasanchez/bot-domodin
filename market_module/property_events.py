@@ -63,7 +63,6 @@ def comprar_propiedad(usuario_id, guild_id, propiedad):
             raise Exception(f"No tienes suficiente saldo para comprar esta propiedad. Te faltan ${int(faltante):,}".replace(",", ".") + " MelladoCoins.")
 
         # Si tiene suficiente saldo, proceder con la compra
-        propiedad['usuario_id'] = usuario_id
         guardar_propiedad(propiedad)
 
         # Actualizar el saldo del usuario
@@ -75,13 +74,14 @@ def comprar_propiedad(usuario_id, guild_id, propiedad):
 # Evento: Venta de propiedad
 
 
-def vender_propiedad(usuario_id, guild_id, propiedad_id):
+def vender_propiedad(id_inversionista, usuario_id, guild_id, propiedad_id):
     """
     Evento para manejar la venta de una propiedad.
     La propiedad se elimina de la base de datos y el jugador recibe un porcentaje del valor de compra.
     """
     propiedad = obtener_propiedad(propiedad_id)
-    if propiedad and propiedad['usuario_id'] == usuario_id:
+    print(propiedad)
+    if propiedad and propiedad['inversionista_id'] == id_inversionista:
         suerte = propiedad['suerte']
         valor_venta = propiedad['valor_compra'] * (0.8 + suerte)
         saldo_actual = obtener_saldo_usuario(usuario_id, guild_id)
@@ -166,20 +166,20 @@ def calcular_costo_desgaste_a_cero(id_propiedad):
         return f"${int(costo_mejora):,}".replace(",", ".") + " MelladoCoins"
 
 
-def pagar_renta_diaria(usuario_id, guild_id):
+def pagar_renta_diaria(id_inversionista, guild_id, user_id):
     """
     Maneja el pago de la renta diaria de todas las propiedades del usuario.
     Las propiedades hogar que son residencia principal (es_residencia_principal=1) no generan renta.
     Solo las propiedades arrendadas generan renta diaria.
     """
-    propiedades = obtener_propiedades_por_usuario(usuario_id)
+    propiedades = obtener_propiedades_por_usuario(id_inversionista)
 
     if propiedades:
         total_renta = 0.0
         global EVENTO_GLOBAL
 
         # Verificar si el inversionista está penalizado
-        penalizado = verificar_estado_inversionista(usuario_id)
+        penalizado = verificar_estado_inversionista(id_inversionista)
 
         for propiedad in propiedades:
             # Si es hogar y es la residencia principal, no genera renta
@@ -204,15 +204,15 @@ def pagar_renta_diaria(usuario_id, guild_id):
 
             total_renta += renta_diaria
 
-        saldo_actual = obtener_saldo_usuario(usuario_id, guild_id)
+        saldo_actual = obtener_saldo_usuario(user_id, guild_id)
         nuevo_saldo = saldo_actual + total_renta
-        actualizar_saldo_usuario(usuario_id, guild_id, nuevo_saldo)
+        actualizar_saldo_usuario(user_id, guild_id, nuevo_saldo)
         return f"${int(nuevo_saldo):,}".replace(",", ".") + " MelladoCoins"
 
 # Evento: Pago de costo diario
 
 
-def pagar_costo_diario(usuario_id, guild_id):
+def pagar_costo_diario(usuario_id, guild_id, user_id):
     """
     Maneja el pago del costo diario de todas las propiedades del usuario.
     Si el saldo es insuficiente o el usuario está penalizado, se aplica la penalización.
@@ -222,21 +222,21 @@ def pagar_costo_diario(usuario_id, guild_id):
 
     propiedades = obtener_costo_diario_propiedades(usuario_id)
     if propiedades:
-        saldo_usuario = obtener_saldo_usuario(usuario_id, guild_id)
+        saldo_usuario = obtener_saldo_usuario(user_id, guild_id)
         total_costo_diario = sum(propiedad['costo_diario'] for propiedad in propiedades)
 
         if saldo_usuario < total_costo_diario:
-            actualizar_saldo_usuario(usuario_id, guild_id, 0.0)
+            actualizar_saldo_usuario(user_id, guild_id, 0.0)
             penalizar_propietario(usuario_id)
         else:
             nuevo_saldo = saldo_usuario - total_costo_diario
-            actualizar_saldo_usuario(usuario_id, guild_id, nuevo_saldo)
+            actualizar_saldo_usuario(user_id, guild_id, nuevo_saldo)
             return f"${int(nuevo_saldo):,}".replace(",", ".") + " MelladoCoins"
 
 # Evento: Pago de costo de mantenimiento
 
 
-def pagar_costo_mantenimiento(usuario_id, guild_id):
+def pagar_costo_mantenimiento(usuario_id, guild_id, user_id):
     """
     Maneja el pago del costo de mantenimiento de todas las propiedades del usuario.
     """
@@ -245,15 +245,15 @@ def pagar_costo_mantenimiento(usuario_id, guild_id):
 
     propiedades = obtener_mantencion_propiedades(usuario_id)
     if propiedades:
-        saldo_usuario = obtener_saldo_usuario(usuario_id, guild_id)
+        saldo_usuario = obtener_saldo_usuario(user_id, guild_id)
         total_costo_mantenimiento = sum(propiedad['costo_mantenimiento'] for propiedad in propiedades)
 
         if saldo_usuario < total_costo_mantenimiento:
-            actualizar_saldo_usuario(usuario_id, guild_id, 0.0)
+            actualizar_saldo_usuario(user_id, guild_id, 0.0)
             penalizar_propietario(usuario_id)
         else:
             nuevo_saldo = saldo_usuario - total_costo_mantenimiento
-            actualizar_saldo_usuario(usuario_id, guild_id, nuevo_saldo)
+            actualizar_saldo_usuario(user_id, guild_id, nuevo_saldo)
             return f"${int(nuevo_saldo):,}".replace(",", ".") + " MelladoCoins"
 
 # Función: Penalizar propietario
