@@ -3,7 +3,7 @@ import numpy as np
 # import matplotlib.pyplot as plt
 import discord
 from discord.ext import commands, tasks
-from utils.data_manager import load_user_data, save_loan_data, save_user_data, load_all_users
+from utils.data_manager import load_user_data, save_loan_data, save_user_data, load_all_users, set_balance
 import logging
 # import matplotlib
 import random as ra
@@ -223,10 +223,12 @@ class Economy(commands.Cog):
         # Asegúrate de que la clave se forma correctamente
         key = f"{user_id}_{guild_id}"
         user_data = load_user_data(user_id, guild_id)
+        # print(user_data)
         if user_data:
             await ctx.send(f'{ctx.author.name}, ya estás registrado.')
         else:
             self.data[key] = {'guild_id': guild_id, 'balance': 1000}
+            print(self.data)
             save_user_data(user_id, guild_id, 1000)
             await ctx.send(f'{ctx.author.name}, has sido registrado con un saldo inicial de $1.000 MelladoCoins.')
 
@@ -410,7 +412,7 @@ class Economy(commands.Cog):
                     if key not in self.data:
                         self.data[key] = {
                             'guild_id': guild_id, 'balance': 1000}
-                        save_user_data(user_id, guild_id, 1000)
+                        set_balance(user_id, guild_id, 1000)
 
 
 async def setup(bot):
