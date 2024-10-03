@@ -1,77 +1,87 @@
+import logging
 import random
+from datetime import datetime, timedelta
+from enum import Enum
 from utils.market_data_manager import (
-    obtener_mantencion_propiedades, obtener_costo_diario_propiedades,
+    get_current_event, obtener_mantencion_propiedades, obtener_costo_diario_propiedades, update_current_event,
     verificar_estado_inversionista, actualizar_controladores_propiedades_barrio, actualizar_estado_inversionista,
     eliminar_propiedad, guardar_propiedad, obtener_propiedad, actualizar_desgaste_propiedad,
     actualizar_controlador_penalizacion, obtener_propiedades_por_usuario, obtener_saldo_usuario, actualizar_saldo_usuario
 )
 
-# Evento que afecta la renta diaria globalmente
-EVENTO_GLOBAL = None  # Variable que determina si ocurre un evento como "buen_dia_negocios" o "mal_dia_negocios"
 
-# Función para determinar si ocurre un evento diario
+class EventoGlobal(Enum):
+    MAL_DIA_NEGOCIOS = 'Mal día para los negocios'
+    BUEN_DIA_NEGOCIOS = 'Buen día para los negocios'
+    NINGUNO = 'Es un día normal'
 
-
-def determinar_evento_diario():
-    probabilidad_evento = 0.3  # 30% de que ocurra un evento diario
-    return random.random() < probabilidad_evento
-
-# Función que selecciona el evento diario si ocurre
+    def __str__(self):
+        return self.value
 
 
-def seleccionar_evento_diario():
-    eventos_diarios = ['mal_dia_negocios', 'buen_dia_negocios']
-    return random.choice(eventos_diarios)
+class ManejadorEventosDiarios:
+    eventos_diarios = [EventoGlobal.MAL_DIA_NEGOCIOS, EventoGlobal.BUEN_DIA_NEGOCIOS, EventoGlobal.NINGUNO]
 
-# Eventos diarios
+    @classmethod
+    def seleccionar_evento_diario(cls):
+        return random.choice(cls.eventos_diarios)
+
+    @classmethod
+    def manejar_eventos_diarios(cls):
+        try:
+            resultado_evento = get_current_event()
+            evento_actual = resultado_evento['current_event']
+            fecha_cambio = resultado_evento['updated_at']
+        except Exception as e:
+            logging.error(f"Error al obtener el evento global actual: {e}")
+            return
+
+        # Asegurarnos de que la fecha sea del tipo datetime para hacer la comparación
+        try:
+            if isinstance(fecha_cambio, str):
+                fecha_cambio = datetime.strptime(fecha_cambio, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            logging.error("Error al convertir la fecha de cambio del evento global a datetime.")
+
+        ahora = datetime.now()
+
+        try:
+            if ahora - fecha_cambio >= timedelta(hours=4):
+                nuevo_evento = cls.seleccionar_evento_diario()
+                update_current_event(nuevo_evento.value, ahora)
+                logging.info(f"El evento global ha cambiado a: {nuevo_evento}")
+            else:
+                logging.info(f"El evento global actual es: {evento_actual}")
+        except Exception as e:
+            logging.error(f"Error al manejar los eventos diarios: {e}")
 
 
-def mal_dia_negocios():
-    global EVENTO_GLOBAL
-    EVENTO_GLOBAL = 'mal_dia_negocios'
+def obtener_evento_global():
+    """
+    The function obtains the current global event, returning a specific value if no event is found.
+    :return: The function `obtener_evento_global` is returning the value of the current event if it
+    exists and has a key 'current_event' in the dictionary `evento_actual`. If the current event does
+    not exist or does not have the key 'current_event', then it returns the value `NINGUNO` from the
+    `EventoGlobal` enum.
+    """
+    evento_actual = get_current_event()
 
+    if evento_actual and 'current_event' in evento_actual:
+        return evento_actual['current_event']
+    return EventoGlobal.NINGUNO.value
 
-def buen_dia_negocios():
-    global EVENTO_GLOBAL
-    EVENTO_GLOBAL = 'buen_dia_negocios'
-
-# Función que maneja los eventos diarios
-
-
-def manejar_eventos_diarios():
-    if determinar_evento_diario():
-        evento = seleccionar_evento_diario()
-        if evento == 'mal_dia_negocios':
-            mal_dia_negocios()
-        elif evento == 'buen_dia_negocios':
-            buen_dia_negocios()
-    else:
-        global EVENTO_GLOBAL
-        EVENTO_GLOBAL = None
 
 # Evento: Comprar una propiedad
-
-
 def comprar_propiedad(usuario_id, guild_id, propiedad):
     if propiedad is not None:
-        # Obtener el saldo del usuario
         saldo = obtener_saldo_usuario(usuario_id, guild_id)
-
-        # Verificar si el usuario tiene suficiente saldo para comprar la propiedad
         if saldo < propiedad['valor_compra']:
             faltante = propiedad['valor_compra'] - saldo
             raise Exception(f"No tienes suficiente saldo para comprar esta propiedad. Te faltan ${int(faltante):,}".replace(",", ".") + " MelladoCoins.")
 
-        # Si tiene suficiente saldo, proceder con la compra
         guardar_propiedad(propiedad)
-
-        # Actualizar el saldo del usuario
         actualizar_saldo_usuario(usuario_id, guild_id, saldo - propiedad['valor_compra'])
-
-        # Actualizar controladores de barrio
         actualizar_controladores_propiedades_barrio(propiedad['barrio'])
-
-# Evento: Venta de propiedad
 
 
 def vender_propiedad(id_inversionista, usuario_id, guild_id, propiedad_id):
@@ -80,7 +90,6 @@ def vender_propiedad(id_inversionista, usuario_id, guild_id, propiedad_id):
     La propiedad se elimina de la base de datos y el jugador recibe un porcentaje del valor de compra.
     """
     propiedad = obtener_propiedad(propiedad_id)
-    print(propiedad)
     if propiedad and propiedad['inversionista_id'] == id_inversionista:
         suerte = propiedad['suerte']
         valor_venta = propiedad['valor_compra'] * (0.8 + suerte)
@@ -89,8 +98,6 @@ def vender_propiedad(id_inversionista, usuario_id, guild_id, propiedad_id):
         actualizar_saldo_usuario(usuario_id, guild_id, nuevo_saldo)
         eliminar_propiedad(propiedad_id)
         return f"${int(nuevo_saldo):,}".replace(",", ".") + " MelladoCoins"
-
-# Evento: Actualizar el desgaste de una propiedad
 
 
 def mejorar_propiedad(usuario_id, propiedad_id, cantidad_dinero):
@@ -106,8 +113,6 @@ def mejorar_propiedad(usuario_id, propiedad_id, cantidad_dinero):
         nuevo_desgaste = max(0.0, desgaste_actual - puntos_mejora)
         nuevo_desgaste_minimo = min(nuevo_desgaste, propiedad['desgaste_minimo'])
         actualizar_desgaste_propiedad(propiedad_id, nuevo_desgaste, nuevo_desgaste_minimo)
-
-# Función: Aplicar desgaste automático
 
 
 def aplicar_desgaste_automatico(propiedad):
@@ -131,8 +136,6 @@ def aplicar_desgaste_automatico(propiedad):
     nuevo_desgaste = min(desgaste_actual + factor_desgaste, 1.00)
     return nuevo_desgaste
 
-# Evento: Mejorar desgaste de propiedad
-
 
 def mejorar_desgaste(id_propiedad, cantidad_pago):
     """
@@ -148,8 +151,6 @@ def mejorar_desgaste(id_propiedad, cantidad_pago):
         nuevo_desgaste = max(0.0, desgaste_actual - mejora)
         nuevo_desgaste_minimo = min(nuevo_desgaste, desgaste_minimo)
         actualizar_desgaste_propiedad(id_propiedad, nuevo_desgaste, nuevo_desgaste_minimo)
-
-# Función: Calcular costo para dejar el desgaste en 0
 
 
 def calcular_costo_desgaste_a_cero(id_propiedad):
@@ -175,25 +176,21 @@ def pagar_renta_diaria(id_inversionista, guild_id, user_id):
     propiedades = obtener_propiedades_por_usuario(id_inversionista)
     if propiedades:
         total_renta = 0.0
-        global EVENTO_GLOBAL
+        evento_actual = obtener_evento_global()
 
-        # Verificar si el inversionista está penalizado
         penalizado = verificar_estado_inversionista(id_inversionista)
         for propiedad in propiedades:
-            # Si es hogar y es la residencia principal, no genera renta
             if propiedad['tipo'] == 'hogar' and propiedad['es_residencia_principal'] == 1:
                 continue
 
-            # Solo propiedades arrendadas generan renta
             if not propiedad['arrendada']:
                 continue
 
             renta_diaria = propiedad['renta_diaria']
 
-            # Ajustar la renta según los eventos globales
-            if EVENTO_GLOBAL == 'mal_dia_negocios':
+            if evento_actual == EventoGlobal.MAL_DIA_NEGOCIOS.value:
                 renta_diaria *= 0.95
-            elif EVENTO_GLOBAL == 'buen_dia_negocios':
+            elif evento_actual == EventoGlobal.BUEN_DIA_NEGOCIOS.value:
                 renta_diaria *= 1.10
 
             # Ajustar renta si el inversionista está penalizado
@@ -207,7 +204,7 @@ def pagar_renta_diaria(id_inversionista, guild_id, user_id):
         actualizar_saldo_usuario(user_id, guild_id, nuevo_saldo)
         return f"${int(nuevo_saldo):,}".replace(",", ".") + " MelladoCoins"
 
-# Evento: Pago de costo diario
+# Evento: Pagar costo diario
 
 
 def pagar_costo_diario(usuario_id, guild_id, user_id):
@@ -272,12 +269,3 @@ def despenalizar_propietario(usuario_id):
     Elimina la penalización del propietario de todas sus propiedades.
     """
     actualizar_estado_inversionista(usuario_id, penalizado=False)
-
-# Función: Obtener evento global
-
-
-def obtener_evento_global():
-    """
-    Devuelve el evento global actual, si existe.
-    """
-    return EVENTO_GLOBAL
