@@ -192,10 +192,47 @@ def create_property_tables():
                     )
                 ''')
 
+                # Tabla para almacenar el evento global actual y la fecha de cambio del evento
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS events (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        current_event VARCHAR(255),
+                        updated_at TIMESTAMP
+                    )
+                ''')
+
                 conn.commit()
             conn.close()
 
     retry_query(create)
+
+
+def get_current_event():
+    def query():
+        conn = connect_db()
+        current_event = None
+        if conn:
+            with closing(conn.cursor(dictionary=True)) as cursor:
+                cursor.execute('SELECT current_event, updated_at FROM events ORDER BY id DESC LIMIT 1')
+                current_event = cursor.fetchone()
+            conn.close()
+        return current_event
+    return retry_query(query)
+
+
+def update_current_event(event_name, fecha_cambio):
+    def query():
+        conn = connect_db()
+        if conn:
+            with closing(conn.cursor()) as cursor:
+                cursor.execute('''
+                    INSERT INTO events (current_event, updated_at)
+                    VALUES (%s, %s)
+                    ON DUPLICATE KEY UPDATE current_event = VALUES(current_event), updated_at = VALUES(updated_at)
+                ''', (event_name, fecha_cambio))
+                conn.commit()
+            conn.close()
+    retry_query(query)
 
 
 def register_investor(usuario_id, guild_id):
