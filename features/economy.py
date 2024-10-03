@@ -412,7 +412,6 @@ class Economy(commands.Cog):
     @tasks.loop(minutes=60)
     async def mellado_coins_task(self):
         try:
-            # logging.debug("mellado_coins_task is running.")
             for guild in self.bot.guilds:
                 guild_id = str(guild.id)
                 channel_id = load_channel_setting(guild_id)  # Cargar la configuración del canal
@@ -423,19 +422,16 @@ class Economy(commands.Cog):
                     if channel:
                         channel_id = channel.id
                         save_channel_setting(guild_id, channel_id)  # Guarda este canal como el predeterminado
-                        # logging.info(f"Usando {channel.name} como canal por defecto en {guild.name}.")
                     else:
                         logging.warning(f"No hay canales disponibles para enviar mensajes en {guild.name}.")
                         continue
                 else:
                     channel = self.bot.get_channel(channel_id)
                     if not channel or not channel.permissions_for(guild.me).send_messages:
-                        # Si el canal configurado ya no es válido, busca otro canal
                         channel = next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
                         if channel:
                             channel_id = channel.id
                             save_channel_setting(guild_id, channel_id)  # Guarda este nuevo canal como el predeterminado
-                            # logging.info(f"Canal {channel.name} seleccionado como predeterminado en {guild.name}.")
                         else:
                             logging.warning(f"No hay canales disponibles para enviar mensajes en {guild.name}.")
                             continue
@@ -459,25 +455,24 @@ class Economy(commands.Cog):
 
                 balance_formatted = f"${user_data['balance']:,.0f}".replace(",", ".")
 
-                if cantidad > 0:
-                    embed = discord.Embed(
-                        title="💰 MelladoCoins"
-                    )
+                embed = discord.Embed(
+                    title="💰 MelladoCoins" if cantidad > 0 else "💸 MelladoCoins"
+                )
+
+                # Verificar si el usuario tiene un avatar personalizado o usar el predeterminado
+                if usuario.avatar:
                     embed.set_thumbnail(url=usuario.avatar.url)
-                    embed.add_field(name="¡Felicidades!", value=f"¡{usuario.name} ha recibido {cantidad} MelladoCoins!", inline=False)
-                    embed.add_field(name="Nuevo Saldo", value=f"{balance_formatted} MelladoCoins", inline=False)
-                    await channel.send(embed=embed)
                 else:
-                    embed = discord.Embed(
-                        title="💸 MelladoCoins"
-                    )
-                    if usuario.avatar:
-                        embed.set_thumbnail(url=usuario.avatar.url)
-                    else:
-                        embed.set_thumbnail(url=usuario.default_avatar.url)
-                    embed.add_field(name="Tiene que irse a parvularia. ", value=f"¡{usuario.name} ha perdido {-cantidad} MelladoCoins!", inline=False)
-                    embed.add_field(name="Nuevo Saldo", value=f"{balance_formatted} MelladoCoins", inline=False)
-                    await channel.send(embed=embed)
+                    embed.set_thumbnail(url=usuario.default_avatar.url)
+
+                if cantidad > 0:
+                    embed.add_field(name="¡Felicidades!", value=f"¡{usuario.name} ha recibido {cantidad} MelladoCoins!", inline=False)
+                else:
+                    embed.add_field(name="Tiene que irse a parvularia.", value=f"¡{usuario.name} ha perdido {-cantidad} MelladoCoins!", inline=False)
+
+                embed.add_field(name="Nuevo Saldo", value=f"{balance_formatted} MelladoCoins", inline=False)
+                await channel.send(embed=embed)
+
         except Exception as e:
             logging.error("Error en mellado_coins_task:", exc_info=e)
 
