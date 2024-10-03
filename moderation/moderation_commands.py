@@ -90,23 +90,6 @@ class ModerationCommands(commands.Cog):
 
         await ctx.send(f"Se han eliminado los últimos {deleted} mensajes de {member.mention}.")
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        # Buscar el servidor (guild) donde se debe realizar el baneo
-        for guild in self.bot.guilds:
-            # Intentar obtener el miembro a banear
-            member = guild.get_member(USER_TO_BAN)
-            if member:
-                try:
-                    await guild.ban(member, reason="Baneo automático al encender el bot.")
-                    print(f'{member} ha sido baneado automáticamente.')
-                except discord.Forbidden:
-                    print(f"No se pudo banear a {member}. Faltan permisos.")
-                except discord.HTTPException as e:
-                    print(f"Ocurrió un error al intentar banear a {member}: {e}")
-
-        print("Bot listo y task de baneo completada.")
-
 
 async def setup(bot):
     await bot.add_cog(ModerationCommands(bot))
