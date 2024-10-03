@@ -20,7 +20,7 @@ class Economy(commands.Cog):
         self.bot = bot
         self.data = load_all_users()
         self.passive_income.start()
-        # self.mellado_coins_task.start()
+        self.mellado_coins_task.start()
 
     @commands.command(name='prestamo', help='Solicita un préstamo de MelladoCoins. Uso: !prestamo <cantidad>')
     async def prestamo(self, ctx, cantidad: int):
