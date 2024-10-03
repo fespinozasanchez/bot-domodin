@@ -1,9 +1,9 @@
 # config.py
 DATABASE_CONFIG = {
-    'user': 'root',
-    'password': '',
-    'host': 'localhost',
-    'database': 'develop-discord',
+    'user': 'developdomodin',
+    'password': 'develodomodin#2024',
+    'host': '186.64.123.29',
+    'database': 'develop_domodin',
 }
 
 
