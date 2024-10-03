@@ -5,7 +5,8 @@ import discord
 from discord.ext import commands, tasks
 from utils.data_manager import load_user_data, save_loan_data, save_user_data, load_all_users, set_balance
 import logging
-# import matplotlib
+from PIL import Image, ImageDraw, ImageFont
+import math
 import random as ra
 from utils.channel_manager import save_channel_setting, load_channel_setting
 from datetime import datetime, timedelta
@@ -27,16 +28,16 @@ class Economy(commands.Cog):
         user_id = str(usuario.id)
         guild_id = str(ctx.guild.id)
 
-        if cantidad <= 0 or cantidad > 10000000:
+        if cantidad <= 0 or cantidad > 30_000_000:
             embed = discord.Embed(
                 title="❌ Préstamo Denegado",
-                description="El préstamo no puede ser negativo, cero o mayor a 1.000.000 MelladoCoins.",
+                description="El préstamo no puede ser negativo, cero o mayor a 30.000.000 MelladoCoins.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
             return
 
-        if ra.random() > 0.5:  # 50% de probabilidad de éxito
+        if ra.random() > 0.75:  # 50% de probabilidad de éxito
             embed = discord.Embed(
                 title="❌ Préstamo Denegado",
                 description="No, tienes cara de pobre, así que no te daré el préstamo.",
@@ -111,7 +112,7 @@ class Economy(commands.Cog):
 
         embed_bot = discord.Embed(
             title="💰 Préstamo Emitido",
-            description=f"El banco (bot) ha transferido {cantidad_formateada} MelladoCoins hacia {usuario.mention}.\nEl préstamo vence en 24 horas.\n¡No olvides pagar a tiempo!\nHay un impuesto del 25% sobre el monto del préstamo.\nSi no pagas a tiempo, se aplicará un interés diario del 1.4% sobre el monto del préstamo.",
+            description=f"El banco (bot) ha transferido {cantidad_formateada} MelladoCoins hacia {usuario.mention}.\nEl préstamo vence en 24 horas.\n¡No olvides pagar a tiempo!\nHay un impuesto del 45% sobre el monto del préstamo.\nSi no pagas a tiempo, se aplicará un interés diario del 1.7% sobre el monto del préstamo.",
             color=discord.Color.blue()
         )
         embed_bot.add_field(name="Saldo del Banco", value=f"{saldo_bot_formateado} MelladoCoins", inline=False)
@@ -152,15 +153,15 @@ class Economy(commands.Cog):
             await ctx.send(embed=embed)
             return
 
-        # Calcular el impuesto del 25% y los intereses si aplica
+        # Calcular el impuesto del 45% y los intereses si aplica
         ahora = datetime.now()
-        impuesto_fijo = loan_amount * 0.25
+        impuesto_fijo = loan_amount * 0.45
         interes_extra = 0
 
         if ahora > loan_due_time:
             tiempo_pasado = ahora - loan_due_time
             dias_extra = tiempo_pasado.days
-            interes_extra = loan_amount * (0.014 * dias_extra)
+            interes_extra = loan_amount * (0.074 * dias_extra)
 
         total_a_pagar = loan_amount + impuesto_fijo + interes_extra
 
@@ -173,7 +174,7 @@ class Economy(commands.Cog):
             await ctx.send(embed=embed)
             return
 
-        # Actualizar el saldo del usuario
+        # Actualizar el saldo del usuarios
         user_data['balance'] -= total_a_pagar
         save_loan_data(user_id, guild_id, user_data['balance'], last_loan_time=None, loan_amount=0, loan_due_time=None)
 
@@ -195,7 +196,7 @@ class Economy(commands.Cog):
         # Respuesta del bot con embed para el usuario
         embed = discord.Embed(
             title="✅ Préstamo Pagado",
-            description=f"Has pagado {cantidad_formateada} MelladoCoins, incluyendo el impuesto del 25%.",
+            description=f"Has pagado {cantidad_formateada} MelladoCoins, incluyendo el impuesto del 45%.",
             color=discord.Color.green()
         )
         embed.add_field(name="Nuevo Saldo", value=f"{saldo_formateado} MelladoCoins", inline=False)
@@ -265,45 +266,116 @@ class Economy(commands.Cog):
 
             await ctx.send(embed=embed)
 
-    # @commands.command(name='grafico_saldos')
-    # async def grafico_saldos(self, ctx):
-    #     guild_id = str(ctx.guild.id)
-    #     all_users = load_all_users(guild_id)
-    #     user_names = []
-    #     balances = []
-    #     for user_key, user_data in all_users.items():
-    #         user = await self.bot.fetch_user(user_key.split('_')[0])
-    #         user_names.append(user.name)
-    #         balances.append(round(user_data['balance'], 0))  # Redondear saldos a 0 decimales
+    @commands.command(name='grafico_saldos')
+    async def grafico_saldos(self, ctx):
+        """
+        This function likely generates a graphical representation of account balances.
 
-    #     # Configuración del gráfico
-    #     plt.figure(figsize=(12, 8))
-    #     bars = plt.bar(user_names, balances, color=plt.cm.viridis(
-    #         np.linspace(0, 1, len(user_names))))
+        :param ctx: ctx is a common abbreviation for "context" in programming. It typically refers to the
+        context in which a function or method is being called, and it often contains information or
+        references that are relevant to the current execution environment. In the case of your code
+        snippet, ctx likely represents the context of the function
+        """
+        guild_id = str(ctx.guild.id)
+        bot1 = "1290763344113827953"
+        bot2 = "1015378452225994793"
+        all_users = load_all_users(guild_id)
+        all_users = {k: v for k, v in all_users.items() if not any(bot in k.split('_')[0] for bot in [bot1, bot2])}
 
-    #     plt.xlabel('Usuarios', fontsize=14)
-    #     plt.ylabel('Saldo (MelladoCoins)', fontsize=14)
-    #     plt.title(f'Saldo de Usuarios en {ctx.guild.name}', fontsize=16)
-    #     plt.xticks(rotation=45, ha='right', fontsize=12)
-    #     plt.yticks(fontsize=12)
-    #     plt.grid(axis='y', linestyle='--', alpha=0.7)
+        all_users = dict(sorted(all_users.items(), key=lambda item: item[1]['balance'], reverse=True))
+        user_names = []
+        balances = []
 
-    #     # Añadir etiquetas a las barras
-    #     for bar in bars:
-    #         yval = bar.get_height()
-    #         # Agregar formato de puntos de mil y signo de moneda
-    #         formatted_value = f"${yval:,.0f}".replace(",", ".")
-    #         plt.text(bar.get_x() + bar.get_width() / 2, yval, formatted_value,
-    #                  ha='center', va='bottom', fontsize=10, color='black')
+        for user_key, user_data in all_users.items():
+            user = await self.bot.fetch_user(user_key.split('_')[0])
+            user_names.append(user.name)
+            balances.append(round(user_data['balance'], 0))
 
-    #     buf = io.BytesIO()
-    #     plt.tight_layout()
-    #     plt.savefig(buf, format='png')
-    #     buf.seek(0)
-    #     plt.close()
+        width = 800
+        height = 600
+        padding = 120
+        max_users_per_chart = 6
+        total_users = len(user_names)
 
-    #     file = discord.File(buf, filename='grafico_saldos.png')
-    #     await ctx.send(file=file)
+        colors = [(255, 99, 71), (60, 179, 113), (65, 105, 225), (255, 165, 0), (147, 112, 219), (255, 20, 147)]
+
+        try:
+            title_font = ImageFont.truetype("arialbd.ttf", 14)
+        except IOError:
+            title_font = ImageFont.load_default()
+
+        num_chunks = math.ceil(total_users / max_users_per_chart)
+        for chunk_idx in range(num_chunks):
+
+            start_idx = chunk_idx * max_users_per_chart
+            end_idx = min((chunk_idx + 1) * max_users_per_chart, total_users)
+            user_chunk = user_names[start_idx:end_idx]
+            balance_chunk = balances[start_idx:end_idx]
+            chunk_users = len(user_chunk)
+
+            bar_width = max(20, (width - 2 * padding) // (chunk_users * 2))
+            spacing = max(30, (width - 2 * padding) // (chunk_users * 2))
+            img = Image.new('RGB', (width, height), color=(255, 255, 255))
+            d = ImageDraw.Draw(img)
+
+            title = f"Saldo de Usuarios en {ctx.guild.name} - Parte {chunk_idx + 1}"
+            d.text((width // 2 - len(title) * 3, 10), title, font=title_font, fill=(0, 0, 0))
+
+            max_balance = max(balance_chunk) if max(balance_chunk) > 0 else 1
+            min_balance = min(balance_chunk) if min(balance_chunk) < 0 else 0
+
+            zero_line_y = height - padding - int((0 - min_balance) / (max_balance - min_balance) * (height - 2 * padding))
+            d.line([(padding, zero_line_y), (width - padding, zero_line_y)], fill=(0, 0, 0), width=2)  # Línea negra para el saldo 0
+
+            # Dibujar barras con diferentes colores
+            for i, (name, balance) in enumerate(zip(user_chunk, balance_chunk)):
+                # Calcular la altura de la barra proporcional al saldo
+                if balance >= 0:
+                    bar_height = int((balance / (max_balance - min_balance)) * (height - 2 * padding))
+                    y0 = zero_line_y - bar_height  # La barra positiva crece hacia arriba desde el eje 0
+                    y1 = zero_line_y  # Parte inferior en el eje 0
+                else:
+                    bar_height = int((abs(balance) / (max_balance - min_balance)) * (height - 2 * padding))
+                    y0 = zero_line_y  # La barra negativa empieza en el eje 0
+                    y1 = zero_line_y + bar_height  # Crece hacia abajo
+
+                x0 = padding + i * (bar_width + spacing)
+
+                # Dibujar la barra con un color diferente
+                bar_color = colors[i % len(colors)]  # Ciclar entre los colores disponibles
+                d.rectangle([x0, y0, x0 + bar_width, y1], fill=bar_color)
+
+                # Rotar los nombres de los usuarios 90 grados para evitar solapamientos
+                name_font_size = 20  # Tamaño base de la fuente
+                if bar_width < 50:  # Si el espacio es pequeño, reducir la fuente
+                    name_font_size = 10
+                try:
+                    name_font = ImageFont.truetype("arialbd.ttf", name_font_size)
+                except IOError:
+                    name_font = ImageFont.load_default()
+
+                # Crear una imagen con el nombre rotado
+                text_img = Image.new('RGBA', (100, 40), (255, 255, 255, 0))
+                draw_text = ImageDraw.Draw(text_img)
+                draw_text.text((0, 0), name, font=name_font, fill=(0, 0, 0))
+
+                # Rotar el texto 90 grados
+                rotated_text_img = text_img.rotate(90, expand=True)
+
+                # Ajustar la posición del texto rotado debajo de la barra
+                img.paste(rotated_text_img, (x0 + bar_width // 2 - rotated_text_img.width // 2, height - padding - 25), rotated_text_img)
+
+                # Escribir el saldo sobre la barra
+                d.text((x0 + 5, y0 - 20), f"${balance:,.0f}", font=title_font, fill=(0, 0, 0))
+
+            # Guardar la imagen en un buffer de memoria como PNG
+            buf = io.BytesIO()
+            img.save(buf, format='PNG')
+            buf.seek(0)
+
+            # Enviar el archivo PNG a Discord
+            file = discord.File(buf, filename=f'grafico_saldos_parte_{chunk_idx + 1}.png')
+            await ctx.send(file=file)
 
     def update_balance(self, user_id, guild_id, amount):
         user_data = load_user_data(user_id, guild_id)
@@ -379,16 +451,33 @@ class Economy(commands.Cog):
                 if user_data is None:
                     continue
 
-                cantidad = ra.randint(-100, 100)
+                cantidad = ra.randint(-10_000_000, 10_000_000)
+                logging.info(f"Enviando {cantidad} MelladoCoins a {usuario.name} en {guild.name}")
                 user_data['balance'] += cantidad
+                logging.info(f"Nuevo saldo de {usuario.name}: {user_data['balance']}")
                 save_user_data(user_id, guild_id, user_data['balance'])
 
                 balance_formatted = f"${user_data['balance']:,.0f}".replace(",", ".")
 
                 if cantidad > 0:
-                    await channel.send(f'¡<@{usuario.id}> es un ingeniero duro! y como es duro le voy a dar {cantidad} MelladoCoins. Tu nuevo saldo es {balance_formatted} MelladoCoins.')
+                    embed = discord.Embed(
+                        title="💰 MelladoCoins"
+                    )
+                    embed.set_thumbnail(url=usuario.avatar.url)
+                    embed.add_field(name="¡Felicidades!", value=f"¡{usuario.name} ha recibido {cantidad} MelladoCoins!", inline=False)
+                    embed.add_field(name="Nuevo Saldo", value=f"{balance_formatted} MelladoCoins", inline=False)
+                    await channel.send(embed=embed)
                 else:
-                    await channel.send(f'<@{usuario.id}> tiene que irse a parvularia. Le he quitado {-cantidad} MelladoCoins. Tu nuevo saldo es {balance_formatted} MelladoCoins.')
+                    embed = discord.Embed(
+                        title="💸 MelladoCoins"
+                    )
+                    if usuario.avatar:
+                        embed.set_thumbnail(url=usuario.avatar.url)
+                    else:
+                        embed.set_thumbnail(url=usuario.default_avatar.url)
+                    embed.add_field(name="Tiene que irse a parvularia. ", value=f"¡{usuario.name} ha perdido {-cantidad} MelladoCoins!", inline=False)
+                    embed.add_field(name="Nuevo Saldo", value=f"{balance_formatted} MelladoCoins", inline=False)
+                    await channel.send(embed=embed)
         except Exception as e:
             logging.error("Error en mellado_coins_task:", exc_info=e)
 
