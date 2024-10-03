@@ -3,7 +3,7 @@ from discord.ext import commands, tasks
 from utils.custom_help import CustomHelpPaginator
 from datetime import datetime, timedelta
 import pytz
-from market_module.property_events import (pagar_renta_diaria, despenalizar_propietario, pagar_costo_mantenimiento,
+from market_module.property_events import (ManejadorEventosDiarios, pagar_renta_diaria, despenalizar_propietario, pagar_costo_mantenimiento,
                                            pagar_costo_diario, aplicar_desgaste_automatico, comprar_propiedad,
                                            obtener_evento_global, mejorar_desgaste, vender_propiedad)
 from utils.market_data_manager import (actualizar_desgaste_propiedad, actualizar_fecha_tarea, generar_propiedad, actualizar_estado_residencia_principal, get_user_inversionista, obtener_id_inversionista, obtener_pagos,
@@ -27,6 +27,7 @@ class MarketCommands(commands.Cog):
         self.pago_renta_diaria.start()
         self.pago_diario.start()
         self.pago_mantenimiento.start()
+        self.verificar_evento_global.start()
         # self.despenalizar_usuarios.start()
 
     # Comando con prefijo
@@ -409,25 +410,8 @@ class MarketCommands(commands.Cog):
             )
             await ctx.send(embed=embed)
 
-    # Comando: !global_event
-    @commands.command(name='global_event', help='Ejecuta un evento global que afecta a todas las rentas.')
-    async def global_event(self, ctx):
-        await self._global_event(ctx)
-
-    # Slash Command
-    @app_commands.command(name='global_event', description='Ejecuta un evento global que afecta a todas las rentas')
-    async def slash_global_event(self, interaction: discord.Interaction):
-        ctx = await commands.Context.from_interaction(interaction)
-        await self._global_event(ctx)
-
-    async def _global_event(self, ctx):
-        event = obtener_evento_global()
-        if event:
-            await ctx.send(f"El evento actual es {event}")
-        else:
-            await ctx.send("No hay ningún evento actualmente.")
-
     # Comando: !listar_propiedades
+
     @commands.command(name='listar_propiedades', help='Lista todas tus propiedades.')
     async def listar_propiedades(self, ctx):
         await self._listar_propiedades(ctx)
@@ -991,6 +975,12 @@ class MarketCommands(commands.Cog):
                 return
 
         await channel.send(mensaje)
+
+    @tasks.loop(hours=1)
+    async def verificar_evento_global(self):
+        logging.info("Iniciando la verificación de eventos globales.")
+        ManejadorEventosDiarios.manejar_eventos_diarios()
+        logging.info("Verificación de eventos globales completada.")
 
     # Aplicar desgaste a las propiedades cada 7 días
     @tasks.loop(hours=1)
