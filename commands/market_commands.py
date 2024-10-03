@@ -2,10 +2,11 @@ import discord
 from discord.ext import commands, tasks
 from utils.custom_help import CustomHelpPaginator
 from datetime import datetime, timedelta
+import pytz
 from market_module.property_events import (pagar_renta_diaria, despenalizar_propietario, pagar_costo_mantenimiento,
                                            pagar_costo_diario, aplicar_desgaste_automatico, comprar_propiedad,
                                            obtener_evento_global, mejorar_desgaste, vender_propiedad)
-from utils.market_data_manager import (actualizar_desgaste_propiedad, actualizar_fecha_tarea, generar_propiedad, actualizar_estado_residencia_principal, get_user_inversionista, obtener_id_inversionista,
+from utils.market_data_manager import (actualizar_desgaste_propiedad, actualizar_fecha_tarea, generar_propiedad, actualizar_estado_residencia_principal, get_user_inversionista, obtener_id_inversionista, obtener_pagos,
                                        obtener_propiedades_home, actualizar_estado_propiedad_arrendada,
                                        obtener_propiedades_por_usuario, obtener_saldo_usuario, guardar_propiedad, obtener_usuarios_con_fecha,
                                        register_investor, obtener_usuarios_penalizados, verificar_estado_inversionista,
@@ -136,6 +137,84 @@ class MarketCommands(commands.Cog):
             )
             await ctx.send(embed=embed)
 
+    @commands.command(name='proximos_pagos', help="Mostrar los próximos pagos de renta de las propiedades.")
+    async def proximos_pagos(self, ctx):
+        await self._get_pagos(ctx)
+
+    # Slash Command
+    @app_commands.command(name='proximos_pagos', description='Mostrar los próximos pagos de renta de las propiedades.')
+    async def slash_proximos_pagos(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._get_pagos(ctx)
+
+    async def _get_pagos(self, ctx):
+        pagos = obtener_pagos()
+
+        # Verifica si obtuviste datos
+        if not pagos or len(pagos) == 0:
+            await ctx.send("No se encontraron pagos.")
+            return
+
+        # Obtener el primer pago (el primer usuario)
+        primer_pago = pagos[0]
+
+        # Función para convertir la hora UTC a la hora de Chile
+        def convertir_a_hora_local(hora_utc):
+            tz_chile = pytz.timezone('America/Santiago')
+            hora_utc = hora_utc.replace(tzinfo=pytz.utc)  # Asegurar que la hora es consciente de UTC
+            return hora_utc.astimezone(tz_chile)
+
+        # Formatear las fechas al estilo Hora:Minutos Día/Mes/Año con conversión de zona horaria
+        def formatear_fecha(fecha):
+            fecha_local = convertir_a_hora_local(fecha)
+            return fecha_local.strftime('%H:%M %d/%m/%Y')
+
+        # Obtener las fechas formateadas
+        next_desgaste = formatear_fecha(primer_pago['next_desgaste'])
+        next_renta = formatear_fecha(primer_pago['next_renta'])
+        next_mantenimiento = formatear_fecha(primer_pago['next_mantenimiento'])
+        next_costos_diarios = formatear_fecha(primer_pago['next_costos_diarios'])
+
+        bot_avatar_url = ctx.me.avatar.url
+        # Crear un embed separado para cada fecha
+        embed_desgaste = discord.Embed(
+            title=f"Próximo Desgaste",
+            description=next_desgaste,
+            color=discord.Color.blue(),
+            timestamp=convertir_a_hora_local(ctx.message.created_at)  # Convertir la hora de creación a Chile
+        )
+        embed_desgaste.set_thumbnail(url=bot_avatar_url)
+
+        embed_renta = discord.Embed(
+            title=f"Próxima Renta",
+            description=next_renta,
+            color=discord.Color.green(),
+            timestamp=convertir_a_hora_local(ctx.message.created_at)
+        )
+        embed_renta.set_thumbnail(url=bot_avatar_url)
+
+        embed_mantenimiento = discord.Embed(
+            title=f"Próximo Mantenimiento",
+            description=next_mantenimiento,
+            color=discord.Color.orange(),
+            timestamp=convertir_a_hora_local(ctx.message.created_at)
+        )
+        embed_mantenimiento.set_thumbnail(url=bot_avatar_url)
+
+        embed_costos_diarios = discord.Embed(
+            title=f"Próximos Costos Diarios",
+            description=next_costos_diarios,
+            color=discord.Color.red(),
+            timestamp=convertir_a_hora_local(ctx.message.created_at)
+        )
+        embed_costos_diarios.set_thumbnail(url=bot_avatar_url)
+
+        # Enviar los embeds individualmente
+        await ctx.send(embed=embed_desgaste)
+        await ctx.send(embed=embed_renta)
+        await ctx.send(embed=embed_mantenimiento)
+        await ctx.send(embed=embed_costos_diarios)
+
     # Comando: !ver_propiedad_hogar
     @commands.command(name='ver_propiedad_hogar', help='Muestra una propiedad tipo hogar disponible en el mercado.')
     async def ver_propiedad_hogar(self, ctx):
@@ -171,10 +250,8 @@ class MarketCommands(commands.Cog):
 
         await ctx.send(embed=embed)
 
-   
-
-
     # Slash Command
+
     @app_commands.command(name='ver_propiedad_tienda', description='Muestra una propiedad tipo tienda disponible en el mercado')
     async def slash_ver_propiedad_tienda(self, interaction: discord.Interaction):
         ctx = await commands.Context.from_interaction(interaction)
@@ -204,39 +281,47 @@ class MarketCommands(commands.Cog):
 
         await ctx.send(embed=embed)
 
+    # Comando: !ver_propiedad_tienda renta:value
 
-    #Comando: !ver_propiedad_tienda renta:value
+        # Comando: !ver_propiedad_hogar
 
-    @commands.command(name='ver_propiedad_tienda_con_renta', help='Muestra una propiedad tipo tienda disponible en el mercado.')
+    @commands.command(name='ver_propiedad_tienda_con_renta', help='Muestra una propiedad tipo tienda disponible en el mercado. ')
     async def ver_propiedad_tienda_con_renta(self, ctx, renta: int):
-       propiedad = generar_propiedad('tienda')
-       while propiedad['renta_diaria'] < renta:
+        await self._ver_propiedad_tienda_con_renta(ctx, renta)
+
+    # Slash Command
+    @app_commands.command(name='ver_propiedad_tienda_con_renta', description='Muestra una propiedad tipo tienda disponible en el mercado')
+    async def slash_ver_propiedad_tienda_con_renta(self, interaction: discord.Interaction, renta: int):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._ver_propiedad_tienda_con_renta(ctx, renta)
+
+    async def _ver_propiedad_tienda_con_renta(self, ctx, renta: int):
         propiedad = generar_propiedad('tienda')
-        ultima_propiedad_generada = propiedad
-        
-       embed = discord.Embed(
+        ultima_propiedad_generada = propiedad  # Asignar valor antes del ciclo
+        while propiedad['renta_diaria'] < renta:
+            propiedad = generar_propiedad('tienda')
+            ultima_propiedad_generada = propiedad  # Actualizar en cada iteración
+
+        embed = discord.Embed(
             title="Propiedad Tienda en Venta",
             description=f"**{propiedad['nombre']}** está disponible para compra.",
             color=discord.Color.from_str(propiedad['color'])
         )
-       embed.add_field(name="Valor de Compra", value=f"${int(ultima_propiedad_generada['valor_compra']):,}".replace(",", "."), inline=False)
-       embed.add_field(name="Renta Diaria", value=f"${int(ultima_propiedad_generada['renta_diaria']):,}".replace(",", "."), inline=True)
-       embed.add_field(name="Costo Diario", value=f"${int(ultima_propiedad_generada['costo_diario']):,}".replace(",", "."), inline=True)
-       embed.add_field(name="Costo Mantenimiento", value=f"${int(ultima_propiedad_generada['costo_mantenimiento']):,}".replace(",", "."), inline=True)
-       embed.add_field(name="Nivel", value=f"{ultima_propiedad_generada['nivel']}", inline=True)
-       embed.add_field(name="Tier", value=f"{ultima_propiedad_generada['tier']}", inline=True)
-       embed.add_field(name="Barrio", value=f"{ultima_propiedad_generada['barrio']}", inline=True)
-       embed.add_field(name="Tamaño", value=f"{ultima_propiedad_generada['tamaño']}", inline=True)
-       embed.add_field(name="Pisos", value=f"{ultima_propiedad_generada['pisos']}", inline=True)
-       embed.add_field(name="Desgaste", value=f"{ultima_propiedad_generada['desgaste']}", inline=True)
-       embed.add_field(name="Suerte", value=f"{ultima_propiedad_generada['suerte']}", inline=True)
-       await ctx.send(embed=embed)
-
- 
-       
-
+        embed.add_field(name="Valor de Compra", value=f"${int(ultima_propiedad_generada['valor_compra']):,}".replace(",", "."), inline=False)
+        embed.add_field(name="Renta Diaria", value=f"${int(ultima_propiedad_generada['renta_diaria']):,}".replace(",", "."), inline=True)
+        embed.add_field(name="Costo Diario", value=f"${int(ultima_propiedad_generada['costo_diario']):,}".replace(",", "."), inline=True)
+        embed.add_field(name="Costo Mantenimiento", value=f"${int(ultima_propiedad_generada['costo_mantenimiento']):,}".replace(",", "."), inline=True)
+        embed.add_field(name="Nivel", value=f"{ultima_propiedad_generada['nivel']}", inline=True)
+        embed.add_field(name="Tier", value=f"{ultima_propiedad_generada['tier']}", inline=True)
+        embed.add_field(name="Barrio", value=f"{ultima_propiedad_generada['barrio']}", inline=True)
+        embed.add_field(name="Tamaño", value=f"{ultima_propiedad_generada['tamaño']}", inline=True)
+        embed.add_field(name="Pisos", value=f"{ultima_propiedad_generada['pisos']}", inline=True)
+        embed.add_field(name="Desgaste", value=f"{ultima_propiedad_generada['desgaste']}", inline=True)
+        embed.add_field(name="Suerte", value=f"{ultima_propiedad_generada['suerte']}", inline=True)
+        await ctx.send(embed=embed)
 
     # Comando: !comprar_propiedad_generada
+
     @commands.command(name='comprar_propiedad_generada', help='Compra la última propiedad generada en el mercado. Uso: !comprar_propiedad_generada')
     async def comprar_propiedad_generada(self, ctx):
         await self._comprar_propiedad_generada(ctx)
