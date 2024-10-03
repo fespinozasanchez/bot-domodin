@@ -281,6 +281,26 @@ def obtener_propiedad(id_propiedad):
     return retry_query(load)
 
 
+def obtener_pagos():
+    """
+    The function `obtener_pagos` retrieves payment information from a database with a retry mechanism.
+    :return: The function `obtener_pagos` is returning the result of calling the `retry_query` function
+    with the `load` function as an argument.
+    """
+    def load():
+        conn = connect_db()
+        pagos = None
+        if conn:
+            with closing(conn.cursor(dictionary=True)) as cursor:
+                cursor.execute('SELECT * FROM inversionistas')
+                pagos = cursor.fetchall()
+            conn.close()
+
+        return pagos
+
+    return retry_query(load)
+
+
 # Obtener todas las propiedades de un usuario
 def obtener_propiedades_por_usuario(inversionista_id):
     def query():
