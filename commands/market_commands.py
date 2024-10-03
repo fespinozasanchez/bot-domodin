@@ -171,10 +171,8 @@ class MarketCommands(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    # Comando: !ver_propiedad_tienda
-    @commands.command(name='ver_propiedad_tienda', help='Muestra una propiedad tipo tienda disponible en el mercado.')
-    async def ver_propiedad_tienda(self, ctx):
-        await self._ver_propiedad_tienda(ctx)
+   
+
 
     # Slash Command
     @app_commands.command(name='ver_propiedad_tienda', description='Muestra una propiedad tipo tienda disponible en el mercado')
@@ -205,6 +203,38 @@ class MarketCommands(commands.Cog):
         embed.add_field(name="Suerte", value=f"{propiedad['suerte']}", inline=True)
 
         await ctx.send(embed=embed)
+
+
+    #Comando: !ver_propiedad_tienda renta:value
+
+    @commands.command(name='ver_propiedad_tienda_con_renta', help='Muestra una propiedad tipo tienda disponible en el mercado.')
+    async def ver_propiedad_tienda_con_renta(self, ctx, renta: int):
+       propiedad = generar_propiedad('tienda')
+       while propiedad['renta_diaria'] < renta:
+        propiedad = generar_propiedad('tienda')
+        ultima_propiedad_generada = propiedad
+        
+       embed = discord.Embed(
+            title="Propiedad Tienda en Venta",
+            description=f"**{propiedad['nombre']}** está disponible para compra.",
+            color=discord.Color.from_str(propiedad['color'])
+        )
+       embed.add_field(name="Valor de Compra", value=f"${int(ultima_propiedad_generada['valor_compra']):,}".replace(",", "."), inline=False)
+       embed.add_field(name="Renta Diaria", value=f"${int(ultima_propiedad_generada['renta_diaria']):,}".replace(",", "."), inline=True)
+       embed.add_field(name="Costo Diario", value=f"${int(ultima_propiedad_generada['costo_diario']):,}".replace(",", "."), inline=True)
+       embed.add_field(name="Costo Mantenimiento", value=f"${int(ultima_propiedad_generada['costo_mantenimiento']):,}".replace(",", "."), inline=True)
+       embed.add_field(name="Nivel", value=f"{ultima_propiedad_generada['nivel']}", inline=True)
+       embed.add_field(name="Tier", value=f"{ultima_propiedad_generada['tier']}", inline=True)
+       embed.add_field(name="Barrio", value=f"{ultima_propiedad_generada['barrio']}", inline=True)
+       embed.add_field(name="Tamaño", value=f"{ultima_propiedad_generada['tamaño']}", inline=True)
+       embed.add_field(name="Pisos", value=f"{ultima_propiedad_generada['pisos']}", inline=True)
+       embed.add_field(name="Desgaste", value=f"{ultima_propiedad_generada['desgaste']}", inline=True)
+       embed.add_field(name="Suerte", value=f"{ultima_propiedad_generada['suerte']}", inline=True)
+       await ctx.send(embed=embed)
+
+ 
+       
+
 
     # Comando: !comprar_propiedad_generada
     @commands.command(name='comprar_propiedad_generada', help='Compra la última propiedad generada en el mercado. Uso: !comprar_propiedad_generada')
