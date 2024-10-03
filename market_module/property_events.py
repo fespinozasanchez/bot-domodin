@@ -173,14 +173,12 @@ def pagar_renta_diaria(id_inversionista, guild_id, user_id):
     Solo las propiedades arrendadas generan renta diaria.
     """
     propiedades = obtener_propiedades_por_usuario(id_inversionista)
-
     if propiedades:
         total_renta = 0.0
         global EVENTO_GLOBAL
 
         # Verificar si el inversionista está penalizado
         penalizado = verificar_estado_inversionista(id_inversionista)
-
         for propiedad in propiedades:
             # Si es hogar y es la residencia principal, no genera renta
             if propiedad['tipo'] == 'hogar' and propiedad['es_residencia_principal'] == 1:
