@@ -159,16 +159,9 @@ class MarketCommands(commands.Cog):
         # Obtener el primer pago (el primer usuario)
         primer_pago = pagos[0]
 
-        # Función para convertir la hora UTC a la hora de Chile
-        def convertir_a_hora_local(hora_utc):
-            tz_chile = pytz.timezone('America/Santiago')
-            hora_utc = hora_utc.replace(tzinfo=pytz.utc)  # Asegurar que la hora es consciente de UTC
-            return hora_utc.astimezone(tz_chile)
-
-        # Formatear las fechas al estilo Hora:Minutos Día/Mes/Año con conversión de zona horaria
+        # Función para formatear las fechas sin conversión de zona horaria
         def formatear_fecha(fecha):
-            fecha_local = convertir_a_hora_local(fecha)
-            return fecha_local.strftime('%H:%M %d/%m/%Y')
+            return fecha.strftime('%H:%M %d/%m/%Y')
 
         # Obtener las fechas formateadas
         next_desgaste = formatear_fecha(primer_pago['next_desgaste'])
@@ -182,7 +175,7 @@ class MarketCommands(commands.Cog):
             title=f"Próximo Desgaste",
             description=next_desgaste,
             color=discord.Color.blue(),
-            timestamp=convertir_a_hora_local(ctx.message.created_at)  # Convertir la hora de creación a Chile
+            timestamp=ctx.message.created_at  # No es necesario convertir a Chile
         )
         embed_desgaste.set_thumbnail(url=bot_avatar_url)
 
@@ -190,7 +183,7 @@ class MarketCommands(commands.Cog):
             title=f"Próxima Renta",
             description=next_renta,
             color=discord.Color.green(),
-            timestamp=convertir_a_hora_local(ctx.message.created_at)
+            timestamp=ctx.message.created_at
         )
         embed_renta.set_thumbnail(url=bot_avatar_url)
 
@@ -198,7 +191,7 @@ class MarketCommands(commands.Cog):
             title=f"Próximo Mantenimiento",
             description=next_mantenimiento,
             color=discord.Color.orange(),
-            timestamp=convertir_a_hora_local(ctx.message.created_at)
+            timestamp=ctx.message.created_at
         )
         embed_mantenimiento.set_thumbnail(url=bot_avatar_url)
 
@@ -206,7 +199,7 @@ class MarketCommands(commands.Cog):
             title=f"Próximos Costos Diarios",
             description=next_costos_diarios,
             color=discord.Color.red(),
-            timestamp=convertir_a_hora_local(ctx.message.created_at)
+            timestamp=ctx.message.created_at
         )
         embed_costos_diarios.set_thumbnail(url=bot_avatar_url)
 
