@@ -291,7 +291,7 @@ class MarketCommands(commands.Cog):
 
     async def _ver_propiedad_tienda_con_renta(self, ctx, renta: int):
         propiedad = generar_propiedad('tienda')
-        ultima_propiedad_generada = propiedad  # Asignar valor antes del ciclo
+        self.ultima_propiedad_generada = propiedad  # Asignar valor antes del ciclo
         while propiedad['renta_diaria'] < renta:
             propiedad = generar_propiedad('tienda')
             ultima_propiedad_generada = propiedad  # Actualizar en cada iteración
