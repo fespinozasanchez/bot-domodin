@@ -48,7 +48,10 @@ class ManejadorEventosDiarios:
         try:
             if ahora - fecha_cambio >= timedelta(hours=4):
                 nuevo_evento = cls.seleccionar_evento_diario()
-                update_current_event(nuevo_evento.value, ahora)
+                try:
+                    update_current_event(nuevo_evento.value, ahora)
+                except Exception as e:
+                    logging.error(f"Error al actualizar el evento global: {e}")
                 logging.info(f"El evento global ha cambiado a: {nuevo_evento}")
             else:
                 logging.info(f"El evento global actual es: {evento_actual}")
