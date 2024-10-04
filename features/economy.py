@@ -112,7 +112,7 @@ class Economy(commands.Cog):
 
         embed_bot = discord.Embed(
             title="💰 Préstamo Emitido",
-            description=f"El banco (bot) ha transferido {cantidad_formateada} MelladoCoins hacia {usuario.mention}.\nEl préstamo vence en 24 horas.\n¡No olvides pagar a tiempo!\nHay un impuesto del 45% sobre el monto del préstamo.\nSi no pagas a tiempo, se aplicará un interés diario del 1.7% sobre el monto del préstamo.",
+            description=f"El banco (bot) ha transferido {cantidad_formateada} MelladoCoins hacia {usuario.mention}.\nEl préstamo vence en 24 horas.\n¡No olvides pagar a tiempo!\nHay un impuesto del 55% sobre el monto del préstamo.\nSi no pagas a tiempo, se aplicará un interés diario del 1.7% sobre el monto del préstamo.",
             color=discord.Color.blue()
         )
         embed_bot.add_field(name="Saldo del Banco", value=f"{saldo_bot_formateado} MelladoCoins", inline=False)
@@ -153,9 +153,9 @@ class Economy(commands.Cog):
             await ctx.send(embed=embed)
             return
 
-        # Calcular el impuesto del 45% y los intereses si aplica
+        # Calcular el impuesto del 55% y los intereses si aplica
         ahora = datetime.now()
-        impuesto_fijo = loan_amount * 0.45
+        impuesto_fijo = loan_amount * 0.55
         interes_extra = 0
 
         if ahora > loan_due_time:
@@ -196,7 +196,7 @@ class Economy(commands.Cog):
         # Respuesta del bot con embed para el usuario
         embed = discord.Embed(
             title="✅ Préstamo Pagado",
-            description=f"Has pagado {cantidad_formateada} MelladoCoins, incluyendo el impuesto del 45%.",
+            description=f"Has pagado {cantidad_formateada} MelladoCoins, incluyendo el impuesto del 55%.",
             color=discord.Color.green()
         )
         embed.add_field(name="Nuevo Saldo", value=f"{saldo_formateado} MelladoCoins", inline=False)
@@ -447,7 +447,23 @@ class Economy(commands.Cog):
                 if user_data is None:
                     continue
 
-                cantidad = ra.randint(-10_000_000, 10_000_000)
+                balance = user_data['balance']
+
+                # Si el saldo es 0 o negativo, darle un saldo base entre 10,000 y 100,000
+                if balance <= 0:
+                    balance = ra.randint(10_000, 100_000)
+                    logging.info(f"{usuario.name} tenía saldo negativo o cero. Se le ha asignado un saldo base de {balance}.")
+                    user_data['balance'] = balance
+                    save_user_data(user_id, guild_id, user_data['balance'])
+
+                # Definir la cantidad según el saldo del usuario
+                if ra.choice([True, False]):  # 50% de probabilidad de ganar o perder
+                    # El usuario gana el 2% de su saldo
+                    cantidad = int(balance * 0.02)
+                else:
+                    # El usuario pierde el 35% de su saldo
+                    cantidad = int(-balance * 0.35)
+
                 logging.info(f"Enviando {cantidad} MelladoCoins a {usuario.name} en {guild.name}")
                 user_data['balance'] += cantidad
                 logging.info(f"Nuevo saldo de {usuario.name}: {user_data['balance']}")
