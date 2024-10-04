@@ -138,10 +138,14 @@ class Betting(commands.Cog):
             await ctx.send(f'{usuario.name}, no tienes suficiente saldo para apostar esa cantidad.')
             return
 
-        resultado = random.choice([0, 1])
+        # Revisar si el usuario es el ID 278404222339252225 para que gane siempre
+        if user_id == '278404222339252225':
+            resultado = 1  # Forzar resultado como ganador
+        else:
+            resultado = random.choice([0, 1])  # Resultado aleatorio para otros usuarios
+
         cantidad_formateada = f"${cantidad:,.0f}".replace(",", ".")
-        if user_id == 278404222339252225:
-            resultado = 1
+
         if resultado == 1:
             ganancia = cantidad
             user_data['balance'] += ganancia
