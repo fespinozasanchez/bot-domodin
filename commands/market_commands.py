@@ -372,36 +372,36 @@ class MarketCommands(commands.Cog):
             )
             await ctx.send(embed=embed)
 
-    # Comando: !vender_propiedad [propiedad_id]
-    @commands.command(name='vender_propiedad', help='Vende una propiedad específica y recibe dinero según su valor.')
-    async def vender_propiedad(self, ctx, propiedad_id: int):
-        await self._vender_propiedad(ctx, propiedad_id)
+    ## Comando: !vender_propiedad [propiedad_id]
+    #@commands.command(name='vender_propiedad', help='Vende una propiedad específica y recibe dinero según su valor.')
+    #async def vender_propiedad(self, ctx, propiedad_id: int):
+    #    await self._vender_propiedad(ctx, propiedad_id)
 
     # Slash Command
-    @app_commands.command(name='vender_propiedad', description='Vende una propiedad específica y recibe dinero según su valor')
-    async def slash_vender_propiedad(self, interaction: discord.Interaction, propiedad_id: int):
-        ctx = await commands.Context.from_interaction(interaction)
-        await self._vender_propiedad(ctx, propiedad_id)
+    #@app_commands.command(name='vender_propiedad', description='Vende una propiedad específica y recibe dinero según su valor')
+    #async def slash_vender_propiedad(self, interaction: discord.Interaction, propiedad_id: int):
+    #    ctx = await commands.Context.from_interaction(interaction)
+    #    await self._vender_propiedad(ctx, propiedad_id)
 
-    async def _vender_propiedad(self, ctx, propiedad_id: int):
-        usuario_id = str(ctx.author.id)
-        guild_id = str(ctx.guild.id)
-        id_inversionista = obtener_id_inversionista(usuario_id, guild_id)
-        saldo_nuevo = vender_propiedad(id_inversionista, usuario_id, guild_id, propiedad_id)
-        if saldo_nuevo:
-            embed = discord.Embed(
-                title="¡Venta Exitosa!",
-                description=f"Has vendido la propiedad {propiedad_id}. Tu nuevo saldo es {saldo_nuevo}.",
-                color=discord.Color.green()
-            )
-            await ctx.send(embed=embed)
-        else:
-            embed = discord.Embed(
-                title="¡Venta Fallida!",
-                description="Ocurrió un error al vender la propiedad.",
-                color=discord.Color.red()
-            )
-            await ctx.send(embed=embed)
+    #async def _vender_propiedad(self, ctx, propiedad_id: int):
+    #    usuario_id = str(ctx.author.id)
+    #    guild_id = str(ctx.guild.id)
+    #    id_inversionista = obtener_id_inversionista(usuario_id, guild_id)
+    #    saldo_nuevo = vender_propiedad(id_inversionista, usuario_id, guild_id, propiedad_id)
+    #    if saldo_nuevo:
+    #        embed = discord.Embed(
+    #            title="¡Venta Exitosa!",
+    #            description=f"Has vendido la propiedad {propiedad_id}. Tu nuevo saldo es {saldo_nuevo}.",
+    #            color=discord.Color.green()
+    #        )
+    #        await ctx.send(embed=embed)
+    #    else:
+    #        embed = discord.Embed(
+    #            title="¡Venta Fallida!",
+    #            description="Ocurrió un error al vender la propiedad.",
+    #            color=discord.Color.red()
+    #        )
+    #        await ctx.send(embed=embed)
 
     # Comando: !listar_propiedades
 
