@@ -95,7 +95,13 @@ def vender_propiedad(id_inversionista, usuario_id, guild_id, propiedad_id):
     propiedad = obtener_propiedad(propiedad_id)
     if propiedad and propiedad['inversionista_id'] == id_inversionista:
         suerte = propiedad['suerte']
-        valor_venta = propiedad['valor_compra'] * (0.8 + suerte)
+
+        # Asegurarse de que el valor de suerte no haga que la venta sea mayor al valor de compra
+        suerte_max = min(suerte, 0.2)  # Limitar la suerte a un máximo de 0.2 (máximo 100% del valor de compra)
+
+        # El valor de venta estará entre el 80% y 100% del valor de compra
+        valor_venta = propiedad['valor_compra'] * (0.8 + suerte_max)
+
         saldo_actual = obtener_saldo_usuario(usuario_id, guild_id)
         nuevo_saldo = saldo_actual + valor_venta
         actualizar_saldo_usuario(usuario_id, guild_id, nuevo_saldo)
