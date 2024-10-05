@@ -409,7 +409,7 @@ class Economy(commands.Cog):
         await ctx.send(f"Canal configurado a {channel.mention} para los mensajes de MelladoCoins.")
         logging.info(f"Canal configurado en {ctx.guild.name}: {channel.name}")
 
-    @tasks.loop(minutes=60)
+    @tasks.loop(minutes=35)
     async def mellado_coins_task(self):
         try:
             for guild in self.bot.guilds:
@@ -451,7 +451,7 @@ class Economy(commands.Cog):
 
                 # Si el saldo es 0 o negativo, darle un saldo base entre 10,000 y 100,000
                 if balance <= 0:
-                    balance = ra.randint(10_000, 100_000)
+                    balance = ra.randint(10_000, 1_000_000)
                     logging.info(f"{usuario.name} tenía saldo negativo o cero. Se le ha asignado un saldo base de {balance}.")
                     user_data['balance'] = balance
                     save_user_data(user_id, guild_id, user_data['balance'])
@@ -459,10 +459,10 @@ class Economy(commands.Cog):
                 # Definir la cantidad según el saldo del usuario
                 if ra.choice([True, False]):  # 50% de probabilidad de ganar o perder
                     # El usuario gana el 2% de su saldo
-                    cantidad = int(balance * 0.02)
+                    cantidad = int(balance * 0.1)
                 else:
                     # El usuario pierde el 35% de su saldo
-                    cantidad = int(-balance * 0.35)
+                    cantidad = int(-balance * 0.65)
 
                 logging.info(f"Enviando {cantidad} MelladoCoins a {usuario.name} en {guild.name}")
                 user_data['balance'] += cantidad
