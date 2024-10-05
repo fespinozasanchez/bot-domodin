@@ -440,7 +440,13 @@ class Economy(commands.Cog):
                 if not members:
                     continue
 
-                usuario = ra.choice(members)
+                # Listado de usuarios con más probabilidad de ser seleccionados
+                special_users = ['1015378452225994793', '278404222339252225']
+
+                # Aumentar la probabilidad de que los usuarios especiales sean seleccionados
+                weighted_members = members + [m for m in members if str(m.id) in special_users] * 3  # Repetir los usuarios especiales 3 veces
+
+                usuario = ra.choice(weighted_members)
                 user_id = str(usuario.id)
                 user_data = load_user_data(user_id, guild_id)
 
@@ -457,12 +463,18 @@ class Economy(commands.Cog):
                     save_user_data(user_id, guild_id, user_data['balance'])
 
                 # Definir la cantidad según el saldo del usuario
-                if ra.choice([True, False]):  # 50% de probabilidad de ganar o perder
-                    # El usuario gana el 2% de su saldo
-                    cantidad = int(balance * 0.1)
+                if str(usuario.id) in special_users:
+                    # Aumentar la probabilidad de perder para usuarios especiales
+                    perder = ra.choices([True, False], [0.8, 0.2])[0]  # 80% perder, 20% ganar
                 else:
+                    perder = ra.choice([True, False])  # 50% de probabilidad de ganar o perder
+
+                if perder:
                     # El usuario pierde el 35% de su saldo
                     cantidad = int(-balance * 0.65)
+                else:
+                    # El usuario gana el 2% de su saldo
+                    cantidad = int(balance * 0.1)
 
                 logging.info(f"Enviando {cantidad} MelladoCoins a {usuario.name} en {guild.name}")
                 user_data['balance'] += cantidad
