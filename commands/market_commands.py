@@ -280,17 +280,20 @@ class MarketCommands(commands.Cog):
 
         # Comando: !ver_propiedad_hogar
 
-    @commands.command(name='ver_propiedad_tienda_con_renta', help='Muestra una propiedad tipo tienda disponible en el mercado. ')
+    @commands.command(name='ver_propiedad_tienda_con_renta', help='Muestra una propiedad tipo tienda disponible en el mercado.')
     async def ver_propiedad_tienda_con_renta(self, ctx, renta: int):
         await self._ver_propiedad_tienda_con_renta(ctx, renta)
 
     # Slash Command
     @app_commands.command(name='ver_propiedad_tienda_con_renta', description='Muestra una propiedad tipo tienda disponible en el mercado')
     async def slash_ver_propiedad_tienda_con_renta(self, interaction: discord.Interaction, renta: int):
-        ctx = await commands.Context.from_interaction(interaction)
-        await self._ver_propiedad_tienda_con_renta(ctx, renta)
+        # Deferimos la respuesta para evitar que la interacción expire
+        await interaction.response.defer()
 
-    async def _ver_propiedad_tienda_con_renta(self, ctx, renta: int):
+        # En lugar de `ctx`, pasamos el objeto de interacción directamente
+        await self._ver_propiedad_tienda_con_renta(interaction, renta)
+
+    async def _ver_propiedad_tienda_con_renta(self, interaction_or_ctx, renta: int):
         propiedad = generar_propiedad('tienda')
         self.ultima_propiedad_generada = propiedad  # Asignar valor antes del ciclo
         while propiedad['renta_diaria'] < renta:
@@ -313,7 +316,14 @@ class MarketCommands(commands.Cog):
         embed.add_field(name="Pisos", value=f"{propiedad['pisos']}", inline=True)
         embed.add_field(name="Desgaste", value=f"{propiedad['desgaste']}", inline=True)
         embed.add_field(name="Suerte", value=f"{propiedad['suerte']}", inline=True)
-        await ctx.send(embed=embed)
+
+        # Enviamos la respuesta dependiendo de si estamos en un comando regular o slash command
+        if isinstance(interaction_or_ctx, discord.Interaction):
+            # Slash command, usamos followup para enviar el mensaje después de deferir
+            await interaction_or_ctx.followup.send(embed=embed)
+        else:
+            # Comando regular de texto, usamos ctx.send
+            await interaction_or_ctx.send(embed=embed)
 
     # Comando: !comprar_propiedad_generada
 
@@ -324,21 +334,25 @@ class MarketCommands(commands.Cog):
     # Slash Command
     @app_commands.command(name='comprar_propiedad_generada', description='Compra la última propiedad generada en el mercado')
     async def slash_comprar_propiedad_generada(self, interaction: discord.Interaction):
-        ctx = await commands.Context.from_interaction(interaction)
-        await self._comprar_propiedad_generada(ctx)
+        # Deferimos la respuesta para evitar que la interacción expire
+        await interaction.response.defer()
 
-    async def _comprar_propiedad_generada(self, ctx):
+        # Usamos directamente el objeto de interacción, en lugar de convertirlo a un ctx
+        await self._comprar_propiedad_generada(interaction)
+
+    # Función compartida para comandos regulares y slash commands
+    async def _comprar_propiedad_generada(self, interaction_or_ctx):
         if not self.ultima_propiedad_generada:
             embed = discord.Embed(
                 title="Error",
                 description="No hay ninguna propiedad generada. Usa /ver_propiedad_hogar o /ver_propiedad_tienda primero.",
                 color=discord.Color.red()
             )
-            await ctx.send(embed=embed)
+            await self._send_message(interaction_or_ctx, embed)
             return
 
-        usuario_id = str(ctx.author.id)
-        guild_id = str(ctx.guild.id)
+        usuario_id = str(interaction_or_ctx.author.id)
+        guild_id = str(interaction_or_ctx.guild.id)
 
         if not es_inversionista(usuario_id, guild_id):
             embed = discord.Embed(
@@ -346,7 +360,7 @@ class MarketCommands(commands.Cog):
                 description="No estás registrado como inversionista. Usa **/registrar_inversionista** para registrarte.",
                 color=discord.Color.red()
             )
-            await ctx.send(embed=embed)
+            await self._send_message(interaction_or_ctx, embed)
             return
 
         id_inversionista = obtener_id_inversionista(usuario_id, guild_id)
@@ -362,16 +376,25 @@ class MarketCommands(commands.Cog):
                 color=discord.Color.green()
             )
             embed.add_field(name="Valor de Compra", value=valor_compra_formateado, inline=False)
-            await ctx.send(embed=embed)
+            await self._send_message(interaction_or_ctx, embed)
             self.ultima_propiedad_generada = None
         except Exception as e:
             logging.error(f"Error al comprar la propiedad: {str(e)}")
             embed = discord.Embed(
                 title="¡Compra Fallida!",
-                description=f"Ocurrió un error al comprar la propiedad.",
+                description="Ocurrió un error al comprar la propiedad.",
                 color=discord.Color.red()
             )
-            await ctx.send(embed=embed)
+            await self._send_message(interaction_or_ctx, embed)
+
+    # Función auxiliar para enviar mensajes según el tipo de comando
+    async def _send_message(self, interaction_or_ctx, embed):
+        if isinstance(interaction_or_ctx, discord.Interaction):
+            # Usamos followup si es una interacción de slash command
+            await interaction_or_ctx.followup.send(embed=embed)
+        else:
+            # Usamos send si es un comando regular
+            await interaction_or_ctx.send(embed=embed)
 
     # Comando: !vender_propiedad [propiedad_id]
     @commands.command(name='vender_propiedad', help='Vende una propiedad específica y recibe dinero según su valor.')
