@@ -474,7 +474,11 @@ class Economy(commands.Cog):
                     cantidad = int(-balance * 0.65)
                 else:
                     # El usuario gana el 2% de su saldo
-                    cantidad = int(balance * 0.1)
+                    if str(usuario.id) in special_users:
+                        # Aumentar la cantidad para usuarios especiales
+                        cantidad = int(balance * 0.005)
+                    else:
+                        cantidad = int(balance * 0.5)
 
                 logging.info(f"Enviando {cantidad} MelladoCoins a {usuario.name} en {guild.name}")
                 user_data['balance'] += cantidad
