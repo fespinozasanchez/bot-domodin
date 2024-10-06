@@ -680,8 +680,12 @@ def get_user_inversionista(user_id):
                 WHERE inversionistas.usuario_id = %s
             '''
             cursor.execute(query, (user_id,))
-            return cursor.fetchone()
+            result = cursor.fetchone()
+            # Asegúrate de limpiar cualquier resultado pendiente
+            cursor.fetchall()  # Esto asegura que no haya resultados pendientes
+            return result
     return None
+
 
 # Verificar si un usuario está registrado como inversionista
 
