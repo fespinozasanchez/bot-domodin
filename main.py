@@ -92,6 +92,16 @@ async def on_ready():
     print(f'We have logged in as {bot.user}')
 
 
+# Evento para registrar todos los comandos ejecutados
+@bot.event
+async def on_command(ctx):
+    # Obtén el logger para comandos
+    command_logger = logging.getLogger('command_logger')
+
+    # Registrar información sobre el comando ejecutado
+    command_logger.info(f'Comando ejecutado: {ctx.command} - Usuario: {ctx.author} - Servidor: {ctx.guild.name}')
+
+
 async def main():
     @bot.command()
     async def sync(ctx):
@@ -99,7 +109,7 @@ async def main():
         await ctx.send("Sincronizado")
 
     try:
-        setup_logger()
+        setup_logger()  # Configura el logger
         await load_cogs()
         await bot.start(token)
     except KeyboardInterrupt:
