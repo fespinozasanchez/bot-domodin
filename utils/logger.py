@@ -14,7 +14,7 @@ def setup_logger():
 
     # Logger para commands.log (logs de los comandos ejecutados)
     command_handler = logging.FileHandler(
-        filename='logs/commands.log', encoding='utf-8', mode='a')  # modo 'a' para añadir al archivo
+        filename='logs/commands.log', encoding='utf-8', mode='a')
     command_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     command_handler.setFormatter(command_formatter)
 
@@ -25,10 +25,16 @@ def setup_logger():
     # Eliminar la propagación para que los logs de comandos no vayan al logger global
     command_logger.propagate = False
 
-    # Logger para mensajes generales que se estaban mostrando en pantalla
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
+    # Configurar los logs de urllib3 para que vayan a discord.log
+    urllib3_logger = logging.getLogger('urllib3')
+    urllib3_logger.setLevel(logging.INFO)
+    urllib3_logger.addHandler(discord_handler)  # Agregar handler para escribir en discord.log
+    urllib3_logger.propagate = False
 
-    # Desactivamos cualquier handler existente en root logger (que podría estar escribiendo a la consola)
+    # Remover handlers del root logger para que no imprima en la consola
+    root_logger = logging.getLogger()
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
+
+    # Evitar que root logger imprima en consola, pero permitir que lo haga en archivos
+    root_logger.setLevel(logging.WARNING)
