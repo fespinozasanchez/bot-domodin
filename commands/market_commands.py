@@ -2,7 +2,8 @@ import discord
 from discord.ext import commands, tasks
 from utils.custom_help import CustomHelpPaginator
 from datetime import datetime, timedelta
-import pytz
+import mysql.connector
+from mysql.connector import Error
 from market_module.property_events import (ManejadorEventosDiarios, pagar_renta_diaria, despenalizar_propietario, pagar_costo_mantenimiento,
                                            pagar_costo_diario, aplicar_desgaste_automatico, comprar_propiedad,
                                            obtener_evento_global, mejorar_desgaste, vender_propiedad)
@@ -992,15 +993,24 @@ class MarketCommands(commands.Cog):
         for usuario in usuarios:
             usuario_id = usuario['usuario_id']
             id = usuario['id']
-            user = get_user_inversionista(usuario_id)
+            try:
+                user = get_user_inversionista(usuario_id)
+            except mysql.connector.Error as err:
+                logging.error(f"Error obteniendo inversionista {usuario_id}: {err}")
+                continue
+
+            if user is None:
+                logging.error(f"Usuario inversionista {usuario_id} no encontrado.")
+                continue
+
             propiedades = obtener_propiedades_por_usuario(usuario['id'])
             guild_id = user['guild_id']
             user_id = user['user_id']
 
             for propiedad in propiedades:
-                nuevo_desaste = aplicar_desgaste_automatico(propiedad)
-                actualizar_desgaste_propiedad(propiedad['id'], nuevo_desaste, propiedad['desgaste_minimo'])
-                logging.info(f"Desgaste aplicado a la propiedad {propiedad['nombre']} del usuario {usuario['usuario_id']}.")
+                nuevo_desgaste = aplicar_desgaste_automatico(propiedad)
+                actualizar_desgaste_propiedad(propiedad['id'], nuevo_desgaste, propiedad['desgaste_minimo'])
+                logging.info(f"Desgaste aplicado a la propiedad {propiedad['nombre']} del usuario {usuario_id}.")
 
             # Actualizamos la fecha del próximo desgaste para 7 días después
             nueva_fecha = datetime.now() + timedelta(days=7)
@@ -1018,7 +1028,6 @@ class MarketCommands(commands.Cog):
                 logging.info(f"Notificación de pago de rentas enviada al servidor {guild.name}.")
 
     # Pago de renta diaria cada 24 horas
-
     @tasks.loop(hours=1)
     async def pago_renta_diaria(self):
         logging.info("Iniciando la verificación para el pago de renta diaria.")
@@ -1036,12 +1045,21 @@ class MarketCommands(commands.Cog):
         for inversionista in inversionistas:
             usuario_id = inversionista['usuario_id']
             id = inversionista['id']
-            user = get_user_inversionista(usuario_id)  # Consulta para obtener los datos del usuario desde 'users'
+            try:
+                user = get_user_inversionista(usuario_id)  # Consulta para obtener los datos del usuario desde 'users'
+            except mysql.connector.Error as err:
+                logging.error(f"Error obteniendo datos del inversionista {usuario_id}: {err}")
+                continue
+
+            if user is None:
+                logging.error(f"Usuario inversionista {usuario_id} no encontrado.")
+                continue
+
             guild_id = user['guild_id']  # Ahora obtenemos el guild_id desde la tabla 'users'
             user_id = user['user_id']
 
             pagar_renta_diaria(id, guild_id, user_id)
-            logging.info(f"Renta diaria pagada el inversionista {id} en el servidor {guild_id}.")
+            logging.info(f"Renta diaria pagada al inversionista {id} en el servidor {guild_id}.")
 
             # Actualizamos la fecha de la próxima renta para el día siguiente
             nueva_fecha = datetime.now() + timedelta(days=1)
@@ -1076,7 +1094,16 @@ class MarketCommands(commands.Cog):
         for inversionista in inversionistas:
             usuario_id = inversionista['usuario_id']
             id = inversionista['id']
-            user = get_user_inversionista(usuario_id)  # Consulta a la tabla 'users' para obtener guild_id
+            try:
+                user = get_user_inversionista(usuario_id)  # Consulta a la tabla 'users' para obtener guild_id
+            except mysql.connector.Error as err:
+                logging.error(f"Error obteniendo inversionista {usuario_id}: {err}")
+                continue
+
+            if user is None:
+                logging.error(f"Usuario inversionista {usuario_id} no encontrado.")
+                continue
+
             guild_id = user['guild_id']  # Obtenemos el guild_id desde la tabla 'users'
             user_id = user['user_id']
 
@@ -1101,7 +1128,7 @@ class MarketCommands(commands.Cog):
 
     # Cobro de costos diarios cada día
 
-    @tasks.loop(hours=24)  # Cada día
+    @tasks.loop(hours=1)  # Cada día
     async def pago_diario(self):
         logging.info("Iniciando la tarea de cobro de costos diarios.")
 
@@ -1119,13 +1146,22 @@ class MarketCommands(commands.Cog):
         for inversionista in inversionistas:
             usuario_id = inversionista['usuario_id']
             id = inversionista['id']
-            user = get_user_inversionista(usuario_id)  # Consulta para obtener el 'guild_id'
+            try:
+                user = get_user_inversionista(usuario_id)  # Consulta para obtener el 'guild_id'
+            except mysql.connector.Error as err:
+                logging.error(f"Error obteniendo inversionista {usuario_id}: {err}")
+                continue
+
+            if user is None:
+                logging.error(f"Usuario inversionista {usuario_id} no encontrado.")
+                continue
+
             guild_id = user['guild_id']  # Obtenemos el 'guild_id' desde la tabla 'users'
             user_id = user['user_id']
 
             # Cobrar el costo diario
             pagar_costo_diario(id, guild_id, user_id)
-            logging.info(f"Costo diario cobrado al inversionista  {id} en el servidor {guild_id}.")
+            logging.info(f"Costo diario cobrado al inversionista {id} en el servidor {guild_id}.")
 
             # Actualizamos la fecha del próximo cobro de costos diarios para el día siguiente
             nueva_fecha = datetime.now() + timedelta(days=1)
