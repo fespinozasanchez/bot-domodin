@@ -493,10 +493,11 @@ class Economy(commands.Cog):
                 else:
                     embed.set_thumbnail(url=usuario.default_avatar.url)
 
+                cantidad_formateada = f"${abs(cantidad):,.0f}".replace(",", ".")
                 if cantidad > 0:
-                    embed.add_field(name="¡Felicidades!", value=f"¡{usuario.name} ha recibido {cantidad} MelladoCoins!", inline=False)
+                    embed.add_field(name="¡Felicidades!", value=f"¡{usuario.name} ha recibido {cantidad_formateada} MelladoCoins!", inline=False)
                 else:
-                    embed.add_field(name="Tiene que irse a parvularia.", value=f"¡{usuario.name} ha perdido {-cantidad} MelladoCoins!", inline=False)
+                    embed.add_field(name="Tiene que irse a parvularia.", value=f"¡{usuario.name} ha perdido {cantidad_formateada} MelladoCoins!", inline=False)
 
                 embed.add_field(name="Nuevo Saldo", value=f"{balance_formatted} MelladoCoins", inline=False)
                 await channel.send(embed=embed)
