@@ -127,29 +127,53 @@ class Betting(commands.Cog):
             try:
                 cantidad = float(cantidad)
             except ValueError:
-                await ctx.send(f'{usuario.name}, la cantidad debe ser un número o "all".')
+                embed = discord.Embed(
+                    title="🚫 Cantidad Inválida",
+                    description="{usuario.name}}, la cantidad debe ser un número válido o 'all'.",
+                    color=discord.Color.red()
+                )
+                await ctx.send(embed=embed)
                 return
 
         if cantidad <= 0:
-            await ctx.send(f'Solo puedes apostar cantidades positivas, mono enfermo.')
+            embed = discord.Embed(
+                title="🚫 Cantidad Inválida",
+                description="{usuario.name}}, solo puedes apostar cantidades positivas.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
             return
 
         if cantidad > user_data['balance']:
-            await ctx.send(f'{usuario.name}, no tienes suficiente saldo para apostar esa cantidad.')
+            embed = discord.Embed(
+                title="🚫 Saldo Insuficiente",
+                description=f"{usuario.name}, no tienes suficiente saldo  para apostar {cantidad} MelladoCoins.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
             return
 
         resultado = random.choice([0, 1])
-        cantidad_formateada = f"${cantidad:,.0f}".replace(",", ".")
         if resultado == 1:
             ganancia = cantidad
             user_data['balance'] += ganancia
             saldo_formateado = f"${user_data['balance']:,.0f}".replace(",", ".")
-            await ctx.send(f'{usuario.name}, ¡has ganado! Tu nuevo saldo es {saldo_formateado} MelladoCoins.')
+            embed = discord.Embed(
+                title="🎉 ¡Has Ganado!",
+                description=f"{usuario.name}, has ganado {saldo_formateado} MelladoCoins.",
+                color=discord.Color.green()
+            )
+            await ctx.send(embed=embed)
         else:
             perdida = cantidad
             user_data['balance'] -= perdida
             saldo_formateado = f"${user_data['balance']:,.0f}".replace(",", ".")
-            await ctx.send(f'{usuario.name}, has perdido. Tu nuevo saldo es {saldo_formateado} MelladoCoins.')
+            embed = discord.Embed(
+                title="😢 Has Perdido",
+                description=f"{usuario.name}, has perdido. Tu nuevo saldo es {saldo_formateado} MelladoCoins.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
 
         save_user_data(user_id, guild_id, user_data['balance'])
 
