@@ -23,7 +23,7 @@ signal.signal(signal.SIGINT, def_handler)
 
 # Cargar variables de entorno
 load_dotenv()
-token = os.getenv('DISCORD_TOKEN_DEVELOP')
+token = os.getenv('DISCORD_TOKEN')
 
 # Configurar intentos de Discord
 intents = discord.Intents.default()
@@ -100,6 +100,15 @@ async def on_command(ctx):
 
     # Registrar información sobre el comando ejecutado
     command_logger.info(f'Comando ejecutado: {ctx.command} - Usuario: {ctx.author} - Servidor: {ctx.guild.name}')
+
+
+@bot.event
+async def on_app_command_completion(interaction: discord.Interaction, command: discord.app_commands.Command):
+    # Obtén el logger para comandos
+    command_logger = logging.getLogger('command_logger')
+
+    # Registrar información sobre el comando slash ejecutado
+    command_logger.info(f'Comando slash ejecutado: {command.name} - Usuario: {interaction.user} - Servidor: {interaction.guild.name}')
 
 
 async def main():
