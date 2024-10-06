@@ -11,7 +11,7 @@ def setup_logger():
         root_logger.handlers.clear()
 
     # Logger para discord.log (logs generales del bot)
-    discord_handler = logging.FileHandler(filename='logs/discord.log', encoding='utf-8', mode='w')
+    discord_handler = logging.FileHandler(filename='logs/discord.log', encoding='utf-8', mode='a')
     discord_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     discord_handler.setFormatter(discord_formatter)
     root_logger.addHandler(discord_handler)  # Añadir el handler a root logger para discord.log
