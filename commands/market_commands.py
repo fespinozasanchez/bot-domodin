@@ -342,6 +342,14 @@ class MarketCommands(commands.Cog):
 
     # Función compartida para comandos regulares y slash commands
     async def _comprar_propiedad_generada(self, interaction_or_ctx):
+        # Verificamos si es una interacción o un comando regular
+        if isinstance(interaction_or_ctx, discord.Interaction):
+            usuario_id = str(interaction_or_ctx.user.id)
+            guild_id = str(interaction_or_ctx.guild.id)
+        else:
+            usuario_id = str(interaction_or_ctx.author.id)
+            guild_id = str(interaction_or_ctx.guild.id)
+
         if not self.ultima_propiedad_generada:
             embed = discord.Embed(
                 title="Error",
@@ -350,9 +358,6 @@ class MarketCommands(commands.Cog):
             )
             await self._send_message(interaction_or_ctx, embed)
             return
-
-        usuario_id = str(interaction_or_ctx.author.id)
-        guild_id = str(interaction_or_ctx.guild.id)
 
         if not es_inversionista(usuario_id, guild_id):
             embed = discord.Embed(
@@ -388,6 +393,7 @@ class MarketCommands(commands.Cog):
             await self._send_message(interaction_or_ctx, embed)
 
     # Función auxiliar para enviar mensajes según el tipo de comando
+
     async def _send_message(self, interaction_or_ctx, embed):
         if isinstance(interaction_or_ctx, discord.Interaction):
             # Usamos followup si es una interacción de slash command
