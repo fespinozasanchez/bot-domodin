@@ -534,7 +534,7 @@ def actualizar_controlador_penalizacion(usuario_id, penalizado):
             with closing(conn.cursor()) as cursor:
                 cursor.execute('''UPDATE propiedades 
                                   SET controladores = JSON_SET(controladores, '$[3]', %s)
-                                  WHERE usuario_id = %s''', (1 if penalizado else 0, usuario_id))
+                                  WHERE inversionista_id = %s''', (1 if penalizado else 0, usuario_id))
                 conn.commit()
             conn.close()
     retry_query(query)
@@ -584,7 +584,7 @@ def actualizar_estado_inversionista(usuario_id, penalizado):
         conn = connect_db()
         if conn:
             with closing(conn.cursor()) as cursor:
-                cursor.execute('''INSERT INTO inversionistas (usuario_id, penalizado)
+                cursor.execute('''INSERT INTO inversionistas (id, penalizado)
                                   VALUES (%s, %s)
                                   ON DUPLICATE KEY UPDATE penalizado = %s''',
                                (usuario_id, penalizado, penalizado))
