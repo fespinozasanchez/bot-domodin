@@ -1,6 +1,7 @@
 from datetime import datetime
 import mysql.connector
 from mysql.connector import Error
+from mysql.connector.errors import OperationalError, DatabaseError
 import logging
 import time
 import random
@@ -123,16 +124,21 @@ def obtener_id_inversionista(usuario_id, guild_id):
 # Intentar consultas con reintento en caso de errores de bloqueo
 def retry_query(func, *args, **kwargs):
     delay = 0.1
-    for _ in range(5):  # Intentar hasta 5 veces
+    for attempt in range(5):  # Intentar hasta 5 veces
         try:
             return func(*args, **kwargs)
-        except Error as e:
+        except OperationalError as e:  # Maneja errores de operación de MySQL, como locks
             if "Lock wait timeout exceeded" in str(e):
+                logging.warning(f"Lock wait timeout exceeded. Retry {attempt + 1} after {delay} seconds...")
                 time.sleep(delay)
                 delay *= 2  # Aumentar el tiempo de espera exponencialmente
             else:
+                logging.error(f"Unhandled database error: {e}")
                 raise
-    raise Exception("Persistent database lock error")
+        except DatabaseError as e:  # Cualquier otro error de la base de datos
+            logging.error(f"Database error: {e}")
+            raise
+    raise Exception("Persistent database lock error after multiple retries.")
 
 
 def create_property_tables():
@@ -689,24 +695,29 @@ def get_user_inversionista(user_id):
 
 # Verificar si un usuario está registrado como inversionista
 
-
 def es_inversionista(usuario_id, guild_id):
     def query():
         conn = connect_db()
         inversionista = False
         if conn:
-            with closing(conn.cursor(dictionary=True)) as cursor:
-                # Buscamos el ID del usuario en la tabla users primero
-                cursor.execute('SELECT id FROM users WHERE user_id = %s AND guild_id = %s', (usuario_id, guild_id))
-                user_data = cursor.fetchone()
+            try:
+                with closing(conn.cursor(dictionary=True)) as cursor:
+                    # Buscamos el ID del usuario en la tabla users primero
+                    cursor.execute('SELECT id FROM users WHERE user_id = %s AND guild_id = %s', (usuario_id, guild_id))
+                    user_data = cursor.fetchone()
 
-                if user_data:
-                    # Verificamos si el usuario está en la tabla inversionistas usando su ID
-                    user_id = user_data['id']
-                    cursor.execute('SELECT usuario_id FROM inversionistas WHERE usuario_id = %s', (user_id,))
-                    inversionista = cursor.fetchone() is not None
-            conn.close()
+                    if user_data:
+                        # Verificamos si el usuario está en la tabla inversionistas usando su ID
+                        user_id = user_data['id']
+                        cursor.execute('SELECT usuario_id FROM inversionistas WHERE usuario_id = %s', (user_id,))
+                        inversionista = cursor.fetchone() is not None
+
+                        # Para asegurar que no queden resultados pendientes
+                        cursor.fetchall()  # Esto limpia cualquier posible resultado no leído
+            finally:
+                conn.close()
         return inversionista
+
     return retry_query(query)
 
 
