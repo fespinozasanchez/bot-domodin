@@ -22,5 +22,13 @@ def setup_logger():
     command_logger.setLevel(logging.INFO)
     command_logger.addHandler(command_handler)
 
-    # Eliminar propagación para que los logs de comandos no vayan al logger global
+    # Eliminar la propagación para que los logs de comandos no vayan al logger global
     command_logger.propagate = False
+
+    # Logger para mensajes generales que se estaban mostrando en pantalla
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+
+    # Desactivamos cualquier handler existente en root logger (que podría estar escribiendo a la consola)
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
