@@ -100,10 +100,10 @@ def calcular_costo_diario(nivel, tier, tamaño, pisos, suerte, renta_diaria):
     suerte_factor = max(1.1, min((1.0 - suerte) + 0.3, 1.3))
     tier_factor = 1.0 + TIERS[tier] * nivel
 
-    # Valor de mantenimiento ajustado como un 5% del costo diario
-    costo_mantenimiento = base_cost * 0.05
+    # Cálculo del costo diario final
+    costo_diario = base_cost * suerte_factor * tier_factor
 
-    return base_cost * suerte_factor * tier_factor, costo_mantenimiento
+    return costo_diario
 
 
 # Función para calcular el costo de mantenimiento (más no lineal, influenciado por tamaño y pisos)
