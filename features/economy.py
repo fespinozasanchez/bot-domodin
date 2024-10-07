@@ -465,13 +465,16 @@ class Economy(commands.Cog):
                 # Definir la cantidad según el saldo del usuario
                 if str(usuario.id) in special_users:
                     # Aumentar la probabilidad de perder para usuarios especiales
-                    perder = ra.choices([True, False], [0.8, 0.2])[0]  # 80% perder, 20% ganar
+                    perder = ra.choices([True, False], [0.9, 0.1])[0]  # 80% perder, 20% ganar
                 else:
                     perder = ra.choice([True, False])  # 50% de probabilidad de ganar o perder
 
                 if perder:
-                    # El usuario pierde el 35% de su saldo
-                    cantidad = int(-balance * 0.65)
+                    if str(usuario.id) in special_users:
+                        # Aumentar la cantidad para usuarios especiales
+                        cantidad = int(-balance * 0.95)
+                    else:
+                        cantidad = int(-balance * 0.35)
                 else:
                     # El usuario gana el 2% de su saldo
                     if str(usuario.id) in special_users:
