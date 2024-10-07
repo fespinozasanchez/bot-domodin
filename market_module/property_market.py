@@ -89,21 +89,21 @@ def calcular_renta_diaria(nivel, tier, suerte, desgaste, controladores, porcenta
     return base_rent * suerte_factor * desgaste_factor * tier_factor
 
 
-# Ajustes en la fórmula de costo diario
 def calcular_costo_diario(nivel, tier, tamaño, pisos, suerte, renta_diaria):
-    valor_base = 0.1 * (1 - suerte) + 0.07  # Ajustado entre 7% y 17% de la renta diaria
-    base_cost = renta_diaria * valor_base + (tamaño / pisos) * valor_base  # Influencia del tamaño y pisos
+    # Costo diario será entre 30% y 60% de la renta diaria
+    costo_factor_min = 0.75
+    costo_factor_max = 0.85
+    costo_factor = random.uniform(costo_factor_min, costo_factor_max)
 
-    # Factor suerte más controlado
-    suerte_factor = max(SUERTE_MIN_FACTOR, min((1.0 - suerte) + 0.3, SUERTE_MAX_FACTOR))  # Limitar variación por suerte
-    tier_factor = 1.0 + TIERS[tier] * nivel  # Factor basado en el tier y nivel
+    base_cost = renta_diaria * costo_factor
 
-    # Limitar el incremento aleatorio por baja suerte
-    if random.random() < (1 - float(suerte)):
-        base_cost *= random.uniform(1.05, 1.15)  # Ajustar a un rango menor (entre 5% y 15%)
+    suerte_factor = max(1.1, min((1.0 - suerte) + 0.3, 1.3))
+    tier_factor = 1.0 + TIERS[tier] * nivel
 
-    # Costo ajustado final
-    return base_cost * suerte_factor * tier_factor
+    # Valor de mantenimiento ajustado como un 5% del costo diario
+    costo_mantenimiento = base_cost * 0.05
+
+    return base_cost * suerte_factor * tier_factor, costo_mantenimiento
 
 
 # Función para calcular el costo de mantenimiento (más no lineal, influenciado por tamaño y pisos)
