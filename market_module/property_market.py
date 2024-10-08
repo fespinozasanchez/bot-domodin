@@ -91,8 +91,8 @@ def calcular_renta_diaria(nivel, tier, suerte, desgaste, controladores, porcenta
 
 def calcular_costo_diario(nivel, tier, tamaño, pisos, suerte, renta_diaria):
     # Costo diario será entre 30% y 60% de la renta diaria
-    costo_factor_min = 0.75
-    costo_factor_max = 0.85
+    costo_factor_min = 0.25
+    costo_factor_max = 0.65
     costo_factor = random.uniform(costo_factor_min, costo_factor_max)
 
     base_cost = renta_diaria * costo_factor
