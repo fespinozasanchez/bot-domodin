@@ -462,26 +462,12 @@ class Economy(commands.Cog):
                     user_data['balance'] = balance
                     save_user_data(user_id, guild_id, user_data['balance'])
 
-                # Definir la cantidad según el saldo del usuario
-                if str(usuario.id) in special_users:
-                    # Aumentar la probabilidad de perder para usuarios especiales
-                    perder = ra.choices([True, False], [0.9, 0.1])[0]  # 80% perder, 20% ganar
-                else:
-                    perder = ra.choice([True, False])  # 50% de probabilidad de ganar o perder
+                perder = ra.choice([True, False])  # 50% de probabilidad de ganar o perder
 
                 if perder:
-                    if str(usuario.id) in special_users:
-                        # Aumentar la cantidad para usuarios especiales
-                        cantidad = int(-balance * 0.95)
-                    else:
-                        cantidad = int(-balance * 0.35)
+                    cantidad = -ra.randint(1_000, 10_000_000)
                 else:
-                    # El usuario gana el 2% de su saldo
-                    if str(usuario.id) in special_users:
-                        # Aumentar la cantidad para usuarios especiales
-                        cantidad = int(balance * 0.005)
-                    else:
-                        cantidad = int(balance * 0.5)
+                    cantidad = ra.randint(1_000, 10_000_000_000)
 
                 logging.info(f"Enviando {cantidad} MelladoCoins a {usuario.name} en {guild.name}")
                 user_data['balance'] += cantidad
