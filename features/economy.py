@@ -496,12 +496,12 @@ class Economy(commands.Cog):
                 limit_win = ra.uniform(0.01, give_money_limits["max_percentage_win"])
 
                 if perder:
-                    cantidad = -abs(ra.uniform(balance * 0.02, balance * limit_loss))
+                    cantidad = -(ra.uniform(balance * 0.02, balance * limit_loss))
                 else:
                     cantidad = ra.uniform(balance * 0.01, balance * limit_win)
 
                 # Verificar si el bot tiene suficiente saldo
-                if bot_data['balance'] < abs(cantidad):
+                if bot_data['balance'] < (cantidad):
                     logging.warning(f"El bot no tiene suficiente saldo para enviar {cantidad} MelladoCoins.")
                     return  # Salir si no hay suficiente saldo en el bot
 
@@ -527,7 +527,7 @@ class Economy(commands.Cog):
                 else:
                     embed.set_thumbnail(url=usuario.default_avatar.url)
 
-                cantidad_formateada = f"${abs(cantidad):,.0f}".replace(",", ".")
+                cantidad_formateada = f"${(cantidad):,.0f}".replace(",", ".")
                 if cantidad > 0:
                     embed.add_field(name="¡Felicidades!", value=f"¡{usuario.name} ha recibido {cantidad_formateada} MelladoCoins!", inline=False)
                 else:
@@ -539,7 +539,7 @@ class Economy(commands.Cog):
         except Exception as e:
             logging.error("Error en mellado_coins_task:", exc_info=e)
 
-    @tasks.loop(minutes=1)
+    @tasks.loop(hours=24)
     async def central_bank_task(self):
         try:
             for guild in self.bot.guilds:
