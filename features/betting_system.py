@@ -281,19 +281,23 @@ class Betting(commands.Cog):
             await ctx.send(embed=embed)
             return
 
-        if cantidad > user_data['balance']:
+        for limite in taxes.keys():
+            if cantidad >= limite:
+                impuesto = taxes[limite]
+
+        cantidad_format = f"${cantidad:,.0f}".replace(",", ".")
+        tax_format = f"${cantidad*impuesto:,.0f}".replace(",", ".")
+        if cantidad+cantidad*impuesto > user_data['balance']:
             embed = discord.Embed(
                 title="🚫 Saldo Insuficiente",
-                description=f"No tienes suficiente saldo para transferir {cantidad} MelladoCoins.",
+                description=f"No tienes suficiente saldo para transferir {cantidad_format} MelladoCoins con su impuesto de {tax_format} MelladoCoins.",
                 color=discord.Color.red()
             )
             embed.set_thumbnail(url=usuario.avatar.url)
             await ctx.send(embed=embed)
             return
 
-        for limite in taxes.keys():
-            if cantidad >= limite:
-                impuesto = taxes[limite]
+        
 
         # Realizar la transferencia
         user_data['balance'] -= cantidad+cantidad*impuesto
