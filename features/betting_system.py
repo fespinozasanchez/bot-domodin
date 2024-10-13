@@ -3,7 +3,7 @@ from discord.ext import commands
 import requests
 import random
 from utils.data_manager import load_user_data, save_user_data, load_bets, save_bet, delete_bets
-from .const_economy import economic_limits
+from .const_economy import economic_limits, taxes
 import logging
 
 
@@ -126,7 +126,7 @@ class Betting(commands.Cog):
             return
 
         if cantidad.lower() == 'all':
-            cantidad = user_data['balance']
+            cantidad = max_betting_amount
         else:
             try:
                 cantidad = float(cantidad)
@@ -216,7 +216,9 @@ class Betting(commands.Cog):
         usuario = ctx.author
         user_id = str(usuario.id)
         guild_id = str(ctx.guild.id)
+        bot_user_id = str(self.bot.user.id)
         destinatario_id = str(destinatario.id)
+        
 
         # Verificar si el usuario intenta transferirse a sí mismo
         if destinatario_id == user_id:
@@ -229,9 +231,10 @@ class Betting(commands.Cog):
             await ctx.send(embed=embed)
             return
 
-        # Cargar datos de usuario y destinatario
+        # Cargar datos de usuario , destinatario y el bot
         user_data = load_user_data(user_id, guild_id)
         destinatario_data = load_user_data(destinatario_id, guild_id)
+        bot_data = load_user_data(bot_user_id, guild_id)
 
         # Verificar si el usuario está registrado
         if user_data is None:
@@ -288,13 +291,19 @@ class Betting(commands.Cog):
             await ctx.send(embed=embed)
             return
 
+        for limite in taxes.keys():
+            if cantidad >= limite:
+                impuesto = taxes[limite]
+
         # Realizar la transferencia
-        user_data['balance'] -= cantidad
+        user_data['balance'] -= cantidad+cantidad*impuesto
         destinatario_data['balance'] += cantidad
+        bot_data['balance'] += cantidad*impuesto
 
         # Guardar los datos actualizados
         save_user_data(user_id, guild_id, user_data['balance'])
         save_user_data(destinatario_id, guild_id, destinatario_data['balance'])
+        save_user_data(bot_user_id, guild_id, bot_data['balance'])
 
         cantidad_formateada = f"${cantidad:,.0f}".replace(",", ".")
         saldo_usuario_formateado = f"${user_data['balance']:,.0f}".replace(",", ".")

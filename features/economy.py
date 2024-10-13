@@ -10,6 +10,7 @@ import math
 import random as ra
 from utils.channel_manager import save_channel_setting, load_channel_setting
 from datetime import datetime, timedelta
+from .const_economy import  taxes
 # matplotlib.use('Agg')
 
 logging.basicConfig(level=logging.DEBUG)
@@ -21,6 +22,22 @@ class Economy(commands.Cog):
         self.data = load_all_users()
         self.passive_income.start()
         self.mellado_coins_task.start()
+    
+
+    @commands.command(name='impuestos', help='Informa los impuestos a pagar por cantidad de MelladoCoins en transferencias. Uso: !info')
+    async def impuestos(self, ctx):
+        tax_dir = taxes
+        embed = discord.Embed(
+            title="🏦 Impuestos de Mellado Bank",
+            description="Impuestos a pagar por cantidad de MelladoCoins en transferencias.",
+            color=discord.Color.blue()
+        )
+        for amount, tax in tax_dir.items():
+            embed.add_field(name=f"Por {amount:,.0f} MelladoCoins", value=f"{tax * 100:.2f}%", inline=False)
+        await ctx.send(embed=embed)
+
+
+        
 
     @commands.command(name='prestamo', help='Solicita un préstamo de MelladoCoins. Uso: !prestamo <cantidad>')
     async def prestamo(self, ctx, cantidad: int):
@@ -408,6 +425,8 @@ class Economy(commands.Cog):
         save_channel_setting(guild_id, channel.id)
         await ctx.send(f"Canal configurado a {channel.mention} para los mensajes de MelladoCoins.")
         logging.info(f"Canal configurado en {ctx.guild.name}: {channel.name}")
+
+    
 
     @tasks.loop(minutes=35)
     async def mellado_coins_task(self):
