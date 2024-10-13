@@ -3,6 +3,7 @@ from discord.ext import commands
 import requests
 import random
 from utils.data_manager import load_user_data, save_user_data, load_bets, save_bet, delete_bets
+from .const_economy import economic_limits
 import logging
 
 
@@ -115,8 +116,11 @@ class Betting(commands.Cog):
         usuario = ctx.author
         user_id = str(usuario.id)
         guild_id = str(ctx.guild.id)
-
+        bot_user_id = str(self.bot.user.id)
+        bot_data = load_user_data(bot_user_id, guild_id)
         user_data = load_user_data(user_id, guild_id)
+        max_betting_amount = float(user_data['balance']) * float(economic_limits['max_own_balance_bet_percentage'])
+        max_win_amount = float(bot_data['balance']) * float(economic_limits['max_win_percentage_per_bet'])
         if user_data is None:
             await ctx.send(f'{usuario.name}, no estás registrado. Usa el comando !registrar para registrarte.')
             return
@@ -143,6 +147,33 @@ class Betting(commands.Cog):
             )
             await ctx.send(embed=embed)
             return
+        if cantidad > max_betting_amount:
+            embed = discord.Embed(
+                title="🚫 Apuesta Máxima Excedida",
+                description=f"{usuario.name}, Tu apuesta máxima permitida es {max_betting_amount} MelladoCoins. A llorar a la lloreria por mas plata",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        if cantidad * 1.75 > max_win_amount:
+            embed = discord.Embed(
+                title="🚫 Ganancia Máxima Excedida",
+                description=f"{usuario.name}, tu ganancia máxima permitida es {max_win_amount} MelladoCoins.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        if bot_data['balance'] < (cantidad*1.75):
+            embed = discord.Embed(
+                title="❌ Apuesta Denegada",
+                description="El banco no tiene suficientes MelladoCoins para realizar esta apuesta.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
 
         if cantidad > user_data['balance']:
             embed = discord.Embed(
@@ -155,18 +186,20 @@ class Betting(commands.Cog):
 
         resultado = random.choice([0, 1])
         if resultado == 1:
-            ganancia = cantidad
+            ganancia = cantidad*1.75
             user_data['balance'] += ganancia
+            bot_data['balance'] -= ganancia
             saldo_formateado = f"${user_data['balance']:,.0f}".replace(",", ".")
             embed = discord.Embed(
                 title="🎉 ¡Has Ganado!",
-                description=f"{usuario.name}, has ganado {saldo_formateado} MelladoCoins.",
+                description=f"{usuario.name}, has ganado {ganancia} MelladoCoins, tu nuevo saldo es {saldo_formateado} MelladoCoins.",
                 color=discord.Color.green()
             )
             await ctx.send(embed=embed)
         else:
             perdida = cantidad
             user_data['balance'] -= perdida
+            bot_data['balance'] += perdida
             saldo_formateado = f"${user_data['balance']:,.0f}".replace(",", ".")
             embed = discord.Embed(
                 title="😢 Has Perdido",
@@ -176,6 +209,7 @@ class Betting(commands.Cog):
             await ctx.send(embed=embed)
 
         save_user_data(user_id, guild_id, user_data['balance'])
+        save_user_data(self.bot.user.id, guild_id, bot_data['balance'])
 
     @commands.command(name='transferir', help='Realiza una transferencia de tus MelladoCoins. Uso: !transferir <usuario> <cantidad>')
     async def transferir(self, ctx, destinatario: discord.Member, cantidad: str):
