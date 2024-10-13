@@ -481,9 +481,14 @@ class Economy(commands.Cog):
                 if user_data is None:
                     continue
 
+                # Verificar si el bot_data existe, si no, inicializarlo
+                if bot_data is None or 'balance' not in bot_data:
+                    logging.warning(f"No se encontró balance para el bot en {guild.name}, inicializando con balance predeterminado.")
+                    bot_data = {'balance': 100_000_000_000}  # Valor predeterminado
+                    save_user_data(str(self.bot.user.id), guild_id, bot_data['balance'])
+
                 balance = user_data['balance']
 
-               
                 # Si el saldo es 0 o negativo, darle un saldo base entre 10,000 y 100,000
                 if balance <= 0:
                     balance = ra.randint(10_000, 1_000_000)
@@ -501,7 +506,7 @@ class Economy(commands.Cog):
                     cantidad = ra.uniform(balance * 0.01, balance * limit_win)
 
                 # Verificar si el bot tiene suficiente saldo
-                if bot_data['balance'] < (cantidad):
+                if bot_data['balance'] < abs(cantidad):
                     logging.warning(f"El bot no tiene suficiente saldo para enviar {cantidad} MelladoCoins.")
                     return  # Salir si no hay suficiente saldo en el bot
 
@@ -527,7 +532,7 @@ class Economy(commands.Cog):
                 else:
                     embed.set_thumbnail(url=usuario.default_avatar.url)
 
-                cantidad_formateada = f"${(cantidad):,.0f}".replace(",", ".")
+                cantidad_formateada = f"${abs(cantidad):,.0f}".replace(",", ".")
                 if cantidad > 0:
                     embed.add_field(name="¡Felicidades!", value=f"¡{usuario.name} ha recibido {cantidad_formateada} MelladoCoins!", inline=False)
                 else:
@@ -538,6 +543,7 @@ class Economy(commands.Cog):
 
         except Exception as e:
             logging.error("Error en mellado_coins_task:", exc_info=e)
+
 
     @tasks.loop(hours=24)
     async def central_bank_task(self):
