@@ -10,7 +10,7 @@ import math
 import random as ra
 from utils.channel_manager import save_channel_setting, load_channel_setting
 from datetime import datetime, timedelta
-from .const_economy import  taxes
+from .const_economy import  taxes, give_money_limits,growth_limits
 # matplotlib.use('Agg')
 
 logging.basicConfig(level=logging.DEBUG)
@@ -22,6 +22,7 @@ class Economy(commands.Cog):
         self.data = load_all_users()
         self.passive_income.start()
         self.mellado_coins_task.start()
+        self.central_bank_task.start()
     
 
     @commands.command(name='impuestos', help='Informa los impuestos a pagar por cantidad de MelladoCoins en transferencias. Uso: !info')
@@ -468,12 +469,14 @@ class Economy(commands.Cog):
                 usuario = ra.choice(weighted_members)
                 user_id = str(usuario.id)
                 user_data = load_user_data(user_id, guild_id)
+                bot_data = load_user_data(str(self.bot.user.id), guild_id)
 
                 if user_data is None:
                     continue
 
                 balance = user_data['balance']
 
+               
                 # Si el saldo es 0 o negativo, darle un saldo base entre 10,000 y 100,000
                 if balance <= 0:
                     balance = ra.randint(10_000, 1_000_000)
@@ -482,16 +485,28 @@ class Economy(commands.Cog):
                     save_user_data(user_id, guild_id, user_data['balance'])
 
                 perder = ra.choice([True, False])  # 50% de probabilidad de ganar o perder
+                limit_loss = ra.uniform(0.03, give_money_limits["max_percentage_loss"])
+                limit_win = ra.uniform(0.01, give_money_limits["max_percentage_win"])
 
                 if perder:
-                    cantidad = -ra.randint(1_000, 10_000_000)
+                    cantidad = -abs(ra.uniform(balance * 0.02, balance * limit_loss))
                 else:
-                    cantidad = ra.randint(1_000, 10_000_000_000)
+                    cantidad = ra.uniform(balance * 0.01, balance * limit_win)
 
-                logging.info(f"Enviando {cantidad} MelladoCoins a {usuario.name} en {guild.name}")
+                # Verificar si el bot tiene suficiente saldo
+                if bot_data['balance'] < abs(cantidad):
+                    logging.warning(f"El bot no tiene suficiente saldo para enviar {cantidad} MelladoCoins.")
+                    return  # Salir si no hay suficiente saldo en el bot
+
+                # Ajustar el balance del usuario y el bot
+                logging.info(f"Enviando {cantidad:.2f} MelladoCoins a {usuario.name} en {guild.name}")
                 user_data['balance'] += cantidad
-                logging.info(f"Nuevo saldo de {usuario.name}: {user_data['balance']}")
+                bot_data['balance'] -= cantidad
+
+                # Guardar los nuevos balances
+                logging.info(f"Nuevo saldo de {usuario.name}: {user_data['balance']:.2f}")
                 save_user_data(user_id, guild_id, user_data['balance'])
+                save_user_data(str(self.bot.user.id), guild_id, bot_data['balance'])
 
                 balance_formatted = f"${user_data['balance']:,.0f}".replace(",", ".")
 
@@ -517,12 +532,73 @@ class Economy(commands.Cog):
         except Exception as e:
             logging.error("Error en mellado_coins_task:", exc_info=e)
 
+    @tasks.loop(hours=24)
+    async def central_bank_task(self):
+            try:
+                for guild in self.bot.guilds:
+                    guild_id = str(guild.id)
+                    channel_id = load_channel_setting(guild_id)  # Cargar la configuración del canal
+
+                    # Si no hay un canal configurado, selecciona el primer canal disponible
+                    if channel_id is None:
+                        channel = next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
+                        if channel:
+                            channel_id = channel.id
+                            save_channel_setting(guild_id, channel_id)  # Guarda este canal como el predeterminado
+                        else:
+                            logging.warning(f"No hay canales disponibles para enviar mensajes en {guild.name}.")
+                            continue
+                    else:
+                        channel = self.bot.get_channel(channel_id)
+                        if not channel or not channel.permissions_for(guild.me).send_messages:
+                            channel = next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
+                            if channel:
+                                channel_id = channel.id
+                                save_channel_setting(guild_id, channel_id)  # Guarda este nuevo canal como el predeterminado
+                            else:
+                                logging.warning(f"No hay canales disponibles para enviar mensajes en {guild.name}.")
+                                continue
+
+                    members = [member for member in guild.members if not member.bot]
+                    if not members:
+                        continue
+                    
+
+                    bot_data = load_user_data(str(self.bot.user.id), guild_id)
+                    key=ra.choice(list(growth_limits.keys()))
+                    value=growth_limits[key]
+
+                    new_balance = bot_data['balance'] * (1 + value)
+                    bot_data['balance'] = new_balance
+
+                    save_user_data(str(self.bot.user.id), guild_id, bot_data['balance'])
+
+                    embed = discord.Embed(title="💰 Banco Central")
+                   
+                    embed.add_field(name="¡El Banco Central ha crecido!", 
+                                    value=f"El Banco Central ha crecido un {value * 100:.2f}%",  
+                                    inline=False)
+                    embed.add_field(name="Nuevo Saldo", 
+                                    value=f"${bot_data['balance']:,.0f}".replace(",", ".") + " MelladoCoins", 
+                                    inline=False)
+                    embed.set_thumbnail(url=self.bot.user.avatar.url)
+                    await channel.send(embed=embed)
+            except Exception as e:
+                logging.error("Error en banco_central_task:", exc_info=e)
+
+
+
+ 
     @passive_income.before_loop
     async def before_passive_income(self):
         await self.bot.wait_until_ready()
 
     @mellado_coins_task.before_loop
     async def before_mellado_coins_task(self):
+        await self.bot.wait_until_ready()
+
+    @central_bank_task.before_loop
+    async def before_central_bank_task(self):
         await self.bot.wait_until_ready()
 
     @commands.Cog.listener()

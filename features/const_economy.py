@@ -13,3 +13,24 @@ taxes = {
     100_000_000_000:0.45,
     1_000_000_000_000:0.55
 }
+
+
+
+#A user can receive or lose up to 5% of their balance in any transaction.
+#The total amount of money that can be introduced into the economy in a single transaction should not exceed 1-2% of the total money supply.
+
+give_money_limits = {
+    "max_percentage_win": 0.05,
+    "max_percentage_loss": 0.10,
+}
+
+
+
+
+growth_limits = {
+    1: 0.0001,  # 0.01%
+    2: 0.0002,  # 0.02%
+    3: 0.0003,  # 0.03%
+    4: 0.0004,  # 0.04%
+    5: 0.0005   # 0.05%
+}
