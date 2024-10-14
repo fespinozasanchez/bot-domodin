@@ -1,5 +1,5 @@
 import random
-from market_module.const_market import TIERS, VALORES_BASE_NIVEL
+from market_module.const_market import TIERS, VALORES_BASE_NIVEL, SUERTE_FACTORES
 # from utils.market_data_manager import obtener_proporciones_barrio
 
 # Función para generar un valor aleatorio basado en suerte
@@ -46,33 +46,27 @@ def elegir_valor_ponderado_por_suerte(opciones, pesos, suerte):
 # Función no lineal para calcular el valor de compra
 
 
-def calcular_valor_compra(nivel, tier, tamaño, pisos, suerte):
+def calcular_valor_compra(nivel, tier, tamaño, pisos,suerte):
     min_valor, max_valor = VALORES_BASE_NIVEL[nivel]  # Valor base según nivel
     valor_base = min_valor + (1 - suerte) * (max_valor - min_valor)
     multiplicador_tamaño = tamaño * 0.5
     multiplicador_pisos = pisos * 1.2
-    suerte_factor = (1.0 - suerte) + 0.5  # A mayor suerte, menor valor de compra
     tier_factor = 1.0 + TIERS[tier]  # Factor basado en el tier de la propiedad
 
-    return valor_base * multiplicador_tamaño * multiplicador_pisos * suerte_factor * tier_factor
+    return valor_base * multiplicador_tamaño * multiplicador_pisos * tier_factor
 
 
-# Definir constantes para limitar los factores
-SUERTE_MIN_FACTOR = 1.1  # Factores de suerte más controlados
-SUERTE_MAX_FACTOR = 1.3
-DESGASTE_MIN_FACTOR = 0.85  # Limitar el impacto del desgaste
-DESGASTE_MAX_FACTOR = 1.15
+
 
 # Ajustes en la fórmula de renta diaria
 
 
 def calcular_renta_diaria(nivel, tier, suerte, desgaste, controladores, porcentajes, color, valor_compra):
-    valor_base = 0.25 * suerte + 0.1  # Ajustado el rango base (entre 25% y 35%)
+    valor_base = SUERTE_FACTORES['SUERTE_MIN_FACTOR'] * suerte + SUERTE_FACTORES['SUERTE_MIN_FACTOR']  # Ajustado el rango base (entre 10% y 20%)
     base_rent = valor_compra * valor_base
 
-    # Factor suerte más controlado
-    suerte_factor = max(SUERTE_MIN_FACTOR, min(suerte * 1.2, SUERTE_MAX_FACTOR))  # Limitar variación por suerte
-    desgaste_factor = max(DESGASTE_MIN_FACTOR, min((1.0 - desgaste) + 0.2, DESGASTE_MAX_FACTOR))  # Limitar impacto de desgaste
+    # Factor suerte más controlado  0.1                                                                             0.8  
+    desgaste_factor = max(SUERTE_FACTORES['DESGASTE_MIN_FACTOR'], min((1.0 - desgaste) + 0.2, SUERTE_FACTORES['DESGASTE_MAX_FACTOR']))  # Limitar impacto de desgaste
     tier_factor = 1.0 + TIERS[tier] * nivel  # Factor basado en el tier y nivel
 
     # Ajustes por controladores
@@ -86,24 +80,16 @@ def calcular_renta_diaria(nivel, tier, suerte, desgaste, controladores, porcenta
         base_rent *= 1.10  # Se ajusta el incremento a un 10%
 
     # Renta ajustada final
-    return base_rent * suerte_factor * desgaste_factor * tier_factor
+    return base_rent  * desgaste_factor * tier_factor
 
+def calcular_costo_diario(tier, tamaño, pisos, renta_diaria,suerte):
+    # Cálculo del costo diario basado en la renta diaria, tier, tamaño y pisos
 
-def calcular_costo_diario(nivel, tier, tamaño, pisos, suerte, renta_diaria):
-    # Costo diario será entre 30% y 60% de la renta diaria
-    costo_factor_min = 0.25
-    costo_factor_max = 0.65
-    costo_factor = random.uniform(costo_factor_min, costo_factor_max)
+    ajuste_suerte = 0.40 * (1-suerte) + 0.25 # Entre 25% y 65% del valor base de compra
+    renta_ajustada= renta_diaria*ajuste_suerte
+    base_costo_factor = renta_ajustada * ((1 + -(TIERS[str(tier)]))+(tamaño/500)+(pisos/10))
+    return base_costo_factor
 
-    base_cost = renta_diaria * costo_factor
-
-    suerte_factor = max(1.1, min((1.0 - suerte) + 0.3, 1.3))
-    tier_factor = 1.0 + TIERS[tier] * nivel
-
-    # Cálculo del costo diario final
-    costo_diario = base_cost * suerte_factor * tier_factor
-
-    return costo_diario
 
 
 # Función para calcular el costo de mantenimiento (más no lineal, influenciado por tamaño y pisos)

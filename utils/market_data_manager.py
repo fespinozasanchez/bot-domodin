@@ -56,10 +56,10 @@ def generar_propiedad(tipo):
         es_residencia_principal = False
 
     # Calcular valores
-    valor_compra = calcular_valor_compra(nivel, tier, tamaño, pisos, suerte)
-    renta_diaria = calcular_renta_diaria(nivel, tier, suerte, desgaste, controladores, porcentajes_colores, color, valor_compra)
-    costo_diario = calcular_costo_diario(nivel, tier, tamaño, pisos, suerte, renta_diaria)
-    costo_mantenimiento = calcular_costo_mantenimiento(nivel, tier, tamaño, pisos, suerte)
+    valor_compra = calcular_valor_compra(nivel, tier, tamaño, pisos,suerte)
+    renta_diaria = calcular_renta_diaria(nivel,tier, suerte, desgaste, controladores, porcentajes_colores, color, valor_compra)
+    costo_diario = calcular_costo_diario( tier, tamaño, pisos, renta_diaria,suerte)
+    costo_mantenimiento = calcular_costo_mantenimiento(nivel, tier, tamaño, pisos,suerte)
 
     # Crear la propiedad
     propiedad = {
