@@ -10,7 +10,7 @@ import math
 import random as ra
 from utils.channel_manager import save_channel_setting, load_channel_setting
 from datetime import datetime, timedelta
-from .const_economy import  taxes, give_money_limits,growth_limits
+from .const_economy import taxes, give_money_limits, growth_limits
 # matplotlib.use('Agg')
 
 logging.basicConfig(level=logging.DEBUG)
@@ -23,7 +23,6 @@ class Economy(commands.Cog):
         self.passive_income.start()
         self.mellado_coins_task.start()
         self.central_bank_task.start()
-    
 
     @commands.command(name='impuestos', help='Informa los impuestos a pagar por cantidad de MelladoCoins en transferencias. Uso: !info')
     async def impuestos(self, ctx):
@@ -36,9 +35,6 @@ class Economy(commands.Cog):
         for amount, tax in tax_dir.items():
             embed.add_field(name=f"Por {amount:,.0f} MelladoCoins", value=f"{tax * 100:.2f}%", inline=False)
         await ctx.send(embed=embed)
-
-
-        
 
     @commands.command(name='prestamo', help='Solicita un préstamo de MelladoCoins. Uso: !prestamo <cantidad>')
     async def prestamo(self, ctx, cantidad: int):
@@ -427,14 +423,35 @@ class Economy(commands.Cog):
         await ctx.send(f"Canal configurado a {channel.mention} para los mensajes de MelladoCoins.")
         logging.info(f"Canal configurado en {ctx.guild.name}: {channel.name}")
 
-    
-    @commands.command(name='saldo_dimadon' , help='Muestra el saldo de Dimadon')
+    @commands.command(name='saldo_dimadon', help='Muestra el saldo de Dimadon')
     async def saldo_dimadon(self, ctx):
         guild_id = str(ctx.guild.id)
-        bot_id=self.bot.user.id
+        bot_id = self.bot.user.id
         bot_data = load_user_data(str(bot_id), guild_id)
+        if bot_data:
+            balance = round(bot_data['balance'], 0)
+            balance_formatted = f"${balance:,.0f}".replace(",", ".")
+            embed = discord.Embed(
+                title="💰 Mellado Bank",
+                description="Saldo del Banco Central",
+                color=discord.Color.blue()
+            )
+            embed.set_thumbnail(url=self.bot.user.avatar.url)
+            embed.add_field(name="Usuario", value=self.bot.user.name, inline=True)
+            embed.add_field(name="ID", value=self.bot.user.id, inline=True)
+            embed.add_field(name="Saldo Disponible", value=f"{balance_formatted} MelladoCoins", inline=False)
+            embed.set_footer(text="Gracias por utilizar Mellado Bank", icon_url="https://pillan.inf.uct.cl/~fespinoza/logo.png")  # Logo del banco, opcional
 
-        await ctx.send(f"El saldo de Dimadon es de {bot_data['balance']} MelladoCoins")
+            await ctx.send(embed=embed)
+        else:
+            embed = discord.Embed(
+                title="🚫 Mellado Bank",
+                description=f"El Banco Central no está registrado.",
+                color=discord.Color.red()
+            )
+            embed.set_thumbnail(url=self.bot.user.avatar.url)
+            embed.add_field(name="Acción Requerida", value="El Banco Central debe ser registrado para utilizar Mellado Bank.", inline=False)
+            embed.set_footer(text="Registro necesario para utilizar Mellado Bank", icon_url="https://pillan.inf.uct.cl/~fespinoza/logo.png")
 
     @tasks.loop(minutes=35)
     async def mellado_coins_task(self):
@@ -544,7 +561,6 @@ class Economy(commands.Cog):
         except Exception as e:
             logging.error("Error en mellado_coins_task:", exc_info=e)
 
-
     @tasks.loop(hours=24)
     async def central_bank_task(self):
         try:
@@ -573,7 +589,7 @@ class Economy(commands.Cog):
                             continue
 
                 bot_data = load_user_data(str(self.bot.user.id), guild_id)
-                
+
                 # Verificar si el bot_data existe, si no, inicializarlo
                 if bot_data is None:
                     logging.warning(f"No se encontró balance para el bot en {guild.name}, inicializando con balance predeterminado.")
@@ -592,11 +608,11 @@ class Economy(commands.Cog):
                 balance_formatted = f"${bot_data['balance']:,.0f}".replace(",", ".")
 
                 embed = discord.Embed(title="💰 Banco Central")
-                embed.add_field(name="¡El Banco Central ha crecido!", 
-                                value=f"El Banco Central ha crecido un {value * 100:.2f}%",  
+                embed.add_field(name="¡El Banco Central ha crecido!",
+                                value=f"El Banco Central ha crecido un {value * 100:.2f}%",
                                 inline=False)
-                embed.add_field(name="Nuevo Saldo", 
-                                value=f"{balance_formatted} MelladoCoins", 
+                embed.add_field(name="Nuevo Saldo",
+                                value=f"{balance_formatted} MelladoCoins",
                                 inline=False)
                 embed.set_thumbnail(url=self.bot.user.avatar.url)
                 await channel.send(embed=embed)
@@ -604,9 +620,6 @@ class Economy(commands.Cog):
         except Exception as e:
             logging.error(f"Error procesando el Banco Central en {guild.name}:", exc_info=e)
 
-
-
- 
     @passive_income.before_loop
     async def before_passive_income(self):
         await self.bot.wait_until_ready()
