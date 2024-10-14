@@ -174,7 +174,6 @@ class Betting(commands.Cog):
             await ctx.send(embed=embed)
             return
 
-
         if cantidad > user_data['balance']:
             embed = discord.Embed(
                 title="🚫 Saldo Insuficiente",
@@ -189,10 +188,11 @@ class Betting(commands.Cog):
             ganancia = cantidad*1.75
             user_data['balance'] += ganancia
             bot_data['balance'] -= ganancia
+            ganancia_formateada = f"${ganancia:,.0f}".replace(",", ".")
             saldo_formateado = f"${user_data['balance']:,.0f}".replace(",", ".")
             embed = discord.Embed(
                 title="🎉 ¡Has Ganado!",
-                description=f"{usuario.name}, has ganado {ganancia} MelladoCoins, tu nuevo saldo es {saldo_formateado} MelladoCoins.",
+                description=f"{usuario.name}, has ganado {ganancia_formateada} MelladoCoins, tu nuevo saldo es {saldo_formateado} MelladoCoins.",
                 color=discord.Color.green()
             )
             await ctx.send(embed=embed)
@@ -200,10 +200,11 @@ class Betting(commands.Cog):
             perdida = cantidad
             user_data['balance'] -= perdida
             bot_data['balance'] += perdida
+            perdida_formateada = f"${perdida:,.0f}".replace(",", ".")
             saldo_formateado = f"${user_data['balance']:,.0f}".replace(",", ".")
             embed = discord.Embed(
                 title="😢 Has Perdido",
-                description=f"{usuario.name}, has perdido. Tu nuevo saldo es {saldo_formateado} MelladoCoins.",
+                description=f"{usuario.name}, has perdido {perdida_formateada}. Tu nuevo saldo es {saldo_formateado} MelladoCoins.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -218,7 +219,6 @@ class Betting(commands.Cog):
         guild_id = str(ctx.guild.id)
         bot_user_id = str(self.bot.user.id)
         destinatario_id = str(destinatario.id)
-        
 
         # Verificar si el usuario intenta transferirse a sí mismo
         if destinatario_id == user_id:
@@ -296,8 +296,6 @@ class Betting(commands.Cog):
             embed.set_thumbnail(url=usuario.avatar.url)
             await ctx.send(embed=embed)
             return
-
-        
 
         # Realizar la transferencia
         user_data['balance'] -= cantidad+cantidad*impuesto
