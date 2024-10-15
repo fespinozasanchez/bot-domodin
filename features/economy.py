@@ -487,7 +487,10 @@ class Economy(commands.Cog):
                 usuario = ra.choice(members)
                 user_id = str(usuario.id)
                 user_data = load_user_data(user_id, guild_id)
-                bot_data = load_user_data(str(self.bot.user.id), guild_id)
+                try:
+                    bot_data = load_user_data(str(self.bot.user.id), guild_id)
+                except KeyError:
+                    bot_data = None
 
                 if user_data is None:
                     continue
