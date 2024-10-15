@@ -629,25 +629,28 @@ class Economy(commands.Cog):
     async def before_central_bank_task(self):
         await self.bot.wait_until_ready()
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        logging.debug("Bot is ready. Verifying members registration...")
-        for guild in self.bot.guilds:
-            guild_id = str(guild.id)
-            for member in guild.members:
-                if not member.bot:
-                    user_id = str(member.id)
-                    key = f"{user_id}_{guild_id}"
-                    if key not in self.data:
-                        self.data[key] = {
-                            'guild_id': guild_id, 'balance': 50000}
-                        set_balance(user_id, guild_id, 50000)
 
-        # add user bot with balance
+@commands.Cog.listener()
+async def on_ready(self):
+    logging.debug("Bot is ready. Verifying members registration...")
+
+    for guild in self.bot.guilds:
+        guild_id = str(guild.id)
+
+        # Verificar y registrar a todos los miembros que no son bots
+        for member in guild.members:
+            if not member.bot:
+                user_id = str(member.id)
+                key = f"{user_id}_{guild_id}"
+                if key not in self.data:
+                    self.data[key] = {'guild_id': guild_id, 'balance': 50000}
+                    set_balance(user_id, guild_id, 50000)
+
+        # Registrar al bot en este servidor (guild) con balance inicial
         bot_id = str(self.bot.user.id)
         bot_data = load_user_data(bot_id, guild_id)
         if bot_data is None:
-            self.data[bot_id + '_' + guild_id] = {'guild_id': guild_id, 'balance': 100000000000}
+            self.data[f"{bot_id}_{guild_id}"] = {'guild_id': guild_id, 'balance': 100000000000}
             set_balance(bot_id, guild_id, 100000000000)
 
 
