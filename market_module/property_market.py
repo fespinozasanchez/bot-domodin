@@ -84,10 +84,11 @@ def calcular_renta_diaria(nivel, tier, suerte, desgaste, controladores, porcenta
 
 def calcular_costo_diario(tier, tamaño, pisos, renta_diaria,suerte):
     # Cálculo del costo diario basado en la renta diaria, tier, tamaño y pisos
-
-    ajuste_suerte = 0.40 * (1-suerte) + 0.25 # Entre 25% y 65% del valor base de compra
-    renta_ajustada= renta_diaria*ajuste_suerte
-    base_costo_factor = renta_ajustada * ((1 + -(TIERS[str(tier)]))+(tamaño/500)+(pisos/10))
+    #obtiene un porcentaje segun el tier, mejor tier, menor porcentaje,
+    base_costo = (renta_diaria*0.4)
+    factor_tier = (1 -((tier))) * (1 -((tier)))/(2)
+    factor_tamano = (1+((tamaño/500)+(pisos/10))) * (1-(tier))
+    base_costo_factor = base_costo * factor_tamano * factor_tier
     return base_costo_factor
 
 
