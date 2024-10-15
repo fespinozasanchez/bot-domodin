@@ -23,7 +23,7 @@ signal.signal(signal.SIGINT, def_handler)
 
 # Cargar variables de entorno
 load_dotenv()
-token = os.getenv('DISCORD_TOKEN')
+token = os.getenv('DISCORD_TOKEN_DEVELOP')
 
 # Configurar intentos de Discord
 intents = discord.Intents.default()
@@ -53,7 +53,8 @@ async def load_cogs():
         'features.prediction_system',
         'commands.rpg_commands',
         'riot.leagueoflegends',
-        'commands.market_commands'
+        'commands.market_commands',
+        'features.eventos_naturales'
     ]
 
     for cog in cogs:

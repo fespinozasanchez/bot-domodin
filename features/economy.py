@@ -178,11 +178,12 @@ class Economy(commands.Cog):
             interes_extra = loan_amount * (0.074 * dias_extra)
 
         total_a_pagar = loan_amount + impuesto_fijo + interes_extra
-
+        total_a_pagar_formateado = f"${total_a_pagar-balance:,.0f}".replace(",", ".")
+    
         if balance < total_a_pagar:
             embed = discord.Embed(
                 title="❌ Saldo Insuficiente",
-                description=f"No tienes suficiente saldo para pagar el préstamo. Necesitas {total_a_pagar - balance:.2f} MelladoCoins más.",
+                description=f"No tienes suficiente saldo para pagar el préstamo. Necesitas {total_a_pagar_formateado} MelladoCoins más.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)

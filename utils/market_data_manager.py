@@ -358,6 +358,18 @@ def obtener_propiedades_por_usuario(inversionista_id):
     return retry_query(query)
 
 
+def obtener_propiedades_por_color(inversionista_id, color):
+    def query():
+        conn = connect_db()
+        propiedades = []
+        if conn:
+            with closing(conn.cursor(dictionary=True)) as cursor:
+                cursor.execute('SELECT * FROM propiedades WHERE inversionista_id = %s AND color = %s', (inversionista_id, color))
+                propiedades = cursor.fetchall()
+            conn.close()
+        return propiedades
+    return retry_query(query)
+
 # Actualizar el desgaste de una propiedad y su mínimo en la base de datos
 def actualizar_desgaste_propiedad(id_propiedad, nuevo_desgaste, nuevo_desgaste_minimo):
     def update():

@@ -66,6 +66,13 @@ def create_tables():
                         channel_id BIGINT
                     )
                 ''')
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS event_log (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        event_name VARCHAR(255),
+                        event_time DATETIME
+                    )
+                ''')
                 conn.commit()
             conn.close()
 
