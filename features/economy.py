@@ -654,12 +654,13 @@ async def on_ready(self):
         # Registrar al bot en este servidor (guild) con balance inicial
         bot_id = str(self.bot.user.id)
         bot_data = load_user_data(bot_id, guild_id)
-        logging.debug(f"Checking bot registration in guild {guild.name} (ID: {guild_id})")
 
         if bot_data is None:
-            logging.debug(f"Registering bot in guild {guild.name} with balance 100000000000")
+            logging.warning(f"No se encontró balance para el bot en {guild.name}, inicializando con balance predeterminado.")
             self.data[f"{bot_id}_{guild_id}"] = {'guild_id': guild_id, 'balance': 100000000000}
             set_balance(bot_id, guild_id, 100000000000)
+        else:
+            logging.debug(f"Bot ya registrado en {guild.name} (ID: {guild_id}) con balance existente.")
 
 
 async def setup(bot):
