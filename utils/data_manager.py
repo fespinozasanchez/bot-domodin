@@ -45,6 +45,8 @@ def create_tables():
                         last_loan_time DATETIME NULL,
                         loan_amount FLOAT DEFAULT 0,
                         loan_due_time DATETIME NULL,
+                        roulette_status DATETIME NULL,
+                        roulette_available BOOLEAN DEFAULT True,
                         UNIQUE KEY unique_user_guild (user_id, guild_id)
                     )
                 ''')
@@ -85,12 +87,15 @@ def load_user_data(user_id, guild_id):
         # Asegúrate de que 'last_loan_time' y 'loan_due_time' se manejen correctamente
         last_loan_time = user_data.get('last_loan_time')
         loan_due_time = user_data.get('loan_due_time')
+        roulette_status = user_data.get('roulette_status')
 
         # Convertir las fechas a objetos datetime si son cadenas
         if last_loan_time and isinstance(last_loan_time, str):
             last_loan_time = datetime.fromisoformat(last_loan_time)
         if loan_due_time and isinstance(loan_due_time, str):
             loan_due_time = datetime.fromisoformat(loan_due_time)
+        if roulette_status and isinstance(roulette_status, str):
+            roulette_status = datetime.fromisoformat(roulette_status)
 
         return {
             'id': user_data['id'],
@@ -99,7 +104,9 @@ def load_user_data(user_id, guild_id):
             'balance': user_data['balance'],
             'last_loan_time': last_loan_time,
             'loan_amount': user_data.get('loan_amount', 0),
-            'loan_due_time': loan_due_time  # Puede ser None si no se ha solicitado préstamo antes
+            'loan_due_time': loan_due_time,  # Puede ser None si no se ha solicitado préstamo antes
+            'roulette_status': roulette_status,
+            'roulette_available': user_data.get('roulette_available', False)
         }
     return None
 
@@ -162,13 +169,30 @@ def save_loan_data(user_id, guild_id, balance, last_loan_time, loan_amount, loan
     retry_query(save)
 
 
+def save_roulette_status(user_id, guild_id, roulette_status, roulette_available):
+    def save():
+        conn = connect_db()
+        if conn:
+            with closing(conn.cursor()) as cursor:
+                cursor.execute(
+                    '''
+                    UPDATE users 
+                    SET roulette_status=%s, roulette_available=%s
+                    WHERE user_id=%s AND guild_id=%s
+                    ''', (roulette_status, roulette_available, user_id, guild_id)
+                )
+                conn.commit()
+            conn.close()
+
+    retry_query(save)
+
 def load_all_users(guild_id=None):
     def load_all():
         conn = connect_db()
         if conn:
             with closing(conn.cursor(dictionary=True)) as cursor:
                 # Definir la consulta basada en si se proporciona guild_id
-                query = 'SELECT id, user_id, guild_id, balance, last_loan_time, loan_amount, loan_due_time FROM users'
+                query = 'SELECT id, user_id, guild_id, balance, last_loan_time, loan_amount, loan_due_time, roulette_status, roulette_available FROM users'
 
                 if guild_id:
                     query += ' WHERE guild_id=%s'
@@ -191,7 +215,9 @@ def load_all_users(guild_id=None):
             'balance': user['balance'],
             'last_loan_time': user['last_loan_time'],
             'loan_amount': user['loan_amount'],
-            'loan_due_time': user['loan_due_time']
+            'loan_due_time': user['loan_due_time'],
+            'roulette_status': user['roulette_status'],
+            'roulette_available': user['roulette_available']
         }
         for user in all_users
     }

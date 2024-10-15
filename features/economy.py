@@ -231,6 +231,8 @@ class Economy(commands.Cog):
 
         await ctx.send(embed=embed_bot)
 
+
+
     @commands.command(name='registrar')
     async def register_user(self, ctx):
         user_id = str(ctx.author.id)

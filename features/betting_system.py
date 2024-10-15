@@ -2,10 +2,10 @@ import discord
 from discord.ext import commands
 import requests
 import random
-from utils.data_manager import load_user_data, save_user_data, load_bets, save_bet, delete_bets
+from utils.data_manager import load_user_data, save_user_data, load_bets, save_bet, delete_bets, save_roulette_status
 from .const_economy import economic_limits, taxes
 import logging
-
+from datetime import datetime,timedelta
 
 class Betting(commands.Cog):
     def __init__(self, bot):
@@ -119,53 +119,85 @@ class Betting(commands.Cog):
         bot_user_id = str(self.bot.user.id)
         bot_data = load_user_data(bot_user_id, guild_id)
         user_data = load_user_data(user_id, guild_id)
-        max_betting_amount = float(user_data['balance']) * float(economic_limits['max_own_balance_bet_percentage'])
-        max_win_amount = float(bot_data['balance']) * float(economic_limits['max_win_percentage_per_bet'])
+
         if user_data is None:
             await ctx.send(f'{usuario.name}, no estás registrado. Usa el comando !registrar para registrarte.')
             return
 
-        if cantidad.lower() == 'all':
-            cantidad = max_betting_amount
-        else:
-            try:
-                cantidad = float(cantidad)
-            except ValueError:
+        # Validar si la cantidad es un número o 'all'
+        all_in = False
+        try:
+            cantidad = float(cantidad)
+            if cantidad <= 0:
+                raise ValueError
+        except ValueError:
+            if cantidad.lower() == 'all':
+                # Validar disponibilidad de la ruleta 'all'
+                roulette_status = user_data.get('roulette_status')
+                if roulette_status is not None:
+                    now = datetime.now()
+                    if isinstance(roulette_status, datetime):
+                        next_available_time = roulette_status + timedelta(hours=24)
+                    else:
+                        roulette_status = datetime.combine(roulette_status, datetime.min.time())
+                        next_available_time = roulette_status + timedelta(hours=24)
+                    if now < next_available_time:
+                        time_remaining = next_available_time - now
+                        horas = int(time_remaining.total_seconds() // 3600)
+                        minutos = int((time_remaining.total_seconds() % 3600) // 60)
+                        segundos = int(time_remaining.total_seconds() % 60)
+                        embed = discord.Embed(
+                            title="🚫 Ruleta No Disponible",
+                            description=f"{usuario.name}, la ruleta estará disponible en {horas} horas, {minutos} minutos y {segundos} segundos.",
+                            color=discord.Color.red()
+                        )
+                        await ctx.send(embed=embed)
+                        return
+                cantidad = user_data['balance']
+                all_in = True
+            else:
                 embed = discord.Embed(
                     title="🚫 Cantidad Inválida",
-                    description="{usuario.name}}, la cantidad debe ser un número válido o 'all'.",
+                    description=f"{usuario.name}, la cantidad debe ser un número positivo o 'all'.",
                     color=discord.Color.red()
                 )
                 await ctx.send(embed=embed)
                 return
 
-        if cantidad <= 0:
-            embed = discord.Embed(
-                title="🚫 Cantidad Inválida",
-                description="{usuario.name}}, solo puedes apostar cantidades positivas.",
-                color=discord.Color.red()
-            )
-            await ctx.send(embed=embed)
-            return
-        if cantidad > max_betting_amount:
-            embed = discord.Embed(
-                title="🚫 Apuesta Máxima Excedida",
-                description=f"{usuario.name}, Tu apuesta máxima permitida es {max_betting_amount} MelladoCoins. A llorar a la lloreria por mas plata",
-                color=discord.Color.red()
-            )
-            await ctx.send(embed=embed)
-            return
+        # Validar límites de apuesta si no es 'all'
+        if not all_in:
+            if cantidad > user_data['balance']:
+                embed = discord.Embed(
+                    title="🚫 Saldo Insuficiente",
+                    description=f"{usuario.name}, no tienes suficiente saldo para apostar {cantidad} MelladoCoins.",
+                    color=discord.Color.red()
+                )
+                await ctx.send(embed=embed)
+                return
 
-        if cantidad * 1.75 > max_win_amount:
-            embed = discord.Embed(
-                title="🚫 Ganancia Máxima Excedida",
-                description=f"{usuario.name}, tu ganancia máxima permitida es {max_win_amount} MelladoCoins.",
-                color=discord.Color.red()
-            )
-            await ctx.send(embed=embed)
-            return
+            max_betting_amount = float(user_data['balance']) * float(economic_limits['max_own_balance_bet_percentage'])
+            max_win_amount = float(bot_data['balance']) * float(economic_limits['max_win_percentage_per_bet'])
 
-        if bot_data['balance'] < (cantidad*1.75):
+            if cantidad > max_betting_amount:
+                embed = discord.Embed(
+                    title="🚫 Apuesta Máxima Excedida",
+                    description=f"{usuario.name}, la apuesta máxima es {max_betting_amount} MelladoCoins.",
+                    color=discord.Color.red()
+                )
+                await ctx.send(embed=embed)
+                return
+
+            if cantidad * 1.75 > max_win_amount:
+                embed = discord.Embed(
+                    title="🚫 Ganancia Máxima Excedida",
+                    description=f"{usuario.name}, la ganancia máxima es {max_win_amount} MelladoCoins.",
+                    color=discord.Color.red()
+                )
+                await ctx.send(embed=embed)
+                return
+
+        # Comprobar si el banco tiene fondos suficientes
+        if bot_data['balance'] < (cantidad * (2 if all_in else 1.75)):
             embed = discord.Embed(
                 title="❌ Apuesta Denegada",
                 description="El banco no tiene suficientes MelladoCoins para realizar esta apuesta.",
@@ -174,43 +206,37 @@ class Betting(commands.Cog):
             await ctx.send(embed=embed)
             return
 
-        if cantidad > user_data['balance']:
-            embed = discord.Embed(
-                title="🚫 Saldo Insuficiente",
-                description=f"{usuario.name}, no tienes suficiente saldo  para apostar {cantidad} MelladoCoins.",
-                color=discord.Color.red()
-            )
-            await ctx.send(embed=embed)
-            return
+        # Actualizar estado de la ruleta 'all' solo si la apuesta es válida
+        if all_in:
+            user_data['roulette_available'] = False
+            save_roulette_status(user_id, guild_id, datetime.now(), False)
 
+        # Resultado de la ruleta
         resultado = random.choice([0, 1])
         if resultado == 1:
-            ganancia = cantidad*1.75
+            ganancia = cantidad * (2 if all_in else 1.75)
             user_data['balance'] += ganancia
             bot_data['balance'] -= ganancia
-            ganancia_formateada = f"${ganancia:,.0f}".replace(",", ".")
-            saldo_formateado = f"${user_data['balance']:,.0f}".replace(",", ".")
             embed = discord.Embed(
                 title="🎉 ¡Has Ganado!",
-                description=f"{usuario.name}, has ganado {ganancia_formateada} MelladoCoins, tu nuevo saldo es {saldo_formateado} MelladoCoins.",
+                description=f"{usuario.name}, has ganado {ganancia:,.0f} MelladoCoins. Tu nuevo saldo es {user_data['balance']:,.0f} MelladoCoins.",
                 color=discord.Color.green()
             )
-            await ctx.send(embed=embed)
         else:
-            perdida = cantidad
-            user_data['balance'] -= perdida
-            bot_data['balance'] += perdida
-            perdida_formateada = f"${perdida:,.0f}".replace(",", ".")
-            saldo_formateado = f"${user_data['balance']:,.0f}".replace(",", ".")
+            user_data['balance'] = 0 if all_in else user_data['balance'] - cantidad
+            bot_data['balance'] += cantidad
             embed = discord.Embed(
                 title="😢 Has Perdido",
-                description=f"{usuario.name}, has perdido {perdida_formateada}. Tu nuevo saldo es {saldo_formateado} MelladoCoins.",
+                description=f"{usuario.name}, has perdido {cantidad:,.0f} MelladoCoins. Tu nuevo saldo es {user_data['balance']:,.0f} MelladoCoins.",
                 color=discord.Color.red()
             )
-            await ctx.send(embed=embed)
 
+        await ctx.send(embed=embed)
+        # Guardar los datos actualizados
         save_user_data(user_id, guild_id, user_data['balance'])
-        save_user_data(self.bot.user.id, guild_id, bot_data['balance'])
+        save_user_data(bot_user_id, guild_id, bot_data['balance'])
+
+
 
     @commands.command(name='transferir', help='Realiza una transferencia de tus MelladoCoins. Uso: !transferir <usuario> <cantidad>')
     async def transferir(self, ctx, destinatario: discord.Member, cantidad: str):
