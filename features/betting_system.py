@@ -5,7 +5,8 @@ import random
 from utils.data_manager import load_user_data, save_user_data, load_bets, save_bet, delete_bets, save_roulette_status
 from .const_economy import economic_limits, taxes
 import logging
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
+
 
 class Betting(commands.Cog):
     def __init__(self, bot):
@@ -179,15 +180,17 @@ class Betting(commands.Cog):
             max_win_amount = float(bot_data['balance']) * float(economic_limits['max_win_percentage_per_bet'])
 
             if cantidad > max_betting_amount:
+                max_betting_amount_formated = f"${max_betting_amount:,.0f}".replace(",", ".")
                 embed = discord.Embed(
                     title="🚫 Apuesta Máxima Excedida",
-                    description=f"{usuario.name}, la apuesta máxima es {max_betting_amount} MelladoCoins.",
+                    description=f"{usuario.name}, la apuesta máxima es {max_betting_amount_formated} MelladoCoins.",
                     color=discord.Color.red()
                 )
                 await ctx.send(embed=embed)
                 return
 
             if cantidad * 1.75 > max_win_amount:
+                max_win_amount = f"${max_win_amount:,.0f}".replace(",", ".")
                 embed = discord.Embed(
                     title="🚫 Ganancia Máxima Excedida",
                     description=f"{usuario.name}, la ganancia máxima es {max_win_amount} MelladoCoins.",
@@ -217,17 +220,21 @@ class Betting(commands.Cog):
             ganancia = cantidad * (2 if all_in else 1.75)
             user_data['balance'] += ganancia
             bot_data['balance'] -= ganancia
+            ganancia_formateada = f"${ganancia:,.0f}".replace(",", ".")
+            balance_formateado = f"${user_data['balance']:,.0f}".replace(",", ".")
             embed = discord.Embed(
                 title="🎉 ¡Has Ganado!",
-                description=f"{usuario.name}, has ganado {ganancia:,.0f} MelladoCoins. Tu nuevo saldo es {user_data['balance']:,.0f} MelladoCoins.",
+                description=f"{usuario.name}, has ganado {ganancia_formateada} MelladoCoins. Tu nuevo saldo es {balance_formateado} MelladoCoins.",
                 color=discord.Color.green()
             )
         else:
             user_data['balance'] = 0 if all_in else user_data['balance'] - cantidad
             bot_data['balance'] += cantidad
+            balance_formateado = f"${user_data['balance']:,.0f}".replace(",", ".")
+            cantidad_formateada = f"${cantidad:,.0f}".replace(",", ".")
             embed = discord.Embed(
                 title="😢 Has Perdido",
-                description=f"{usuario.name}, has perdido {cantidad:,.0f} MelladoCoins. Tu nuevo saldo es {user_data['balance']:,.0f} MelladoCoins.",
+                description=f"{usuario.name}, has perdido {cantidad_formateada} MelladoCoins. Tu nuevo saldo es {balance_formateado} MelladoCoins.",
                 color=discord.Color.red()
             )
 
@@ -235,8 +242,6 @@ class Betting(commands.Cog):
         # Guardar los datos actualizados
         save_user_data(user_id, guild_id, user_data['balance'])
         save_user_data(bot_user_id, guild_id, bot_data['balance'])
-
-
 
     @commands.command(name='transferir', help='Realiza una transferencia de tus MelladoCoins. Uso: !transferir <usuario> <cantidad>')
     async def transferir(self, ctx, destinatario: discord.Member, cantidad: str):
