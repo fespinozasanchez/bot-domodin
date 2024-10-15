@@ -131,6 +131,23 @@ def save_user_data(user_id, guild_id, balance):
     retry_query(save)
 
 
+def insert_bot_data(user_id, guild_id, balance):
+    def insert():
+        conn = connect_db()
+        if conn:
+            conn.autocommit = True  # Activar autocommit
+            with closing(conn.cursor()) as cursor:
+                query = '''
+                INSERT INTO users (user_id, guild_id, balance)
+                VALUES (%s, %s, %s)
+                '''
+                cursor.execute(query, (user_id, guild_id, balance))
+                conn.commit()
+            conn.close()
+
+    retry_query(insert)
+
+
 def set_balance(user_id, guild_id, balance):
     def save():
         conn = connect_db()
@@ -185,6 +202,7 @@ def save_roulette_status(user_id, guild_id, roulette_status, roulette_available)
             conn.close()
 
     retry_query(save)
+
 
 def load_all_users(guild_id=None):
     def load_all():
