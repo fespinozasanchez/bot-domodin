@@ -632,11 +632,12 @@ class Economy(commands.Cog):
 
 @commands.Cog.listener()
 async def on_ready(self):
-    logging.debug("Bot is ready. Verifying members registration...")
+    logging.info("Bot is ready. Verifying members registration...")
 
     for guild in self.bot.guilds:
         guild_id = str(guild.id)
-        logging.debug(f"Processing guild: {guild.name} (ID: {guild_id})")
+        logging.info(f"Processing guild: {guild.name} (ID: {guild_id})")
+        print(guild.name)
 
         # Verificar y registrar a todos los miembros que no son bots
         for member in guild.members:
@@ -644,11 +645,11 @@ async def on_ready(self):
                 user_id = str(member.id)
                 key = f"{user_id}_{guild_id}"
 
-                logging.debug(f"Checking registration for user: {member.name} (ID: {user_id}) in guild {guild.name}")
+                logging.info(f"Checking registration for user: {member.name} (ID: {user_id}) in guild {guild.name}")
 
                 if key not in self.data:
                     self.data[key] = {'guild_id': guild_id, 'balance': 50000}
-                    logging.debug(f"Registering user {member.name} (ID: {user_id}) with balance 50000 in guild {guild.name}")
+                    logging.info(f"Registering user {member.name} (ID: {user_id}) with balance 50000 in guild {guild.name}")
                     set_balance(user_id, guild_id, 50000)
 
         # Registrar al bot en este servidor (guild) con balance inicial
@@ -661,7 +662,7 @@ async def on_ready(self):
             set_balance(bot_id, guild_id, 100000000000)
             logging.warning(f"{guild.name} - {guild_id}: {self.data}")
         else:
-            logging.debug(f"Bot ya registrado en {guild.name} (ID: {guild_id}) con balance existente.")
+            logging.info(f"Bot ya registrado en {guild.name} (ID: {guild_id}) con balance existente.")
 
 
 async def setup(bot):
