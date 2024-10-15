@@ -636,20 +636,28 @@ async def on_ready(self):
 
     for guild in self.bot.guilds:
         guild_id = str(guild.id)
+        logging.debug(f"Processing guild: {guild.name} (ID: {guild_id})")
 
         # Verificar y registrar a todos los miembros que no son bots
         for member in guild.members:
             if not member.bot:
                 user_id = str(member.id)
                 key = f"{user_id}_{guild_id}"
+
+                logging.debug(f"Checking registration for user: {member.name} (ID: {user_id}) in guild {guild.name}")
+
                 if key not in self.data:
                     self.data[key] = {'guild_id': guild_id, 'balance': 50000}
+                    logging.debug(f"Registering user {member.name} (ID: {user_id}) with balance 50000 in guild {guild.name}")
                     set_balance(user_id, guild_id, 50000)
 
         # Registrar al bot en este servidor (guild) con balance inicial
         bot_id = str(self.bot.user.id)
         bot_data = load_user_data(bot_id, guild_id)
+        logging.debug(f"Checking bot registration in guild {guild.name} (ID: {guild_id})")
+
         if bot_data is None:
+            logging.debug(f"Registering bot in guild {guild.name} with balance 100000000000")
             self.data[f"{bot_id}_{guild_id}"] = {'guild_id': guild_id, 'balance': 100000000000}
             set_balance(bot_id, guild_id, 100000000000)
 
