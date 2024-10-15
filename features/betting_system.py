@@ -130,12 +130,6 @@ class Betting(commands.Cog):
         try:
             cantidad_float = float(cantidad)
             if cantidad_float <= 0:
-                embed = discord.Embed(
-                    title="🚫 Cantidad Inválida",
-                    description="La cantidad debe ser un número positivo.",
-                    color=discord.Color.red()
-                )
-                await ctx.send(embed=embed)
                 raise ValueError("No puedes apostar cantidades negativas o cero.")
         except ValueError as e:
             if cantidad.lower() == 'all':
