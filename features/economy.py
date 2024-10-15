@@ -3,7 +3,7 @@ import numpy as np
 # import matplotlib.pyplot as plt
 import discord
 from discord.ext import commands, tasks
-from utils.data_manager import load_user_data, save_loan_data, save_user_data, load_all_users, set_balance
+from utils.data_manager import insert_bot_data, load_user_data, save_loan_data, save_user_data, load_all_users, set_balance
 import logging
 from PIL import Image, ImageDraw, ImageFont
 import math
@@ -590,8 +590,8 @@ class Economy(commands.Cog):
                 # Verificar si el bot_data existe, si no, inicializarlo
                 if bot_data is None:
                     logging.warning(f"No se encontró balance para el bot en {guild.name}, inicializando con balance predeterminado.")
-                    bot_data = {'balance': 1000000}  # Valor predeterminado
-                    save_user_data(str(self.bot.user.id), guild_id, bot_data['balance'])
+                    bot_data = {'balance': 100000000000}  # Valor predeterminado
+                    insert_bot_data(self.bot.user.id, guild_id, bot_data['balance'])
 
                 # Obtener el crecimiento del banco central
                 key = ra.choice(list(growth_limits.keys()))
