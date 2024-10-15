@@ -659,6 +659,7 @@ async def on_ready(self):
             logging.warning(f"No se encontró balance para el bot en {guild.name}, inicializando con balance predeterminado.")
             self.data[f"{bot_id}_{guild_id}"] = {'guild_id': guild_id, 'balance': 100000000000}
             set_balance(bot_id, guild_id, 100000000000)
+            logging.warning(f"{guild.name} - {guild_id}: {self.data}")
         else:
             logging.debug(f"Bot ya registrado en {guild.name} (ID: {guild_id}) con balance existente.")
 
