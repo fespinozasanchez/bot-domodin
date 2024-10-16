@@ -99,85 +99,87 @@ class NaturalEvents(commands.Cog):
         except Exception as e:
             logging.error(f"Error al manejar los eventos diarios: {e}")
 
-
-
-
-    @tasks.loop(hours=1)
+    @tasks.loop(seconds=10)
     async def daily_natural_event(self):
         try:
+            # Obtener el evento actual desde la base de datos
             resultado_evento = get_current_natural_event()
             if resultado_evento is None:
                 logging.info("No se encontraron eventos naturales activos.")
+                # Generar un evento inicial si no hay ninguno
+                self.generar_nuevo_evento()
                 return
 
-            cur_event = get_events_date('updated_at', datetime.now())
-            if not cur_event:
-                logging.info("No se encontraron eventos naturales diarios.")
-                return
+            # Extraer la información del evento y su fecha de actualización
+            evento_actual = resultado_evento['current_event']
+            fecha_cambio = resultado_evento['updated_at']
 
-            for guild in self.bot.guilds:
-                guild_id = str(guild.id)
-                channel_id = load_channel_setting(guild_id)  # Cargar la configuración del canal
+            # Convertir fecha_cambio a datetime si es una cadena
+            if isinstance(fecha_cambio, str):
+                fecha_cambio = datetime.strptime(fecha_cambio, "%Y-%m-%d %H:%M:%S")
 
-                # Si no hay un canal configurado, selecciona el primer canal disponible
-                if channel_id is None:
+            ahora = datetime.now()
+
+            # Verificar si han pasado 24 horas desde el último evento
+            if ahora - fecha_cambio >= timedelta(hours=24):
+                # Generar un nuevo evento y actualizar la base de datos
+                self.generar_nuevo_evento()
+            else:
+                logging.info(f"El evento natural actual es: {evento_actual}, aún no han pasado 24 horas.")
+        except Exception as e:
+            logging.error(f"Error procesando el evento diario: {e}")
+
+    def generar_nuevo_evento(self):
+        evento_aleatorio = self.get_event_chance()
+        nuevo_evento = self.get_event_data(evento_aleatorio)
+        self.event_name = evento_aleatorio
+        self.event_data = nuevo_evento
+
+        # Actualizar el evento en la base de datos
+        update_current_natural_event(evento_aleatorio, datetime.now())
+        logging.info(f"El evento natural ha cambiado a: {self.event_name}")
+
+        # Enviar el mensaje del evento a los canales correspondientes, pasando también el nombre
+        self.bot.loop.create_task(self.enviar_evento_a_canales(evento_aleatorio, nuevo_evento))
+
+    async def enviar_evento_a_canales(self, evento_nombre, evento):
+        """
+        Envía el mensaje del evento natural a todos los servidores configurados.
+        """
+        for guild in self.bot.guilds:
+            guild_id = str(guild.id)
+            channel_id = load_channel_setting(guild_id)
+
+            # Configurar el canal si no está definido
+            if channel_id is None:
+                channel = next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
+                if channel:
+                    channel_id = channel.id
+                    save_channel_setting(guild_id, channel_id)
+                else:
+                    logging.warning(f"No hay canales disponibles para enviar mensajes en {guild.name}.")
+                    continue
+            else:
+                channel = self.bot.get_channel(channel_id)
+                if not channel or not channel.permissions_for(guild.me).send_messages:
                     channel = next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
                     if channel:
                         channel_id = channel.id
-                        save_channel_setting(guild_id, channel_id)  # Guarda este canal como el predeterminado
+                        save_channel_setting(guild_id, channel_id)
                     else:
                         logging.warning(f"No hay canales disponibles para enviar mensajes en {guild.name}.")
                         continue
-                else:
-                    channel = self.bot.get_channel(channel_id)
-                    if not channel or not channel.permissions_for(guild.me).send_messages:
-                        channel = next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
-                        if channel:
-                            channel_id = channel.id
-                            save_channel_setting(guild_id, channel_id)  # Guarda este nuevo canal como el predeterminado
-                        else:
-                            logging.warning(f"No hay canales disponibles para enviar mensajes en {guild.name}.")
-                            continue
 
-                # Obtener los datos del evento actual
-                data = self.event_data
-                data_name = self.event_name
-                data_tier = data["tier"][0]
-                data_msg = data["msg"].format(propiedades=data_tier)
-                data_color = data["color"]
+            # Crear el embed para el evento, usando el nombre del evento directamente
+            embed = discord.Embed(
+                title=f"Evento Natural: {evento_nombre}",
+                description=evento['msg'],
+                color=discord.Color.red()
+            )
+            embed.set_image(url=evento['url'])
+            embed.add_field(name="Nivel de impacto (Tier)", value=str(evento['tier'][0]), inline=False)
 
-                # Crear un embed con la información del evento
-                embed = discord.Embed(
-                    title=f"Evento Natural: {data_name}",
-                    description=data_msg,
-                    color=discord.Color.red()
-                )
-                embed.set_image(url=data["url"])
-                embed.add_field(name="Nivel de impacto (Tier)", value=str(data_tier), inline=False)
-
-                if data_name != "Domingo de Diosito":
-                    # Realizar acciones dependiendo del color afectado
-                    propiedades_afectadas = obtener_propiedades_por_color(data_color) if data_color != "all" else obtener_propiedades_por_color(None)
-                    for propiedad in propiedades_afectadas:
-                        user_id = propiedad['inversionista_id']
-                        propiedades_usuario = obtener_propiedades_por_usuario(user_id)
-
-                        # Filtrar propiedades que coinciden con el color afectado si no es "all"
-                        propiedades_dañadas = [p for p in propiedades_usuario if p['color'] == data_color] if data_color != "all" else propiedades_usuario
-                        propiedades_destruidas = min(len(propiedades_dañadas), data_tier)  # Destruir propiedades según el tier
-
-                        # Eliminar las propiedades destruidas de la lista de propiedades del usuario
-                        propiedades_eliminadas = propiedades_dañadas[:propiedades_destruidas]
-                        for propiedad in propiedades_eliminadas:
-                            eliminar_propiedad(propiedad['id'])
-
-                        logging.warning(f"{propiedades_destruidas} propiedades de color {data_color} fueron destruidas para el usuario {user_id}")
-
-                # Enviar el embed al canal correspondiente
-                await channel.send(embed=embed)
-
-        except Exception as e:
-            logging.error(f"Error procesando el evento diario en {guild.name}:", exc_info=e)
+            await channel.send(embed=embed)
 
     @daily_natural_event.before_loop
     async def before_daily_natural_event(self):
@@ -192,7 +194,6 @@ class NaturalEvents(commands.Cog):
     async def slash_ver_evento(self, interaction: discord.Interaction):
         ctx = await commands.Context.from_interaction(interaction)
         await self._ver_evento(ctx)
-
 
     async def _ver_evento(self, ctx):
         try:
@@ -223,15 +224,12 @@ class NaturalEvents(commands.Cog):
         except Exception as e:
             logging.error(f"Error al ver el evento global actual:", exc_info=e)
 
-
-   
-
     @commands.Cog.listener()
     async def on_ready(self):
         logging.debug("Bot is ready. Verifying members registration...")
         # Asegurarse de que siempre haya un evento actual al iniciar
         self.manejar_eventos_diarios(None, None)
-    
+
 
 async def setup(bot):
     await bot.add_cog(NaturalEvents(bot))
