@@ -1133,7 +1133,7 @@ class MarketCommands(commands.Cog):
         notificaciones_guild = {}
 
         for inversionista in inversionistas:
-            usuario_id = inversionista['inversionista_id']
+            usuario_id = inversionista['usuario_id']
             id = inversionista['id']
             try:
                 user = get_user_inversionista(usuario_id)  # Consulta a la tabla 'users' para obtener guild_id
