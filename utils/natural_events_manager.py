@@ -6,6 +6,7 @@ import time
 from contextlib import closing
 from config import DATABASE_CONFIG
 
+
 def connect_db():
     try:
         conn = mysql.connector.connect(**DATABASE_CONFIG)
@@ -14,6 +15,7 @@ def connect_db():
     except Error as e:
         logging.error(f"Error: {e}")
         return None
+
 
 def retry_query(func, *args, **kwargs):
     delay = 0.1
@@ -27,6 +29,7 @@ def retry_query(func, *args, **kwargs):
             else:
                 raise
     raise Exception("Persistent database lock error")
+
 
 def create_tables():
     def create():
@@ -45,8 +48,6 @@ def create_tables():
     retry_query(create)
 
 
-
-
 def get_current_natural_event():
     def query():
         conn = connect_db()
@@ -58,6 +59,7 @@ def get_current_natural_event():
             conn.close()
         return current_event
     return retry_query(query)
+
 
 def update_current_natural_event(event_name, fecha_cambio):
     def query():
@@ -72,6 +74,7 @@ def update_current_natural_event(event_name, fecha_cambio):
                 conn.commit()
             conn.close()
     retry_query(query)
+
 
 def get_events_date(columna_fecha, fecha_actual):
     conn = connect_db()
