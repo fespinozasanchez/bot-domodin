@@ -9,21 +9,24 @@ class Reminder(commands.Cog):
         self.bot = bot
         self.reminder_manager = reminder_manager
 
-    @commands.command(help="Establece un recordatorio para una hora específica. Usa el formato HH:MM.")
-    async def recordar(self, ctx, time: str, *, message: str):
+    @commands.command(help="Establece un recordatorio para una fecha y hora específicas. Usa el formato DD/MM/YYYY HH:MM.")
+    async def recordar(self, ctx, date: str, time: str, *, message: str):
         try:
-            reminder_time = datetime.strptime(time, '%H:%M').time()
+            # Combinar fecha y hora en un solo string y luego convertirlo a datetime
+            datetime_str = f"{date} {time}"
+            reminder_datetime = datetime.strptime(datetime_str, '%d/%m/%Y %H:%M')
             now = datetime.now()
-            reminder_datetime = datetime.combine(now, reminder_time)
 
             if reminder_datetime < now:
-                reminder_datetime += timedelta(days=1)
+                await ctx.send("La fecha y hora proporcionadas ya han pasado. Por favor, proporciona una fecha futura.")
+                return
 
+            # Guardar el recordatorio
             self.reminder_manager.add_reminder(
                 reminder_datetime, message, ctx.channel.id)
-            await ctx.send(f"Recordatorio establecido para las {time} con el mensaje: {message}")
+            await ctx.send(f"Recordatorio establecido para {reminder_datetime.strftime('%d/%m/%Y %H:%M')} con el mensaje: {message}")
         except ValueError:
-            await ctx.send("Formato de hora no válido. Usa HH:MM en formato 24 horas.")
+            await ctx.send("Formato no válido. Usa DD/MM/YYYY HH:MM en formato 24 horas.")
 
     @commands.command(help="Muestra una lista de todos los recordatorios establecidos.")
     async def recordatorios(self, ctx):
@@ -32,7 +35,10 @@ class Reminder(commands.Cog):
             embed = discord.Embed(title="Recordatorios",
                                   color=discord.Color.blurple())
             for reminder in reminders:
-                embed.add_field(name=f"Recordatorio {reminder['id']}",value=f"Hora: {reminder['reminder_time'].strftime('%H:%M')} - Mensaje: {reminder['message']}",inline=False)
+                # Mostrar la fecha y hora del recordatorio
+                embed.add_field(name=f"Recordatorio {reminder['id']}",
+                                value=f"Fecha y hora: {reminder['reminder_time'].strftime('%d/%m/%Y %H:%M')} - Mensaje: {reminder['message']}",
+                                inline=False)
             await ctx.send(embed=embed)
         else:
             await ctx.send("No hay recordatorios establecidos.")
@@ -41,7 +47,7 @@ class Reminder(commands.Cog):
     async def remover_recordatorio(self, ctx, reminder_id: int):
         reminder = self.reminder_manager.remove_reminder(reminder_id)
         if reminder:
-            await ctx.send(f"Recordatorio para las {reminder['reminder_time'].strftime('%H:%M')} con el mensaje: {reminder['message']} ha sido eliminado.")
+            await ctx.send(f"Recordatorio para {reminder['reminder_time'].strftime('%d/%m/%Y %H:%M')} con el mensaje: {reminder['message']} ha sido eliminado.")
         else:
             await ctx.send("Índice fuera de rango. Por favor, proporciona un índice válido.")
 

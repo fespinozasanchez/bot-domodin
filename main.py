@@ -43,14 +43,27 @@ fun_commands.register_commands(bot)
 
 
 async def load_cogs():
-    await bot.load_extension('cogs.hangman')
-    await bot.load_extension('commands.music_commands')
-    await bot.load_extension('features.betting_system')
-    await bot.load_extension('features.economy')
-    await bot.load_extension('moderation.moderation_commands')
-    await bot.load_extension('commands.reminder_commands')
-    await bot.load_extension('features.prediction_system')
-    await bot.load_extension('commands.rpg_commands')  # Cargar el módulo RPG como un cog
+    cogs = [
+        'cogs.hangman',
+        'commands.music_commands',
+        'features.betting_system',
+        'features.economy',
+        'moderation.moderation_commands',
+        'commands.reminder_commands',
+        'features.prediction_system',
+        'commands.rpg_commands',
+        'riot.leagueoflegends',
+        'commands.market_commands',
+        'features.eventos_naturales',
+        # 'cogs.monopoly',
+    ]
+
+    for cog in cogs:
+        try:
+            await bot.load_extension(cog)
+            print(f'Loaded cog: {cog}')
+        except Exception as e:
+            print(f'Failed to load cog {cog}: {e}')
 
 
 @tasks.loop(seconds=60)
@@ -60,19 +73,61 @@ async def check_reminders():
 
 @bot.event
 async def on_ready():
+    # Inicia la tarea de recordatorios
     check_reminders.start()
+
+    # Cambia la presencia del bot
     await bot.change_presence(
         activity=discord.Activity(type=discord.ActivityType.watching,
-                                  name='[CSEC IT: Pascal Programming in 1 hour | MAKE IT SIMPLE TT]'),
+                                  name='Dom domo din, el sabio dueño de Domodin, está vigilando...'),
         status=discord.Status.dnd
     )
+
+    # Sincroniza los slash commands
+    try:
+        await bot.tree.sync()  # Sincroniza los comandos en Discord
+        print(f"Slash commands synced successfully.")
+    except Exception as e:
+        print(f"Error syncing slash commands: {e}")
+
+    # Mensaje cuando el bot esté listo
     print(f'We have logged in as {bot.user}')
 
 
+# Evento para registrar todos los comandos ejecutados
+@bot.event
+async def on_command(ctx):
+    # Obtén el logger para comandos
+    command_logger = logging.getLogger('command_logger')
+
+    # Registrar información sobre el comando ejecutado
+    command_logger.info(f'Comando ejecutado: {ctx.command} - Usuario: {ctx.author} - Servidor: {ctx.guild.name}')
+
+
+@bot.event
+async def on_app_command_completion(interaction: discord.Interaction, command: discord.app_commands.Command):
+    # Obtén el logger para comandos
+    command_logger = logging.getLogger('command_logger')
+
+    # Registrar información sobre el comando slash ejecutado
+    command_logger.info(f'Comando slash ejecutado: {command.name} - Usuario: {interaction.user} - Servidor: {interaction.guild.name}')
+
+
 async def main():
-    setup_logger()
-    await load_cogs()
-    await bot.start(token)
+    @bot.command()
+    async def sync(ctx):
+        await bot.tree.sync()
+        await ctx.send("Sincronizado")
+
+    try:
+        setup_logger()  # Configura el logger
+        await load_cogs()
+        await bot.start(token)
+    except KeyboardInterrupt:
+        await bot.close()
+    except Exception as e:
+        logging.error(f"An error occurred: {str(e)}")
+        await bot.close()
 
 
 if __name__ == '__main__':
