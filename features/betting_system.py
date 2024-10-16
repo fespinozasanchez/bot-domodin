@@ -216,7 +216,7 @@ class Betting(commands.Cog):
             save_roulette_status(user_id, guild_id, datetime.now(), False)
 
         # Resultado de la ruleta
-        resultado = random.choices([0, 1], weights=[70, 30], k=1)[0]
+        resultado = random.choices([0, 1], weights=[60, 40], k=1)[0]
         if resultado == 1:
             ganancia = cantidad_float * (2 if all_in else 1.30)
             user_data['balance'] += ganancia
