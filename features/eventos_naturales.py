@@ -152,7 +152,6 @@ class NaturalEvents(commands.Cog):
                         # Eliminar las propiedades destruidas de la lista de propiedades del usuario
                         propiedades_eliminadas = propiedades_dañadas[:propiedades_destruidas]
                         for propiedad in propiedades_eliminadas:
-                            print(f'Eliminando propiedad {propiedad["id"]} del usuario: {user_id}')
                             eliminar_propiedad(propiedad['id'])
 
                         logging.warning(f"{propiedades_destruidas} propiedades de color {data_color} fueron destruidas para el usuario {user_id}")
