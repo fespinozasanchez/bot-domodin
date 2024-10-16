@@ -60,9 +60,20 @@ class MarketCommands(commands.Cog):
             # Registramos al usuario como inversionista y obtenemos su ID
             user_id = register_investor(usuario_id, guild_id)
 
+        except Exception as e:
+            # Enviamos un mensaje de éxito
+            logging.error(f"Error al registrar al inversionista: {str(e)}")
+            embed = discord.Embed(
+                title="¡Registro Fallido de inversor!",
+                description=f"Ocurrió un error al registrarte como inversionista.\nPor favor, intenta nuevamente.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+
+        try:
             propiedad_inicial = generar_propiedad(tipo='hogar')
             propiedad_inicial["es_residencia_principal"] = True
-            propiedad_inicial['usuario_id'] = user_id
+            propiedad_inicial['inversionista_id'] = user_id
 
             # Guardamos la propiedad asociada al usuario registrado
             guardar_propiedad(propiedad_inicial)
@@ -74,12 +85,10 @@ class MarketCommands(commands.Cog):
                 color=discord.Color.blue()
             )
             await ctx.send(embed=embed)
-
         except Exception as e:
-            # Enviamos un mensaje de éxito
             logging.error(f"Error al registrar al inversionista: {str(e)}")
             embed = discord.Embed(
-                title="¡Registro Fallido!",
+                title="¡Registro Fallido de propiedad!",
                 description=f"Ocurrió un error al registrarte como inversionista.\nPor favor, intenta nuevamente.",
                 color=discord.Color.red()
             )
@@ -119,7 +128,7 @@ class MarketCommands(commands.Cog):
         try:
             propiedad = generar_propiedad(tipo)
             user_id = obtener_id_inversionista(usuario_id, guild_id)
-            propiedad['usuario_id'] = user_id
+            propiedad['inversionista_id'] = user_id
             comprar_propiedad(usuario_id, guild_id, propiedad)
             embed = discord.Embed(
                 title="¡Compra Exitosa!",
@@ -370,7 +379,7 @@ class MarketCommands(commands.Cog):
 
         id_inversionista = obtener_id_inversionista(usuario_id, guild_id)
         propiedad = self.ultima_propiedad_generada
-        propiedad['usuario_id'] = id_inversionista
+        propiedad['inversionista_id'] = id_inversionista
 
         try:
             comprar_propiedad(usuario_id, guild_id, propiedad)
@@ -1020,7 +1029,7 @@ class MarketCommands(commands.Cog):
         notificaciones_guild = {}
 
         for usuario in usuarios:
-            usuario_id = usuario['usuario_id']
+            usuario_id = usuario['inversionista_id']
             id = usuario['id']
             try:
                 user = get_user_inversionista(usuario_id)
@@ -1043,7 +1052,7 @@ class MarketCommands(commands.Cog):
 
             # Actualizamos la fecha del próximo desgaste para 7 días después
             nueva_fecha = datetime.now() + timedelta(days=7)
-            actualizar_fecha_tarea('next_desgaste', usuario['usuario_id'], nueva_fecha)
+            actualizar_fecha_tarea('next_desgaste', usuario['inversionista_id'], nueva_fecha)
 
             # Acumulamos notificaciones por guild
             if guild_id not in notificaciones_guild:
@@ -1072,7 +1081,7 @@ class MarketCommands(commands.Cog):
         notificaciones_guild = {}
 
         for inversionista in inversionistas:
-            usuario_id = inversionista['usuario_id']
+            usuario_id = inversionista['inversionista_id']
             id = inversionista['id']
             try:
                 user = get_user_inversionista(usuario_id)  # Consulta para obtener los datos del usuario desde 'users'
@@ -1121,7 +1130,7 @@ class MarketCommands(commands.Cog):
         notificaciones_guild = {}
 
         for inversionista in inversionistas:
-            usuario_id = inversionista['usuario_id']
+            usuario_id = inversionista['inversionista_id']
             id = inversionista['id']
             try:
                 user = get_user_inversionista(usuario_id)  # Consulta a la tabla 'users' para obtener guild_id
@@ -1173,7 +1182,7 @@ class MarketCommands(commands.Cog):
 
         # Cobrar el costo diario a cada inversionista
         for inversionista in inversionistas:
-            usuario_id = inversionista['usuario_id']
+            usuario_id = inversionista['inversionista_id']
             id = inversionista['id']
             try:
                 user = get_user_inversionista(usuario_id)  # Consulta para obtener el 'guild_id'
@@ -1219,8 +1228,8 @@ class MarketCommands(commands.Cog):
 
         # Despenalizar usuarios penalizados
         for usuario in usuarios:
-            despenalizar_propietario(usuario['usuario_id'])
-            logging.info(f"El usuario {usuario['usuario_id']} ha sido despenalizado.")
+            despenalizar_propietario(usuario['inversionista_id'])
+            logging.info(f"El usuario {usuario['inversionista_id']} ha sido despenalizado.")
 
         # Enviar notificación solo a servidores con usuarios penalizados
         for guild in self.bot.guilds:
