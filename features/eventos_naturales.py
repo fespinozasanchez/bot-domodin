@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands, tasks
 from utils.natural_events_manager import get_current_natural_event, update_current_natural_event
-from utils.market_data_manager import obtener_propiedades_por_color
+from utils.market_data_manager import eliminar_propiedad, obtener_propiedades_por_color, obtener_propiedades_por_usuario
 from utils.data_manager import load_all_users, load_user_data, save_user_data, set_balance
 from market_module.const_market import COLORS
 from .natural_events_const import EVENTS
@@ -11,6 +11,7 @@ import random as ra
 from utils.channel_manager import save_channel_setting, load_channel_setting
 
 logging.basicConfig(level=logging.DEBUG)
+
 
 class NaturalEvents(commands.Cog):
     def __init__(self, bot):
@@ -28,7 +29,7 @@ class NaturalEvents(commands.Cog):
 
     def get_event_name(self):
         return self.event_name
-    
+
     def get_event_data_info(self):
         return self.event_data
 
@@ -43,8 +44,6 @@ class NaturalEvents(commands.Cog):
     @staticmethod
     def get_event_tier(event_data):
         return ra.choices(event_data["tier"], event_data["tier_weight"])[0]
-    
- 
 
     def manejar_eventos_diarios(self, evento_actual, fecha_cambio):
         try:
@@ -123,27 +122,44 @@ class NaturalEvents(commands.Cog):
                             logging.warning(f"No hay canales disponibles para enviar mensajes en {guild.name}.")
                             continue
 
+                # Obtener los datos del evento actual
+                data = self.get_event_data_info()
+                data_name = self.get_event_name()
+                data_tier = self.get_event_tier(data)
+                data_msg = data["msg"].format(propiedades=data_tier)
+                data_color = data["color"]
 
-                data= self.get_event_data_info()
-                data_name= self.get_event_name()
-                data_msg= data["msg"]
-                data_tier= data["tier"][0]
-                data_color= data["color"]
-                if data_color == "all":
-                    print('all')
-                elif data_color == "blue":
-                    print('blue')
-                elif data_color == "red":
-                    print('red')
-                elif data_color == "orange":
-                    print('orange')
-                elif data_color == "purple":
-                    print('purple')
-                elif data_color == "pink":
-                    print('pink')
-                elif data_color == "yellow":
-                    print('yellow')
-            
+                # Crear un embed con la información del evento
+                embed = discord.Embed(
+                    title=f"Evento Natural: {data_name}",
+                    description=data_msg,
+                    color=discord.Color.red()
+                )
+                embed.set_image(url=data["url"])
+                embed.add_field(name="Nivel de impacto (Tier)", value=str(data_tier), inline=False)
+
+                if data_name != "Domingo de Diosito":
+                    # Realizar acciones dependiendo del color afectado
+                    propiedades_afectadas = obtener_propiedades_por_color(data_color) if data_color != "all" else obtener_propiedades_por_color(None)
+                    for propiedad in propiedades_afectadas:
+                        user_id = propiedad['inversionista_id']
+                        propiedades_usuario = obtener_propiedades_por_usuario(user_id)
+
+                        # Filtrar propiedades que coinciden con el color afectado si no es "all"
+                        propiedades_dañadas = [p for p in propiedades_usuario if p['color'] == data_color] if data_color != "all" else propiedades_usuario
+                        propiedades_destruidas = min(len(propiedades_dañadas), data_tier)  # Destruir propiedades según el tier
+
+                        # Eliminar las propiedades destruidas de la lista de propiedades del usuario
+                        propiedades_eliminadas = propiedades_dañadas[:propiedades_destruidas]
+                        for propiedad in propiedades_eliminadas:
+                            print(f'Eliminando propiedad {propiedad["id"]} del usuario: {user_id}')
+                            eliminar_propiedad(propiedad['id'])
+
+                        logging.warning(f"{propiedades_destruidas} propiedades de color {data_color} fueron destruidas para el usuario {user_id}")
+
+                # Enviar el embed al canal correspondiente
+                await channel.send(embed=embed)
+
         except Exception as e:
             logging.error(f"Error procesando el evento diario en {guild.name}:", exc_info=e)
 
@@ -154,18 +170,9 @@ class NaturalEvents(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         logging.debug("Bot is ready. Verifying members registration...")
-        for guild in self.bot.guilds:
-            guild_id = str(guild.id)
-            for member in guild.members:
-                if not member.bot:
-                    user_id = str(member.id)
-                    key = f"{user_id}_{guild_id}"
-                    if key not in self.data:
-                        self.data[key] = {
-                            'guild_id': guild_id, 'balance': 50000}
-                        set_balance(user_id, guild_id, 50000)
         # Asegurarse de que siempre haya un evento actual al iniciar
         self.manejar_eventos_diarios(None, None)
+
 
 async def setup(bot):
     await bot.add_cog(NaturalEvents(bot))
