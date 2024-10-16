@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import logging
 import random as ra
 from utils.channel_manager import save_channel_setting, load_channel_setting
+from discord import app_commands
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -98,6 +99,9 @@ class NaturalEvents(commands.Cog):
         except Exception as e:
             logging.error(f"Error al manejar los eventos diarios: {e}")
 
+
+
+
     @tasks.loop(hours=1)
     async def daily_natural_event(self):
         try:
@@ -179,12 +183,55 @@ class NaturalEvents(commands.Cog):
     async def before_daily_natural_event(self):
         await self.bot.wait_until_ready()
 
+    @commands.command(name='ver_evento', help="Muestra el evento natural actual")
+    async def ver_evento(self, ctx):
+        await self._ver_evento(ctx)
+
+    # Slash Command
+    @app_commands.command(name='ver_evento', description='Muestra el evento natural actual')
+    async def slash_ver_evento(self, interaction: discord.Interaction):
+        ctx = await commands.Context.from_interaction(interaction)
+        await self._ver_evento(ctx)
+
+
+    async def _ver_evento(self, ctx):
+        try:
+            resultado_evento = get_current_natural_event()
+            if resultado_evento is None:
+                await ctx.send("No se encontraron eventos naturales activos.")
+                return
+
+            evento_actual = resultado_evento['current_event']
+            fecha_cambio = resultado_evento['updated_at']
+            self.manejar_eventos_diarios(evento_actual, fecha_cambio)
+
+            evento = self.event_data
+            evento_nombre = self.event_name
+            evento_tier = evento["tier"][0]
+            evento_msg = evento["msg"].format(propiedades=evento_tier)
+            evento_color = evento["color"]
+
+            embed = discord.Embed(
+                title=f"Evento Natural: {evento_nombre}",
+                description=evento_msg,
+                color=discord.Color.red()
+            )
+            embed.set_image(url=evento["url"])
+            embed.add_field(name="Nivel de impacto (Tier)", value=str(evento_tier), inline=False)
+
+            await ctx.send(embed=embed)
+        except Exception as e:
+            logging.error(f"Error al ver el evento global actual:", exc_info=e)
+
+
+   
+
     @commands.Cog.listener()
     async def on_ready(self):
         logging.debug("Bot is ready. Verifying members registration...")
         # Asegurarse de que siempre haya un evento actual al iniciar
         self.manejar_eventos_diarios(None, None)
-
+    
 
 async def setup(bot):
     await bot.add_cog(NaturalEvents(bot))
