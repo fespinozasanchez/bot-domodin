@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands, tasks
-from utils.natural_events_manager import get_current_natural_event, update_current_natural_event,get_events_date
+from utils.natural_events_manager import get_current_natural_event, update_current_natural_event, get_events_date
 from utils.market_data_manager import eliminar_propiedad, obtener_propiedades_por_color, obtener_propiedades_por_usuario
 from utils.data_manager import load_all_users, load_user_data, save_user_data, set_balance
 from market_module.const_market import COLORS
@@ -21,7 +21,6 @@ class NaturalEvents(commands.Cog):
         self._event_name = None
         self._event_data = None
 
-
     @property
     def event_name(self):
         return self._event_name
@@ -38,9 +37,6 @@ class NaturalEvents(commands.Cog):
     def event_data(self, value):
         self._event_data = value
 
-
-
-
     @staticmethod
     def get_event_chance():
         return ra.choices(list(EVENTS.keys()), [v["chance"] for v in EVENTS.values()])[0]
@@ -48,8 +44,6 @@ class NaturalEvents(commands.Cog):
     @classmethod
     def get_event_data(cls, event_chance):
         return EVENTS[event_chance]
-
-
 
     def manejar_eventos_diarios(self, evento_actual, fecha_cambio):
         try:
@@ -60,7 +54,6 @@ class NaturalEvents(commands.Cog):
                 # Generar y guardar un nuevo evento si no existe ninguno
                 evento_aleatorio = self.get_event_chance()
                 nuevo_evento = self.get_event_data(evento_aleatorio)
-
 
                 # Asignar los valores a los atributos de la clase
                 self.event_name = evento_aleatorio
@@ -105,9 +98,7 @@ class NaturalEvents(commands.Cog):
         except Exception as e:
             logging.error(f"Error al manejar los eventos diarios: {e}")
 
-
-
-    @tasks.loop(hours=24)
+    @tasks.loop(hours=1)
     async def daily_natural_event(self):
         try:
             resultado_evento = get_current_natural_event()
@@ -183,7 +174,6 @@ class NaturalEvents(commands.Cog):
 
         except Exception as e:
             logging.error(f"Error procesando el evento diario en {guild.name}:", exc_info=e)
-
 
     @daily_natural_event.before_loop
     async def before_daily_natural_event(self):
