@@ -46,19 +46,22 @@ class MarketCommands(commands.Cog):
     async def _registrar_inversionista(self, ctx):
         usuario_id = str(ctx.author.id)
         guild_id = str(ctx.guild.id)
-
-        # Verificamos si el usuario ya está registrado como inversionista
-        if es_inversionista(usuario_id, guild_id):
-            embed = discord.Embed(
-                title="¡Registro Fallido!",
-                description="Ya estás registrado como inversionista.",
-                color=discord.Color.red()
-            )
-            await ctx.send(embed=embed)
-
         try:
-            # Registramos al usuario como inversionista y obtenemos su ID
-            user_id = register_investor(usuario_id, guild_id)
+            # Verificamos si el usuario ya está registrado como inversionista
+            if es_inversionista(usuario_id, guild_id):
+                embed = discord.Embed(
+                    title="¡Registro Fallido!",
+                    description="Ya estás registrado como inversionista.",
+                    color=discord.Color.red()
+                )
+                await ctx.send(embed=embed)
+                return 
+            else:
+                # Registramos al usuario como inversionista y obtenemos su ID
+                user_id = register_investor(usuario_id, guild_id)
+
+       
+            
 
         except Exception as e:
             # Enviamos un mensaje de éxito
