@@ -11,7 +11,7 @@ from utils.custom_help import CustomHelpCommand
 from utils.logger import setup_logger
 from utils.reminder_manager import ReminderManager
 from features import copa_america
-
+from cogs.monopoly import Monopoly
 
 def def_handler(sig, frame):
     print("\n\n[!] Saliendo...\n")
@@ -63,6 +63,7 @@ async def load_cogs():
             print(f'Loaded cog: {cog}')
         except Exception as e:
             print(f'Failed to load cog {cog}: {e}')
+        await bot.add_cog(Monopoly(bot))
 
 
 @tasks.loop(seconds=60)
