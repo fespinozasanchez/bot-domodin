@@ -190,7 +190,7 @@ class Betting(commands.Cog):
                 await ctx.send(embed=embed)
                 return
 
-            if cantidad_float * 1.45 > max_win_amount:
+            if cantidad_float * 1.30 > max_win_amount:
                 max_win_amount = f"${max_win_amount:,.0f}".replace(",", ".")
                 embed = discord.Embed(
                     title="🚫 Ganancia Máxima Excedida",
@@ -201,7 +201,7 @@ class Betting(commands.Cog):
                 return
 
         # Comprobar si el banco tiene fondos suficientes
-        if bot_data['balance'] < (cantidad_float * (2 if all_in else 1.45)):
+        if bot_data['balance'] < (cantidad_float * (2 if all_in else 1.30)):
             embed = discord.Embed(
                 title="❌ Apuesta Denegada",
                 description="El banco no tiene suficientes MelladoCoins para realizar esta apuesta.",
@@ -216,9 +216,9 @@ class Betting(commands.Cog):
             save_roulette_status(user_id, guild_id, datetime.now(), False)
 
         # Resultado de la ruleta
-        resultado = random.choices([0, 1], weights=[60, 40], k=1)[0]
+        resultado = random.choices([0, 1], weights=[70, 30], k=1)[0]
         if resultado == 1:
-            ganancia = cantidad_float * (2 if all_in else 1.45)
+            ganancia = cantidad_float * (2 if all_in else 1.30)
             user_data['balance'] += ganancia
             bot_data['balance'] -= ganancia
             ganancia_formateada = f"${ganancia:,.0f}".replace(",", ".")
