@@ -44,7 +44,6 @@ def generar_propiedad(tipo):
     controladores = generar_controladores()
 
     porcentajes_colores = obtener_proporciones_barrio(barrio)
-
     # Nombre según tipo y nivel
     if tipo == "hogar":
         nombre = random.choice(NOMBRES_HOGAR[nivel])
@@ -54,13 +53,14 @@ def generar_propiedad(tipo):
         nombre = random.choice(NOMBRES_TIENDA[nivel])
         arrendada = True
         es_residencia_principal = False
-
     # Calcular valores
-    valor_compra = calcular_valor_compra(nivel, tier, tamaño, pisos,suerte)
-    renta_diaria = calcular_renta_diaria(nivel,tier, suerte, desgaste, controladores, porcentajes_colores, color, valor_compra)
-    costo_diario = calcular_costo_diario( tier, tamaño, pisos, renta_diaria,suerte)
-    costo_mantenimiento = calcular_costo_mantenimiento(nivel, tier, tamaño, pisos,suerte)
+    valor_compra = calcular_valor_compra(nivel, tier, tamaño, pisos, suerte)
 
+    renta_diaria = calcular_renta_diaria(nivel, tier, suerte, desgaste, controladores, porcentajes_colores, color, valor_compra)
+
+    costo_diario = calcular_costo_diario(tier, tamaño, pisos, renta_diaria)
+
+    costo_mantenimiento = calcular_costo_mantenimiento(nivel, tier, tamaño, pisos, suerte)
     # Crear la propiedad
     propiedad = {
         "id": None,  # El ID se asignará cuando se inserte en la base de datos
@@ -83,7 +83,6 @@ def generar_propiedad(tipo):
         "arrendada": arrendada,  # Indica si la propiedad está arrendada
         "es_residencia_principal": es_residencia_principal  # Indica si la propiedad es la residencia principal
     }
-
     return propiedad
 
 
@@ -252,13 +251,14 @@ def register_investor(usuario_id, guild_id):
                     user_data = cursor.fetchone()
 
                     if user_data:
-                        user_id = user_data['id']
+                        user_id = int(user_data['id'])
+
                         # Insertamos al usuario como inversionista con el id obtenido
                         cursor.execute('''INSERT INTO inversionistas (
-                                        usuario_id, penalizado, 
-                                        next_desgaste, next_renta, 
-                                        next_mantenimiento, next_costos_diarios) 
-                                        VALUES (%s, %s, %s, %s, %s, %s)''',
+                                            usuario_id, penalizado, 
+                                            next_desgaste, next_renta, 
+                                            next_mantenimiento, next_costos_diarios) 
+                                            VALUES (%s, %s, %s, %s, %s, %s)''',
                                        (user_id, False, datetime.now(), datetime.now(), datetime.now(), datetime.now()))
 
                         conn.commit()
@@ -268,7 +268,7 @@ def register_investor(usuario_id, guild_id):
                         inversionista_data = cursor.fetchone()
 
                         if inversionista_data:
-                            return inversionista_data['inversionista_id']  # Devolvemos el ID del inversionista registrado
+                            return inversionista_data['inversionista_id']
                         else:
                             raise Exception("Error al obtener el ID del inversionista.")
                     else:
@@ -276,6 +276,7 @@ def register_investor(usuario_id, guild_id):
                 except Error as e:
                     conn.rollback()
                     raise Exception(f"Error al registrar inversionista: {str(e)}")
+
                 finally:
                     conn.close()
 
@@ -297,7 +298,7 @@ def guardar_propiedad(propiedad):
                                 arrendada, es_residencia_principal)
                                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
                                         %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-                               (propiedad['usuario_id'], propiedad['tipo'], propiedad['nombre'], propiedad['nivel'],
+                               (propiedad['inversionista_id'], propiedad['tipo'], propiedad['nombre'], propiedad['nivel'],
                                 propiedad['valor_compra'], propiedad['renta_diaria'], propiedad['costo_diario'],
                                 propiedad['costo_mantenimiento'], propiedad['tier'], propiedad['barrio'], propiedad['color'],
                                 propiedad['tamaño'], propiedad['pisos'], propiedad['suerte'], propiedad['desgaste'],
@@ -358,19 +359,24 @@ def obtener_propiedades_por_usuario(inversionista_id):
     return retry_query(query)
 
 
-def obtener_propiedades_por_color(inversionista_id, color):
+def obtener_propiedades_por_color(color):
     def query():
         conn = connect_db()
         propiedades = []
         if conn:
             with closing(conn.cursor(dictionary=True)) as cursor:
-                cursor.execute('SELECT * FROM propiedades WHERE inversionista_id = %s AND color = %s', (inversionista_id, color))
+                if color:
+                    cursor.execute('SELECT * FROM propiedades WHERE color = %s', (color,))
+                else:
+                    cursor.execute('SELECT * FROM propiedades')
                 propiedades = cursor.fetchall()
             conn.close()
         return propiedades
     return retry_query(query)
 
 # Actualizar el desgaste de una propiedad y su mínimo en la base de datos
+
+
 def actualizar_desgaste_propiedad(id_propiedad, nuevo_desgaste, nuevo_desgaste_minimo):
     def update():
         conn = connect_db()

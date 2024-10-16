@@ -125,13 +125,11 @@ def save_user_data(user_id, guild_id, balance):
             conn.autocommit = True  # Activar autocommit
             with closing(conn.cursor()) as cursor:
                 query = '''
-                UPDATE users 
-                SET balance = %s 
-                WHERE user_id = %s 
-                AND guild_id = %s
+                INSERT INTO users (user_id, guild_id, balance) 
+                VALUES (%s, %s, %s) 
+                ON DUPLICATE KEY UPDATE balance = VALUES(balance)
                 '''
-                # logging.info(f"Ejecutando consulta: {query} con valores: {balance}, {user_id}, {guild_id}")
-                cursor.execute(query, (balance, user_id, guild_id))  # Utiliza los placeholders correctamente
+                cursor.execute(query, (user_id, guild_id, balance))
                 conn.commit()
             conn.close()
 

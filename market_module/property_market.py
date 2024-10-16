@@ -1,4 +1,5 @@
 import random
+from venv import logger
 from market_module.const_market import TIERS, VALORES_BASE_NIVEL, SUERTE_FACTORES
 # from utils.market_data_manager import obtener_proporciones_barrio
 
@@ -46,7 +47,7 @@ def elegir_valor_ponderado_por_suerte(opciones, pesos, suerte):
 # Función no lineal para calcular el valor de compra
 
 
-def calcular_valor_compra(nivel, tier, tamaño, pisos,suerte):
+def calcular_valor_compra(nivel, tier, tamaño, pisos, suerte):
     min_valor, max_valor = VALORES_BASE_NIVEL[nivel]  # Valor base según nivel
     valor_base = min_valor + (1 - suerte) * (max_valor - min_valor)
     multiplicador_tamaño = tamaño * 0.5
@@ -56,8 +57,6 @@ def calcular_valor_compra(nivel, tier, tamaño, pisos,suerte):
     return valor_base * multiplicador_tamaño * multiplicador_pisos * tier_factor
 
 
-
-
 # Ajustes en la fórmula de renta diaria
 
 
@@ -65,7 +64,7 @@ def calcular_renta_diaria(nivel, tier, suerte, desgaste, controladores, porcenta
     valor_base = SUERTE_FACTORES['SUERTE_MIN_FACTOR'] * suerte + SUERTE_FACTORES['SUERTE_MIN_FACTOR']  # Ajustado el rango base (entre 10% y 20%)
     base_rent = valor_compra * valor_base
 
-    # Factor suerte más controlado  0.1                                                                             0.8  
+    # Factor suerte más controlado  0.1                                                                             0.8
     desgaste_factor = max(SUERTE_FACTORES['DESGASTE_MIN_FACTOR'], min((1.0 - desgaste) + 0.2, SUERTE_FACTORES['DESGASTE_MAX_FACTOR']))  # Limitar impacto de desgaste
     tier_factor = 1.0 + TIERS[tier] * nivel  # Factor basado en el tier y nivel
 
@@ -80,17 +79,21 @@ def calcular_renta_diaria(nivel, tier, suerte, desgaste, controladores, porcenta
         base_rent *= 1.10  # Se ajusta el incremento a un 10%
 
     # Renta ajustada final
-    return base_rent  * desgaste_factor * tier_factor
+    return base_rent * desgaste_factor * tier_factor
 
-def calcular_costo_diario(tier, tamaño, pisos, renta_diaria,suerte):
+
+def calcular_costo_diario(tier, tamaño, pisos, renta_diaria):
     # Cálculo del costo diario basado en la renta diaria, tier, tamaño y pisos
-    #obtiene un porcentaje segun el tier, mejor tier, menor porcentaje,
-    base_costo = (renta_diaria*0.4)
-    factor_tier = (1 -((tier))) * (1 -((tier)))/(2)
-    factor_tamano = (1+((tamaño/500)+(pisos/10))) * (1-(tier))
-    base_costo_factor = base_costo * factor_tamano * factor_tier
-    return base_costo_factor
-
+    # obtiene un porcentaje segun el tier, mejor tier, menor porcentaje,
+    try:
+        base_costo = (renta_diaria*0.4)
+        factor_tier = (1 - ((TIERS[tier]))) * (1 - ((TIERS[tier])))/(2)
+        factor_tamano = (1+((tamaño/500)+(pisos/10))) * (1-(TIERS[tier]))
+        base_costo_factor = base_costo * factor_tamano * factor_tier
+        return base_costo_factor
+    except Exception as e:
+        logger.error(f"Error al calcular el costo diario: {e}")
+        return 0
 
 
 # Función para calcular el costo de mantenimiento (más no lineal, influenciado por tamaño y pisos)
