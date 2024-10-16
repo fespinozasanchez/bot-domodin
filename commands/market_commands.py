@@ -1032,7 +1032,7 @@ class MarketCommands(commands.Cog):
         notificaciones_guild = {}
 
         for usuario in usuarios:
-            usuario_id = usuario['inversionista_id']
+            usuario_id = usuario['usuario_id']
             id = usuario['id']
             try:
                 user = get_user_inversionista(usuario_id)
@@ -1055,7 +1055,7 @@ class MarketCommands(commands.Cog):
 
             # Actualizamos la fecha del próximo desgaste para 7 días después
             nueva_fecha = datetime.now() + timedelta(days=7)
-            actualizar_fecha_tarea('next_desgaste', usuario['inversionista_id'], nueva_fecha)
+            actualizar_fecha_tarea('next_desgaste', usuario['usuario_id'], nueva_fecha)
 
             # Acumulamos notificaciones por guild
             if guild_id not in notificaciones_guild:
@@ -1084,7 +1084,7 @@ class MarketCommands(commands.Cog):
         notificaciones_guild = {}
 
         for inversionista in inversionistas:
-            usuario_id = inversionista['inversionista_id']
+            usuario_id = inversionista['usuario_id']
             id = inversionista['id']
             try:
                 user = get_user_inversionista(usuario_id)  # Consulta para obtener los datos del usuario desde 'users'
@@ -1185,7 +1185,7 @@ class MarketCommands(commands.Cog):
 
         # Cobrar el costo diario a cada inversionista
         for inversionista in inversionistas:
-            usuario_id = inversionista['inversionista_id']
+            usuario_id = inversionista['usuario_id']
             id = inversionista['id']
             try:
                 user = get_user_inversionista(usuario_id)  # Consulta para obtener el 'guild_id'

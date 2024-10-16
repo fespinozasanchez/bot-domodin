@@ -73,5 +73,14 @@ def update_current_natural_event(event_name, fecha_cambio):
             conn.close()
     retry_query(query)
 
+def get_events_date(columna_fecha, fecha_actual):
+    conn = connect_db()
+    if conn:
+        with closing(conn.cursor(dictionary=True)) as cursor:
+            cursor.execute(f'SELECT * FROM events_daily WHERE {columna_fecha} <= %s', (fecha_actual,))
+            return cursor.fetchall()
+    return []
+
+
 # Crear las tablas si no existen
 create_tables()

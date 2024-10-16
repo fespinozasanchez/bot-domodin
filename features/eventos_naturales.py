@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands, tasks
-from utils.natural_events_manager import get_current_natural_event, update_current_natural_event
+from utils.natural_events_manager import get_current_natural_event, update_current_natural_event,get_events_date
 from utils.market_data_manager import eliminar_propiedad, obtener_propiedades_por_color, obtener_propiedades_por_usuario
 from utils.data_manager import load_all_users, load_user_data, save_user_data, set_balance
 from market_module.const_market import COLORS
@@ -18,20 +18,28 @@ class NaturalEvents(commands.Cog):
         self.bot = bot
         self.data = load_all_users()
         self.daily_natural_event.start()
-        self.event_name = None
-        self.event_data = None
+        self._event_name = None
+        self._event_data = None
 
-    def set_event_name(self, event_name):
-        self.event_name = event_name
 
-    def set_event_data(self, event_data):
-        self.event_data = event_data
+    @property
+    def event_name(self):
+        return self._event_name
 
-    def get_event_name(self):
-        return self.event_name
+    @event_name.setter
+    def event_name(self, value):
+        self._event_name = value
 
-    def get_event_data_info(self):
-        return self.event_data
+    @property
+    def event_data(self):
+        return self._event_data
+
+    @event_data.setter
+    def event_data(self, value):
+        self._event_data = value
+
+
+
 
     @staticmethod
     def get_event_chance():
@@ -41,9 +49,7 @@ class NaturalEvents(commands.Cog):
     def get_event_data(cls, event_chance):
         return EVENTS[event_chance]
 
-    @staticmethod
-    def get_event_tier(event_data):
-        return ra.choices(event_data["tier"], event_data["tier_weight"])[0]
+
 
     def manejar_eventos_diarios(self, evento_actual, fecha_cambio):
         try:
@@ -54,15 +60,19 @@ class NaturalEvents(commands.Cog):
                 # Generar y guardar un nuevo evento si no existe ninguno
                 evento_aleatorio = self.get_event_chance()
                 nuevo_evento = self.get_event_data(evento_aleatorio)
-                self.set_event_name(evento_aleatorio)
-                self.set_event_data(nuevo_evento)
+
+
+                # Asignar los valores a los atributos de la clase
+                self.event_name = evento_aleatorio
+                self.event_data = nuevo_evento
+
                 update_current_natural_event(evento_aleatorio, datetime.now())
                 return
 
             evento_actual = resultado_evento['current_event']
             fecha_cambio = resultado_evento['updated_at']
-            self.set_event_name(evento_actual)
-            self.set_event_data(self.get_event_data(evento_actual))
+            self.event_name = evento_actual
+            self.event_data = self.get_event_data(evento_actual)
         except Exception as e:
             logging.error(f"Error al obtener el evento global actual: {e}")
             return
@@ -82,8 +92,8 @@ class NaturalEvents(commands.Cog):
             if ahora - fecha_cambio >= timedelta(hours=4):
                 evento_aleatorio = self.get_event_chance()  # Obtener el evento aleatorio
                 nuevo_evento = self.get_event_data(evento_aleatorio)  # Obtener los datos del evento aleatorio
-                self.set_event_name(evento_aleatorio)
-                self.set_event_data(nuevo_evento)
+                self.event_name = evento_aleatorio
+                self.event_data = nuevo_evento
                 try:
                     # Actualizar el evento global en la base de datos
                     update_current_natural_event(evento_aleatorio, ahora)
@@ -95,9 +105,21 @@ class NaturalEvents(commands.Cog):
         except Exception as e:
             logging.error(f"Error al manejar los eventos diarios: {e}")
 
+
+
     @tasks.loop(hours=24)
     async def daily_natural_event(self):
         try:
+            resultado_evento = get_current_natural_event()
+            if resultado_evento is None:
+                logging.info("No se encontraron eventos naturales activos.")
+                return
+
+            cur_event = get_events_date('updated_at', datetime.now())
+            if not cur_event:
+                logging.info("No se encontraron eventos naturales diarios.")
+                return
+
             for guild in self.bot.guilds:
                 guild_id = str(guild.id)
                 channel_id = load_channel_setting(guild_id)  # Cargar la configuración del canal
@@ -123,9 +145,9 @@ class NaturalEvents(commands.Cog):
                             continue
 
                 # Obtener los datos del evento actual
-                data = self.get_event_data_info()
-                data_name = self.get_event_name()
-                data_tier = self.get_event_tier(data)
+                data = self.event_data
+                data_name = self.event_name
+                data_tier = data["tier"][0]
                 data_msg = data["msg"].format(propiedades=data_tier)
                 data_color = data["color"]
 
@@ -161,6 +183,7 @@ class NaturalEvents(commands.Cog):
 
         except Exception as e:
             logging.error(f"Error procesando el evento diario en {guild.name}:", exc_info=e)
+
 
     @daily_natural_event.before_loop
     async def before_daily_natural_event(self):
