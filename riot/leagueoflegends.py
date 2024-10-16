@@ -15,25 +15,39 @@ class LeagueOfLegends(commands.Cog):
         self.account_service = AccountService()
         self.champion_service = ChampionService()
 
-        # Mapeo de las regiones
         self.region_mapping = {
-            "LA1": "LAN",
-            "LA2": "LAS",
-            "BR1": "BR",
-            "EUN1": "EUNE",
-            "EUW1": "EUW",
-            "JP1": "JP",
-            "KR": "KR",
-            "ME1": "TR",
-            "NA1": "NA",
-            "OC1": "OCE",
-            "PH2": "PH",
-            "RU": "RU",
-            "SG2": "SG",
-            "TH2": "TH",
-            "TR1": "TR",
-            "TW2": "TW",
-            "VN2": "VN"
+            "LAN": "la1",
+            "lan": "la1",
+            "LAS": "la2",
+            "las": "la2",
+            "BR": "br1",
+            "br": "br1",
+            "EUN": "eun1",
+            "eun": "eun1",
+            "EUW": "euw1",
+            "euw": "euw1",
+            "JP": "jp1",
+            "jp": "jp1",
+            "KR": "kr",
+            "kr": "kr",
+            "TR": "me1",
+            "tr": "me1",
+            "NA": "na1",
+            "na": "na1",
+            "OCE": "oc1",
+            "oce": "oc1",
+            "PH": "ph2",
+            "ph": "ph2",
+            "RU": "ru",
+            "ru": "ru",
+            "SG": "sg2",
+            "sg": "sg2",
+            "TH": "th2",
+            "th": "th2",
+            "TW": "tw2",
+            "tw": "tw2",
+            "VN": "vm2",
+            "vn": "vm2"
         }
 
     def get_region(self, region):
