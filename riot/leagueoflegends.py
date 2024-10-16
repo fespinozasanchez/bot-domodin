@@ -9,24 +9,51 @@ from riot.services.summoner_service import SummonerService
 from riot.services.league_service import LeagueService
 
 
-class LeageOfLegends(commands.Cog):
+class LeagueOfLegends(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.region = "la2"
         self.account_service = AccountService()
-        self.spectator_service = SpectatorService(self.region)
-        self.match_service = MatchService("americas")
-        self.mastery_service = MasteryService(self.region)
         self.champion_service = ChampionService()
-        self.summoner_service = SummonerService(self.region)
-        self.league_service = LeagueService(self.region)
+
+        # Mapeo de las regiones
+        self.region_mapping = {
+            "LA1": "LAN",
+            "LA2": "LAS",
+            "BR1": "BR",
+            "EUN1": "EUNE",
+            "EUW1": "EUW",
+            "JP1": "JP",
+            "KR": "KR",
+            "ME1": "TR",
+            "NA1": "NA",
+            "OC1": "OCE",
+            "PH2": "PH",
+            "RU": "RU",
+            "SG2": "SG",
+            "TH2": "TH",
+            "TR1": "TR",
+            "TW2": "TW",
+            "VN2": "VN"
+        }
+
+    def get_region(self, region):
+        region = region.upper()
+        return self.region_mapping.get(region, region)
 
     @commands.command(name="game")
-    async def game(self, ctx, *, summoner_name: str):
+    async def game(self, ctx, region: str, *, summoner_name: str):
         try:
+            # Obtener la región transformada si aplica
+
+            region = self.get_region(region)
+
+            # Inicializar los servicios con la región proporcionada
+            spectator_service = SpectatorService(region)
+            summoner_service = SummonerService(region)
+
             riot_id, tag = summoner_name.split('#')
             puuid = self.account_service.get_account_by_riot_id(riot_id, tag).puuid
-            spectator_data = self.spectator_service.get_current_game_by_summoner(puuid)
+            spectator_data = spectator_service.get_current_game_by_summoner(puuid)
 
             if not spectator_data:
                 await ctx.send(f"{summoner_name} no está en una partida.")
@@ -97,8 +124,15 @@ class LeageOfLegends(commands.Cog):
             await ctx.send(f"Ocurrió un error al intentar obtener la información de {summoner_name}. Error: {str(e)}")
 
     @commands.command(name="profile")
-    async def profile(self, ctx, *, summoner_name: str):
+    async def profile(self, ctx, region: str, *, summoner_name: str):
         try:
+            # Obtener la región transformada si aplica
+            region = self.get_region(region)
+
+            # Inicializar los servicios con la región proporcionada
+            summoner_service = SummonerService(region)
+            league_service = LeagueService(region)
+
             # Separar el riot_id y el tag del nombre del invocador
             riot_id, tag = summoner_name.split('#')
 
@@ -113,7 +147,7 @@ class LeageOfLegends(commands.Cog):
             puuid = account.puuid
 
             # Obtener información del invocador usando el PUUID
-            summoner = self.summoner_service.get_summoner_by_puuid(puuid)
+            summoner = summoner_service.get_summoner_by_puuid(puuid)
 
             if summoner is None:
                 await ctx.send(f"No se encontró información de invocador para {summoner_name}.")
@@ -128,7 +162,7 @@ class LeageOfLegends(commands.Cog):
             await ctx.send(embed=embed)
 
             # Obtener las ligas clasificatorias
-            ranked_data = self.league_service.get_ranked_info_by_summoner_id(summoner.id)
+            ranked_data = league_service.get_ranked_info_by_summoner_id(summoner.id)
 
             # Mapeo de los tiers para imágenes
             tier_images = {
@@ -182,4 +216,4 @@ class LeageOfLegends(commands.Cog):
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(LeageOfLegends(bot))
+    await bot.add_cog(LeagueOfLegends(bot))
