@@ -4,6 +4,7 @@ import requests
 import random
 from utils.data_manager import load_user_data, save_user_data, load_bets, save_bet, delete_bets, save_roulette_status
 from .const_economy import economic_limits, taxes
+from .const_gacha import slot_combinations, super_slot_combinations
 import logging
 from datetime import datetime, timedelta
 
@@ -363,6 +364,314 @@ class Betting(commands.Cog):
         embed_destinatario.set_thumbnail(url=destinatario.avatar.url)
         await ctx.send(embed=embed_destinatario)
 
+
+    @commands.command(name='gacha', help='Juego gacha. !gacha <cantidad>')
+    async def gacha(self, ctx, cantidad: str):
+        usuario = ctx.author
+        user_id = str(usuario.id)
+        guild_id = str(ctx.guild.id)
+        bot_user_id = str(self.bot.user.id)
+
+        # Cargar los datos del usuario
+        user_data = load_user_data(user_id, guild_id)
+        bot_data = load_user_data(bot_user_id, guild_id)
+
+        if user_data is None:
+            embed = discord.Embed(
+                title="🚫 No Registrado",
+                description=f"{usuario.name}, no estás registrado. Usa el comando !registrar para registrarte.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        try:
+            cantidad_float = float(cantidad)
+            if cantidad_float <= 0:
+                raise ValueError("La cantidad debe ser mayor que 0.")
+        except ValueError:
+            embed = discord.Embed(
+                title="🚫 Cantidad Inválida",
+                description=f"{usuario.name}, por favor ingresa una cantidad válida.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        if cantidad_float > user_data['balance']:
+            embed = discord.Embed(
+                title="🚫 Saldo Insuficiente",
+                description=f"{usuario.name}, no tienes suficiente saldo para apostar {cantidad_float:.0f} MelladoCoins.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        # Crear el embed inicial para mostrar el juego
+        embed = discord.Embed(title="🎰 ¡Gacha! 🎰", description=f"{usuario.name} está apostando {cantidad_float:.0f} MelladoCoins.", color=discord.Color.green())
+        embed.add_field(name="Resultado", value="❓ | ❓ | ❓", inline=False)
+        embed.set_footer(text="Presiona 'Girar' para jugar.")
+
+        # Crear los botones
+        button_girar = discord.ui.Button(label="Girar", style=discord.ButtonStyle.primary)
+
+        # Callback para cuando el botón sea presionado
+        async def button_callback(interaction):
+            if interaction.user != usuario:
+                await interaction.response.send_message("¡No puedes jugar en el turno de otra persona!", ephemeral=True)
+                return
+
+            # Generar los símbolos de la gachapon
+            simbolos = ['🍒', '🍋', '🍉', '🔔', '⭐']
+            resultado = random.choices(simbolos, k=3)
+
+            # Mostrar el resultado en el embed
+            embed.set_field_at(0, name="Resultado", value=f'{resultado[0]} | {resultado[1]} | {resultado[2]}')
+
+            # Calcular las ganancias
+            ganancia = 0
+            if resultado[0] == resultado[1] == resultado[2]:  # Tres iguales
+                ganancia = cantidad_float * slot_combinations[resultado[0]]
+                ganancia.replace(",", ".")
+                embed.add_field(name="Ganancia", value=f"¡Jackpot! Has ganado {ganancia:.0f} MelladoCoins.", inline=False)
+                user_data['balance'] += ganancia
+                bot_data['balance'] -= ganancia
+            elif resultado[0] == resultado[1] or resultado[1] == resultado[2]:  # Dos iguales
+                embed.add_field(name="Ganancia", value=f"¡Dos iguales! No hay ganancia esta vez.", inline=False)
+            else:
+                embed.add_field(name="Ganancia", value="No has ganado esta vez. Mejor suerte la próxima vez.", inline=False)
+                user_data['balance'] -= cantidad_float
+                bot_data['balance'] += cantidad_float
+
+            # Guardar los datos actualizados
+            save_user_data(user_id, guild_id, user_data['balance'])
+            save_user_data(bot_user_id, guild_id, bot_data['balance'])
+
+            # Botón para volver a jugar
+            button_play_again = discord.ui.Button(label="Volver a jugar", style=discord.ButtonStyle.secondary)
+
+            async def play_again_callback(interaction):
+                if interaction.user == usuario:
+                    # Reiniciar el juego actualizando el mismo embed y reutilizando el botón
+                    embed.clear_fields()  # Limpia los campos anteriores
+                    embed.add_field(name="Resultado", value="❓ | ❓ | ❓ |❓ |❓ ", inline=False)
+                    embed.set_footer(text="Presiona 'Girar' para jugar nuevamente.")
+                    
+                    view = discord.ui.View()
+                    view.add_item(button_girar)  # Volvemos a agregar el botón de "Girar"
+                    
+                    await interaction.response.edit_message(embed=embed, view=view)  # Actualizar el mensaje original
+                else:
+                    await interaction.response.send_message("¡No puedes reiniciar el juego de otra persona!", ephemeral=True)
+
+            button_play_again.callback = play_again_callback
+
+            # Crear nueva vista con botón de "Volver a jugar"
+            view = discord.ui.View()
+            view.add_item(button_play_again)
+
+            await interaction.response.edit_message(embed=embed, view=view)
+
+        # Asociar el callback al botón
+        button_girar.callback = button_callback
+
+        # Crear la vista y añadir el botón
+        view = discord.ui.View()
+        view.add_item(button_girar)
+
+        # Enviar el embed con el botón
+        await ctx.send(embed=embed, view=view)
+
+
+
+    @commands.command(name='super_gacha', help='Juego gacha avanzado. !super_gacha <cantidad>')
+    async def super_gacha(self, ctx, cantidad: str):
+        usuario = ctx.author
+        user_id = str(usuario.id)
+        guild_id = str(ctx.guild.id)
+        bot_user_id = str(self.bot.user.id)
+
+        user_data=load_user_data(user_id, guild_id)
+        bot_data=load_user_data(bot_user_id, guild_id)
+
+        if user_data is None:
+            embed = discord.Embed(
+                title="🚫 No Registrado",
+                description=f"{usuario.name}, no estás registrado. Usa el comando !registrar para registrarte.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+        
+        if cantidad is None:
+            embed = discord.Embed(
+                title="🚫 Cantidad Inválida",
+                description=f"{usuario.name}, por favor ingresa una cantidad válida.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+        try:
+            cantidad_float = float(cantidad)
+            if cantidad_float <= 0:
+                raise ValueError("La cantidad debe ser mayor que 0.")
+        except ValueError:
+            embed = discord.Embed(
+                title="🚫 Cantidad Inválida",
+                description=f"{usuario.name}, por favor ingresa una cantidad válida.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+        
+        if cantidad_float > user_data['balance']:
+            embed = discord.Embed(
+                title="🚫 Saldo Insuficiente",
+                description=f"{usuario.name}, no tienes suficiente saldo para apostar {cantidad_float:.0f} MelladoCoins.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+
+        embed = discord.Embed(title="🎰 ¡Super Gacha! 🎰", description=f"{usuario.name} está apostando {cantidad_float:.0f} MelladoCoins.", color=discord.Color.red())
+        embed.add_field(name="Resultado", value="❓ | ❓ | ❓ | ❓| ❓", inline=False)
+        embed.set_footer(text="Presiona 'Girar' para jugar.")
+
+
+        button_girar = discord.ui.Button(label="Girar", style=discord.ButtonStyle.primary)
+
+        async def button_callback(interaction):
+            if interaction.user != usuario:
+                await interaction.response.send_message("¡No puedes jugar en el turno de otra persona!", ephemeral=True)
+                return
+
+            # Generar los símbolos de la gachapon
+            simbolos = ['🍒', '🍋', '🍉', '🔔', '⭐']
+            resultado = random.choices(simbolos, k=5)
+
+            # Mostrar el resultado en el embed
+            embed.set_field_at(0, name="Resultado", value=f'{resultado[0]} | {resultado[1]} | {resultado[2]}| {resultado[3]}| {resultado[4]}')
+
+            # Calcular las ganancias
+            ganancia = 0
+            if resultado[0] == resultado[1] == resultado[2] == resultado[3] == resultado[4]:  # Cinco iguales
+                ganancia = cantidad_float * super_slot_combinations[resultado[0]]
+                ganancia = float(str(ganancia).replace(",", "."))
+                embed.add_field(name="Ganancia", value=f"¡Jackpot! Has ganado {ganancia:.0f} MelladoCoins.", inline=False)
+                user_data['balance'] += ganancia
+                bot_data['balance'] -= ganancia
+            # Cuatro iguales (ejemplo: primeros cuatro iguales o últimos cuatro iguales)
+            elif (resultado[0] == resultado[1] == resultado[2] == resultado[3] or
+                resultado[1] == resultado[2] == resultado[3] == resultado[4]):
+                ganancia = cantidad_float * super_slot_combinations[resultado[2]]  *0.50
+                ganancia = float(str(ganancia).replace(",", "."))
+                embed.add_field(name="Ganancia", value=f"¡Tres iguales! Has ganado {ganancia:.0f} MelladoCoins.", inline=False)
+                user_data['balance'] += ganancia
+                bot_data['balance'] -= ganancia
+
+            # Tres iguales (ejemplo: primeros tres iguales, últimos tres iguales, o tres intermedios)
+            elif (resultado[0] == resultado[1] == resultado[2] or
+                resultado[1] == resultado[2] == resultado[3] or
+                resultado[2] == resultado[3] == resultado[4]):
+                ganancia = cantidad_float * slot_combinations[resultado[2]]  
+                ganancia = float(str(ganancia).replace(",", "."))
+                embed.add_field(name="Ganancia", value=f"¡Tres iguales! Has ganado {ganancia:.0f} MelladoCoins.", inline=False)
+                user_data['balance'] += ganancia
+                bot_data['balance'] -= ganancia
+
+            # Dos iguales (esto generalmente tiene una ganancia menor)
+            elif (resultado[0] == resultado[1] or
+                resultado[1] == resultado[2] or
+                resultado[2] == resultado[3] or
+                resultado[3] == resultado[4]):
+                embed.add_field(name="Ganancia", value="No has ganado esta vez. Mejor suerte la próxima vez.", inline=False)
+
+            # Ninguna ganancia
+            else:
+                embed.add_field(name="Ganancia", value="No has ganado esta vez. Mejor suerte la próxima vez.", inline=False)
+                
+
+            # Guardar los datos actualizados
+            save_user_data(user_id, guild_id, user_data['balance'])
+            save_user_data(bot_user_id, guild_id, bot_data['balance'])
+
+            # Botón para volver a jugar
+            button_play_again = discord.ui.Button(label="Volver a jugar", style=discord.ButtonStyle.secondary)
+            async def play_again_callback(interaction):
+                if interaction.user == usuario:
+                    # Reiniciar el juego actualizando el mismo embed y reutilizando el botón
+                    embed.clear_fields()  # Limpia los campos anteriores
+                    embed.add_field(name="Resultado", value="❓ | ❓ | ❓ |❓ |❓", inline=False)
+                    embed.set_footer(text="Presiona 'Girar' para jugar nuevamente.")
+                    
+                    view = discord.ui.View()
+                    view.add_item(button_girar)  # Volvemos a agregar el botón de "Girar"
+                    
+                    await interaction.response.edit_message(embed=embed, view=view)  # Actualizar el mensaje original
+                else:
+                    await interaction.response.send_message("¡No puedes reiniciar el juego de otra persona!", ephemeral=True)
+
+            button_play_again.callback = play_again_callback
+            
+
+            # Crear nueva vista con botón de "Volver a jugar"
+            view = discord.ui.View()
+            view.add_item(button_play_again)
+
+            await interaction.response.edit_message(embed=embed, view=view)
+
+        # Asociar el callback al botón
+        button_girar.callback = button_callback
+
+        
+        
+
+
+        # Crear la vista y añadir el botón
+        view = discord.ui.View()
+        view.add_item(button_girar)
+
+        # Enviar el embed con el botón
+        await ctx.send(embed=embed, view=view)
+            
+
+
+
+
+
+
+
+
+
+
+    @commands.command(name='gacha_info', help='Información sobre el juego gacha')
+    async def gacha_info(self, ctx):
+        embed = discord.Embed(
+            title="🎰 Gacha",
+            description="¡Bienvenido al juego Gacha! En este juego, debes hacer girar la máquina de Gachapon y esperar a que los símbolos coincidan. Aquí tienes la tabla de pagos:",
+            color=discord.Color.green()
+        )
+        for simbolo, pago in slot_combinations.items():
+            embed.add_field(name=simbolo, value=f"Paga x{pago}", inline=True)
+        embed.set_footer(text="¡Buena suerte!")
+
+        await ctx.send(embed=embed)
+                      
+    @commands.command(name='super_gacha_info', help='Información sobre el juego super gacha')
+    async def super_gacha_info(self, ctx):
+        embed = discord.Embed(
+            title="🎰 Super Gacha",
+            description="¡Bienvenido al juego Super Gacha! En este juego, debes hacer girar la máquina de Gachapon y esperar a que los símbolos coincidan. Aquí tienes la tabla de pagos:",
+            color=discord.Color.red()
+        )
+        for simbolo, pago in super_slot_combinations.items():
+            embed.add_field(name=simbolo, value=f"Paga x{pago}", inline=True)
+        embed.set_footer(text="¡Buena suerte!")
+
+        await ctx.send(embed=embed)
+
+
+    
 
 async def setup(bot):
     await bot.add_cog(Betting(bot))
