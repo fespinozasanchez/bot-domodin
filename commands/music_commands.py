@@ -13,7 +13,7 @@ class AudioPlayer(commands.Cog):
         self.bot = bot
         self.audio_queue = AudioQueue()
         self.is_playing_audio = False
-        self.audio_directory = '/usr/home/users/fespinoza/bot-ca/audio'
+        self.audio_directory = '/root/bot-domodin/audio'
 
     @commands.command(help="Conecta al bot a un canal de voz.")
     async def join(self, ctx):
