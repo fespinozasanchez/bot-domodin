@@ -74,6 +74,9 @@ def register_commands(bot):
     @bot.command(help="Pregunta por una partida de age")
     async def age(ctx):
         choice = ra.randint(0, 1)
+        jeje = ["¡Tú no deberías estar en la cama del peruano!", "No deberías estar estudiando?", "No deberías estar de UBER?", "Aburrete!!!!" ]
+        if ctx.author.id == 491796870478168064:
+            await ctx.send(ra.choice(jeje))
         if choice == 1:
             await ctx.send(f"@everyone Hora de jugar AGE 🥵🥵🥵🥵🥵")
         if choice == 0:
