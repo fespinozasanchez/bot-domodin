@@ -560,16 +560,22 @@ class Betting(commands.Cog):
                 embed.add_field(name="Ganancia", value=f"¡Jackpot! Has ganado {ganancia:.0f} MelladoCoins.", inline=False)
                 user_data['balance'] += ganancia
                 bot_data['balance'] -= ganancia
-            # Cuatro iguales (ejemplo: primeros cuatro iguales o últimos cuatro iguales)
+                 # Guardar los datos actualizados
+           
+        
+            # Cuatro iguales 
             elif (resultado[0] == resultado[1] == resultado[2] == resultado[3] or
                 resultado[1] == resultado[2] == resultado[3] == resultado[4]):
                 ganancia = cantidad_float * super_slot_combinations[resultado[2]]  *0.50
                 ganancia = float(str(ganancia).replace(",", "."))
-                embed.add_field(name="Ganancia", value=f"¡Tres iguales! Has ganado {ganancia:.0f} MelladoCoins.", inline=False)
+                embed.add_field(name="Ganancia", value=f"Cuatro iguales! Has ganado {ganancia:.0f} MelladoCoins.", inline=False)
                 user_data['balance'] += ganancia
                 bot_data['balance'] -= ganancia
+                # Guardar los datos actualizados
+             
+               
 
-            # Tres iguales (ejemplo: primeros tres iguales, últimos tres iguales, o tres intermedios)
+            # Tres iguales 
             elif (resultado[0] == resultado[1] == resultado[2] or
                 resultado[1] == resultado[2] == resultado[3] or
                 resultado[2] == resultado[3] == resultado[4]):
@@ -578,22 +584,32 @@ class Betting(commands.Cog):
                 embed.add_field(name="Ganancia", value=f"¡Tres iguales! Has ganado {ganancia:.0f} MelladoCoins.", inline=False)
                 user_data['balance'] += ganancia
                 bot_data['balance'] -= ganancia
+                # Guardar los datos actualizados
+                
+               
 
-            # Dos iguales (esto generalmente tiene una ganancia menor)
+            # Dos iguales 
             elif (resultado[0] == resultado[1] or
                 resultado[1] == resultado[2] or
                 resultado[2] == resultado[3] or
                 resultado[3] == resultado[4]):
-                embed.add_field(name="Ganancia", value="No has ganado esta vez. Mejor suerte la próxima vez.", inline=False)
-
-            # Ninguna ganancia
-            else:
+                coste= cantidad_float
+                user_data['balance'] -= coste
+                bot_data['balance'] += coste
                 embed.add_field(name="Ganancia", value="No has ganado esta vez. Mejor suerte la próxima vez.", inline=False)
                 
 
-            # Guardar los datos actualizados
+            # Ninguna ganancia
+            else:
+                coste= cantidad_float
+                user_data['balance'] -= coste
+                bot_data['balance'] += coste
+                embed.add_field(name="Ganancia", value="No has ganado esta vez. Mejor suerte la próxima vez.", inline=False)
+                
+                
             save_user_data(user_id, guild_id, user_data['balance'])
             save_user_data(bot_user_id, guild_id, bot_data['balance'])
+           
 
             # Botón para volver a jugar
             button_play_again = discord.ui.Button(label="Volver a jugar", style=discord.ButtonStyle.secondary)
