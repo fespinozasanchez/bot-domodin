@@ -51,9 +51,9 @@ async def load_cogs():
         'moderation.moderation_commands',
         'commands.reminder_commands',
         'features.prediction_system',
-        'commands.rpg_commands',
         'riot.leagueoflegends',
         'commands.market_commands',
+        'rpg_module.Commands.rpg_commands',
         'features.eventos_naturales',
         'cogs.blackjack'
         # 'cogs.monopoly',
