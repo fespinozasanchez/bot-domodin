@@ -23,7 +23,7 @@ signal.signal(signal.SIGINT, def_handler)
 
 # Cargar variables de entorno
 load_dotenv()
-token = os.getenv('DISCORD_TOKEN')
+token = os.getenv('DISCORD_TOKEN_DEVELOP')
 
 # Configurar intentos de Discord
 intents = discord.Intents.default()
@@ -55,6 +55,7 @@ async def load_cogs():
         'riot.leagueoflegends',
         'commands.market_commands',
         'features.eventos_naturales',
+        'cogs.blackjack'
         # 'cogs.monopoly',
     ]
 
