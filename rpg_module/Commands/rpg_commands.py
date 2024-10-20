@@ -18,9 +18,13 @@ class RPG(commands.Cog):
             await ctx.send(f"Error al inicializar la base de datos: {str(e)}")
 
     @commands.command(help='Registra un jugador. Usa el comando solo una vez por usuario.')
-    async def register_player(self, ctx, class_name):
+    async def register_player(self, ctx, class_name = None):
         usuario = ctx.author
         name = usuario.name
+
+        if  class_name is None or class_name.lower() not in ['mage', 'warrior', 'thieve'] :
+            await ctx.send(embed=RPGView.registration_error_embed("Clase de jugador no válida. Debe ser 'mage', 'warrior' o 'thieve'."))
+            return
 
         # Verificar si el jugador ya está registrado
         player_data = get_player_by_name(name)
@@ -31,7 +35,7 @@ class RPG(commands.Cog):
         # Registrar nuevo jugador con datos iniciales
         try:
             new_player = register_player(name, class_name.lower())
-            await ctx.send(embed=RPGView.registration_success_embed(new_player), view=RegisterPlayerView(new_player, usuario.id))
+            await ctx.send(embed=RPGView.registration_success_embed(new_player,class_name), view=RegisterPlayerView(new_player, usuario.id))
         except ValueError as e:
             await ctx.send(embed=RPGView.registration_error_embed(str(e)))
 
@@ -43,7 +47,8 @@ class RPG(commands.Cog):
         # Obtener información del jugador
         player_data = get_player_by_name(name)
         if not player_data:
-            await ctx.send(f'{usuario.name}, no estás registrado como jugador usa !register_player <mage> <warrior> o <thieve>.')
+            await ctx.send(embed=RPGView.registration_error_embed(f"{usuario.name}, no estás registrado como jugador usa !register_player <mage> <warrior> o <thieve>."))
+
             return
 
         # Enviar la información del jugador junto con la vista interactiva
