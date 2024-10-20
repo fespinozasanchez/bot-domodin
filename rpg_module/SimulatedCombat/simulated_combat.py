@@ -36,7 +36,12 @@ class SimulatedCombat:
 
     def simulate_combat(self):
         # Lógica simplificada para determinar el resultado del combate
-        player_attack = self.player.strength + random.randint(0, 20)
+        if self.player.class_player == 'warrior':
+            player_attack = self.player.strength + random.randint(0, 20)
+        elif self.player.class_player == 'mage':
+            player_attack = self.player.intelligence + random.randint(0, 20)
+        else:
+            player_attack = self.player.agility + random.randint(0, 20)
         enemy_attack = self.enemy.damage + random.randint(0, 20)
 
         if player_attack > enemy_attack:
