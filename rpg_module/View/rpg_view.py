@@ -1,6 +1,6 @@
 import discord
 from discord.ui import View, Button
-from rpg_module.rpg_utils.rpg_data_manager import get_player_by_name, session, level_up_player
+from rpg_module.rpg_utils.rpg_data_manager import get_player_by_name, session, level_up_player,revive_player
 from rpg_module.Enemy.enemy import Enemy
 from rpg_module.SimulatedCombat.simulated_combat import SimulatedCombat
 
@@ -10,7 +10,7 @@ class RPGView:
     def general_menu_view(player_name, user_id):
         class GeneralMenu(View):
             def __init__(self, player_name, user_id):
-                super().__init__(timeout=None)
+                super().__init__(timeout=180.0)
                 self.player_name = player_name
                 self.user_id = user_id
                 player = get_player_by_name(player_name)
@@ -84,10 +84,10 @@ class RPGView:
         return embed
 
     @staticmethod
-    def registration_success_embed(player):
+    def registration_success_embed(player,class_name):
         embed = discord.Embed(
             title="¡Registro Exitoso!",
-            description=f"{player.name}, has sido registrado como {player.__class__.__name__}.",
+            description=f"{player.name}, has sido registrado como {class_name}.",
             color=discord.Color.green()
         )
         return embed
@@ -137,9 +137,8 @@ class ReviveButton(Button):
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id == self.user_id:
-            self.player.health = 100  # Restaurar la salud del jugador
-            session.commit()
-            await interaction.response.edit_message(content=f"{self.player.name} ha sido revivido y ahora tiene 100 de salud.", view=None)
+            result_message=revive_player(self.player)
+            await interaction.response.edit_message(content=result_message, view=None)
         else:
             await interaction.response.send_message("No tienes permiso para interactuar con este botón.", ephemeral=True)
 
