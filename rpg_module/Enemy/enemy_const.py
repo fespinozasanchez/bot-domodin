@@ -1,11 +1,12 @@
 
 NOMBRES_ENEMIGO = {
-    1: ['Goblin', 'Bandido', 'Rata Gigante', 'Esqueleto'],
-    2: ['Orco', 'Mercenario', 'Ogro', 'Guerrero Esqueleto'],
-    3: ['Troll', 'Mago Oscuro', 'Elemental de Fuego', 'Gárgola'],
-    4: ['Dragón Juvenil', 'Liche', 'Gigante', 'Señor Vampiro'],
-    5: ['Dragón Anciano', 'Archidemonio', 'Titán', 'El Enemigo']
+    1: ['Goblin 🧟‍♀️', 'Bandido 🏴', 'Rata Gigante 🐀', 'Esqueleto ☠️'],
+    2: ['Orco 🐗', 'Mercenario ⚔️', 'Ogro 👹', 'Guerrero Esqueleto ⚔️☠️'],
+    3: ['Troll 🧌', 'Mago Oscuro 🧙‍♂️', 'Elemental de Fuego 🔥', 'Gárgola 🗿'],
+    4: ['Dragón Juvenil 🐉', 'Liche 💀', 'Gigante 🦍', 'Señor Vampiro 🦇'],
+    5: ['Dragón Anciano 🐲', 'Archidemonio 👿', 'Titán 🏔️', 'El Enemigo 👾']
 }
+
 
 TIERS = {
     'F': -0.15,
