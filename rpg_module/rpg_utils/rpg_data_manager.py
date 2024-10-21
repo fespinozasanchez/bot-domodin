@@ -13,11 +13,12 @@ from sqlalchemy.exc import SQLAlchemyError
 
 # Crear el motor de SQLAlchemy
 DATABASE_URL = f"mysql+pymysql://{DATABASE_CONFIG['user']}:{DATABASE_CONFIG['password']}@{DATABASE_CONFIG['host']}/{DATABASE_CONFIG['database']}"
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, echo=True, connect_args={'connect_timeout': 10})
 
 # Crear una sesión
 Session = sessionmaker(bind=engine)
 session = Session()
+
 
 def init_alchemy_db():
     """Crea todas las tablas en la base de datos si no existen."""
@@ -27,6 +28,7 @@ def init_alchemy_db():
 def register_player(name, player_class):
     """Registra un nuevo jugador en la base de datos."""
     try:
+        session.connection(execution_options={'timeout':30})
         if player_class.lower() == 'warrior':
             new_player = Warrior(name=name)
         elif player_class.lower() == 'mage':
@@ -47,13 +49,18 @@ def register_player(name, player_class):
 # Función para obtener un jugador por nombre
 def get_player_by_name(name):
     """Obtiene un jugador de la base de datos usando su nombre."""
-    player = session.query(Player).filter_by(name=name).first()
-    return player
+    try:
+        player = session.query(Player).filter_by(name=name).first()
+        return player
+    except SQLAlchemyError as e:
+        session.rollback()
+        raise e
 
 
 # Función para obtener todos los jugadores
 def get_all_players():
     """Obtiene todos los jugadores de la base de datos."""
+    session.connection(execution_options={'timeout':30})
     session = Session()
     try:
         return session.query(Player).all()
@@ -65,30 +72,38 @@ def get_all_players():
 def level_up_player(player):
     """Sube de nivel al jugador si tiene suficientes puntos de estadísticas."""
     required_points = 100
-    if player.stats_points >= required_points:
-        player.level += 1
-        player.health += 10
-        player.mana += 10
-        player.strength += 5
-        player.intelligence += 5
-        player.agility += 5
-        if player.class_player == 'warrior':
+    try:
+        session.connection(execution_options={'timeout': 30})  # Timeout de 30 segundos
+        
+        if player.stats_points >= required_points:
+            player.level += 1
+            player.health += 10
+            player.mana += 10
             player.strength += 5
-        elif player.class_player == 'mage':
             player.intelligence += 5
-        elif player.class_player == 'thieve':
             player.agility += 5
-        player.stats_points -= required_points
-        session.commit()
-        return f"{player.name} ha subido al nivel {player.level}! Puntos restantes: {player.stats_points}"
-    else:
-        return f"{player.name} no tiene suficientes puntos de stats para subir de nivel. Necesita {required_points} puntos."
+            if player.class_player == 'warrior':
+                player.strength += 5
+            elif player.class_player == 'mage':
+                player.intelligence += 5
+            elif player.class_player == 'thieve':
+                player.agility += 5
+            player.stats_points -= required_points
+            session.commit()
+            return f"{player.name} ha subido al nivel {player.level}! Puntos restantes: {player.stats_points}"
+        else:
+            return f"{player.name} no tiene suficientes puntos de stats para subir de nivel. Necesita {required_points} puntos."
     
+    except SQLAlchemyError as e:
+        session.rollback()
+        raise e
+   
 def revive_player(player):
     """Revive al jugador si tiene suficientes puntos de estadísticas."""
     
     required_points = 10
     try:
+        session.connection(execution_options={'timeout': 30}) 
         if player.stats_points >= required_points:
             player.health = 100
             player.mana = 100
