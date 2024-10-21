@@ -16,7 +16,7 @@ class RPGView:
                 player = get_player_by_name(player_name)
 
                 if player and player.health == 0:
-                    self.add_item(ReviveButton(player, user_id))
+                    self.add_item(ReviveButton(player_name, user_id))
 
             async def interaction_check(self, interaction: discord.Interaction) -> bool:
                 if interaction.user.id == self.user_id:
@@ -130,8 +130,9 @@ class RegisterPlayerView(View):
         )
 
 class ReviveButton(Button):
-    def __init__(self, player, user_id):
+    def __init__(self, player_name, user_id):
         super().__init__(label="Revivir", style=discord.ButtonStyle.green)
+        player = get_player_by_name(player_name)
         self.player = player
         self.user_id = user_id
 
