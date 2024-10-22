@@ -57,7 +57,7 @@ class Enemy:
         tier_modifier = TIERS.get(enemy_tier, 0)  # Obtiene el modificador de tier
 
         # Cálculo de la experiencia usando una fórmula exponencial
-        experience_given = a * (b ** enemy_level) * (1 + tier_modifier)
+        experience_given = round((a * (b ** enemy_level) * (1 + tier_modifier))*0.5)
 
         return round(experience_given)
 
