@@ -56,6 +56,7 @@ def get_player_by_name(name):
         session.rollback()
         raise e
 
+
 # Función para obtener todos los jugadores
 def get_all_players():
     """Obtiene todos los jugadores de la base de datos."""
