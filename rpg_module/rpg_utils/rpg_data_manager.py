@@ -68,13 +68,12 @@ def get_all_players():
 
 
 
+
 def level_up_player(player):
     """Sube de nivel al jugador si tiene suficientes puntos de estadísticas."""
-    required_points = 100
-    try:
-        session.connection(execution_options={'timeout': 30})  # Timeout de 30 segundos
-        
-        if player.stats_points >= required_points:
+    required_points = player.calculate_experience_for_next_level()
+    try:        
+        if player.experience >= required_points:
             player.level += 1
             player.health += 10
             player.mana += 10
@@ -87,11 +86,11 @@ def level_up_player(player):
                 player.intelligence += 5
             elif player.class_player == 'thieve':
                 player.agility += 5
-            player.stats_points -= required_points
+            player.stats_points +=15
             session.commit()
-            return f"{player.name} ha subido al nivel {player.level}! Puntos restantes: {player.stats_points}"
+            return f"{player.name} ha subido al nivel {player.level}! "
         else:
-            return f"{player.name} no tiene suficientes puntos de stats para subir de nivel. Necesita {required_points} puntos."
+            return f"{player.name} no tiene suficientes puntos de experiencia para subir de nivel. Necesitas {required_points} puntos."
     
     except SQLAlchemyError as e:
         session.rollback()
@@ -100,13 +99,13 @@ def level_up_player(player):
 def revive_player(player):
     """Revive al jugador si tiene suficientes puntos de estadísticas."""
     
-    required_points = 10
+    required_points = 100*player.level
     try:
         session.connection(execution_options={'timeout': 30}) 
-        if player.stats_points >= required_points:
+        if player.experience >= required_points:
             player.health = 100
             player.mana = 100
-            player.stats_points -= required_points
+            player.experience -= required_points
             session.commit()
             return f"Has sido revivido! "
         else:

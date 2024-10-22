@@ -3,7 +3,6 @@ from discord.ext import commands
 from discord.ui import View, Button
 from rpg_module.rpg_utils.rpg_data_manager import register_player, get_player_by_name, init_alchemy_db, session
 from rpg_module.View.rpg_view import RPGView, PlayerInfoView, RegisterPlayerView
-import random
 
 class RPG(commands.Cog):
     def __init__(self, bot):
@@ -69,7 +68,9 @@ class RPG(commands.Cog):
             return
 
         view = RPGView.general_menu_view(name, usuario.id)
-        await ctx.send("🐲¿Qué deseas hacer?🐲", view=view)
+        message = await ctx.send("🐲¿Qué deseas hacer?🐲", view=view)
+        view.message = message
+
 
 async def setup(bot):
     await bot.add_cog(RPG(bot))

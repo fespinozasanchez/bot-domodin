@@ -17,6 +17,7 @@ class Player(Base, Attacker, SkillUser, ItemEquipper, ItemUser, DamageReceiver):
     agility = Column(Float, default=10)
     mana = Column(Float, default=100)
     stats_points = Column(Integer, default=15)
+    experience = Column(Integer, default=0)
     class_player = Column(String(50))  # Identificador del tipo de jugador
 
     __mapper_args__ = {
@@ -41,3 +42,15 @@ class Player(Base, Attacker, SkillUser, ItemEquipper, ItemUser, DamageReceiver):
 
     def die(self):
         raise NotImplementedError
+
+
+    def calculate_experience_for_next_level(self):
+        player_level=self.level
+        # Factores para el cálculo
+        base_experience = 100  # Experiencia base para el primer nivel
+        growth_factor = 1.5  # Factor de crecimiento polinómico
+
+        # Cálculo de la experiencia necesaria para el siguiente nivel
+        experience_needed = base_experience * (player_level ** growth_factor)
+
+        return int(experience_needed)
