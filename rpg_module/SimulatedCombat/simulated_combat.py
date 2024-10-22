@@ -61,9 +61,8 @@ class SimulatedCombat:
             return "draw"
 
     def award_victory_points(self):
-        tier_multiplier = enemy_const.TIERS.get(self.enemy.tier, 1)
-        points_to_gain = max(1, int(3 * (1 + tier_multiplier)))  
-        self.player.experience += points_to_gain
+        points_gained = self.enemy.experience
+        self.player.experience += points_gained
         session.commit()
 
     def penalize_defeat_points(self):
