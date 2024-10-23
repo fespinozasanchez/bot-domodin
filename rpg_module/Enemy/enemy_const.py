@@ -23,6 +23,5 @@ TIER_WEIGHTS = [0.04, 0.13, 0.20, 0.30, 0.25, 0.05, 0.02, 0.00007, 0.00003]
 
 LEVEL_RANGE = {
     'min_level': 1,
-    'max_level': 120
+    'max_level': 520
 }
-
