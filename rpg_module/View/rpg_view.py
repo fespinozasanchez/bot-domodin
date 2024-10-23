@@ -15,7 +15,8 @@ class RPGView:
                 self.user_id = user_id
                 self.message = message
                 player = get_player_by_name(player_name)
-
+                self.player = player
+                
                 if player and player.health == 0:
                     self.add_item(ReviveButton(player_name, user_id, message))
 
@@ -27,7 +28,8 @@ class RPGView:
 
             @discord.ui.button(label="Ir de Aventura", style=discord.ButtonStyle.green)
             async def go_adventure(self, interaction: discord.Interaction, button: Button):
-                enemy = Enemy()
+                enemy_level=self.player.level
+                enemy = Enemy(enemy_level)
                 await interaction.response.edit_message(
                     content=f"Te has encontrado con un {enemy.name} \nNivel: {enemy.level} \nTier: {enemy.tier} \n¿Qué quieres hacer?",
                     embed=None,

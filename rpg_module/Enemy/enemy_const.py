@@ -25,4 +25,3 @@ LEVEL_RANGE = {
     'min_level': 1,
     'max_level': 120
 }
-
