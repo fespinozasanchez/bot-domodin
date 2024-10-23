@@ -3,6 +3,7 @@ from rpg_module.Players.player import Player
 from rpg_module.Enemy.enemy import Enemy
 from rpg_module.rpg_utils.rpg_data_manager import session
 from rpg_module.Enemy import enemy_const
+import math
 
 class SimulatedCombat:
     def __init__(self, player: Player, enemy: Enemy):
@@ -60,6 +61,8 @@ class SimulatedCombat:
         else:
             return "draw"
 
+
+
     def award_victory_points(self):
         points_gained = self.enemy.experience
         self.player.experience += points_gained
@@ -79,30 +82,36 @@ class SimulatedCombat:
         return f"Has perdido {points_to_lose} puntos de experiencia."
 
 
+
     def get_player_damage(self, class_name):
-        a = 2  # Factor de crecimiento cuadrático
-        b = 3  # Factor de crecimiento lineal
-        c = 1  # Daño base
+        a = 0.7  # Factor de crecimiento cuadrático reducido
+        b = 0.5  # Factor de crecimiento lineal reducido
+        c = 1  # Ajuste del daño base
 
-        # Daño base, escalado con el nivel del jugador
-        base_damage = a * (self.player.level ** 1.5) + b * self.player.level + c  # Menos agresivo que el cuadrático
+        # Daño base usando logaritmo para controlar el crecimiento del nivel
+        base_damage = a * math.log(self.player.level + 1) + b * self.player.level + c
 
-        # Ajuste según clase y estadísticas del jugador
+        # Ajuste según clase y estadísticas del jugador, aplicando logaritmo a las estadísticas
         if class_name == 'warrior':
-            # Usamos raíz cuadrada para controlar el crecimiento de los experiencia
-            stat_modifier = (a * (self.player.strength ** 0.5) + b * self.player.strength + c)
+            # El daño del guerrero se ajusta en base a fuerza
+            stat_modifier = a * math.log(self.player.strength + 1) + b * self.player.strength + c
         elif class_name == 'mage':
-            # Similar para el mago, basado en inteligencia
-            stat_modifier = (a * (self.player.intelligence ** 0.5) + b * self.player.intelligence + c)
+            # El daño del mago se ajusta en base a inteligencia
+            stat_modifier = a * math.log(self.player.intelligence + 1) + b * self.player.intelligence + c
         elif class_name == 'thieve':
-            # El ladrón se basa en agilidad
-            stat_modifier = (a * (self.player.agility ** 0.5) + b * self.player.agility + c)
+            # El daño del ladrón se ajusta en base a agilidad
+            stat_modifier = a * math.log(self.player.agility + 1) + b * self.player.agility + c
         else:
             raise ValueError("Clase de jugador no válida.")
 
-        # Evitamos un crecimiento descontrolado del daño aplicando un escalado logarítmico
+        # Daño final aplicando el modificador de estadísticas
         final_damage = base_damage * stat_modifier
+
+        # Limitar el daño final para evitar valores extremadamente altos
+        final_damage = min(final_damage, 1000)  # Limitar el daño máximo a 1000 (puedes ajustar esto)
+        
         return round(final_damage)
+
         
 
 

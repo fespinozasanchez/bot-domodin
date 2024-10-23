@@ -1,10 +1,12 @@
-from random import choices
+
+from random import choices, randint
 import numpy as np
 from .enemy_const import  TIERS, TIER_WEIGHTS, NOMBRES_ENEMIGO, LEVEL_RANGE
 
 class Enemy:
     def __init__(self, level=None, tier=None):
-        self.level = level if level is not None else self.calculate_enemy_level()
+        #level = ran.randint(level,level+10)
+        self.level = max(1, randint(level - 10, level + 10)) if level is not None else self.calculate_enemy_level()
         self.tier = tier if tier is not None else choices(list(TIERS.keys()), TIER_WEIGHTS)[0]
         self.name = choices(NOMBRES_ENEMIGO[1])[0]
         self.health = self.calculate_health()
@@ -34,9 +36,9 @@ class Enemy:
 
     def calculate_damage(self):
         # Constantes de la fórmula polinómica
-        a = 4  # Factor de crecimiento cuadrático
-        b = 7  # Factor de crecimiento lineal
-        c = 10  # Daño base
+        a = 0.09  # Factor de crecimiento cuadrático
+        b = 0.08  # Factor de crecimiento lineal
+        c = 1  # Daño base
 
         # Fórmula polinómica para calcular el daño
         base_damage = a * (self.level ** 2) + b * self.level + c
@@ -50,14 +52,13 @@ class Enemy:
     def calculate_enemy_experience(self,enemy_level, enemy_tier):
         # Factores para el cálculo
         a = 100  # Experiencia base
-        b = 1.1  # Factor de crecimiento exponencial
-
-        # Modificador basado en el tier del enemigo
+        b = 0.02  # Factor de crecimiento exponencial
+        c = 2.1   # ** factor
 
         tier_modifier = TIERS.get(enemy_tier, 0)  # Obtiene el modificador de tier
 
         # Cálculo de la experiencia usando una fórmula exponencial
-        experience_given = round((a * (b ** enemy_level) * (1 + tier_modifier))*0.5)
+        experience_given = round((a * (enemy_level ** c) * (1 + tier_modifier))*b)
 
         return round(experience_given)
 

@@ -78,16 +78,16 @@ def level_up_player(player):
             player.level += 1
             player.health += 10
             player.mana += 10
-            player.strength += 5
-            player.intelligence += 5
-            player.agility += 5
+            player.strength += 1
+            player.intelligence += 1
+            player.agility += 1
             if player.class_player == 'warrior':
-                player.strength += 5
+                player.strength += 1
             elif player.class_player == 'mage':
-                player.intelligence += 5
+                player.intelligence += 1
             elif player.class_player == 'thieve':
-                player.agility += 5
-            player.stats_points +=15
+                player.agility += 1
+            player.stats_points +=1
             session.commit()
             return f"{player.name} ha subido al nivel {player.level}! "
         else:
