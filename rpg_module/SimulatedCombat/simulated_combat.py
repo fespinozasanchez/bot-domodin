@@ -1,14 +1,15 @@
 import random
+import math
 from rpg_module.Players.player import Player
 from rpg_module.Enemy.enemy import Enemy
 from rpg_module.rpg_utils.rpg_data_manager import session
 from rpg_module.Enemy import enemy_const
-import math
 
 class SimulatedCombat:
     def __init__(self, player: Player, enemy: Enemy):
         self.player = player
         self.enemy = enemy
+        self.combat_log = []
 
     def fight(self):
         try:
@@ -19,49 +20,77 @@ class SimulatedCombat:
                 self.enemy.health = 0
                 session.commit()
                 self.award_victory_points()
-                return f"{self.player.name} ha derrotado al {self.enemy.name}!, {self.get_stat_gain_message()}"
+                # Convertir el log de combate en un solo string con saltos de línea
+                return '\n'.join(self.combat_log)
             elif result == "enemy_wins":
-                damage = round(self.player.health*0.3)
-                self.player.health = max(0, self.player.health - damage)
+                damage = round(self.player.current_health * 0.3)
+                self.player.current_health = max(0, self.player.current_health - damage)
                 self.penalize_defeat_points()
                 session.commit()
-                return f"{self.enemy.name} ha derrotado a {self.player.name}. {self.player.name} tiene {self.player.health} de salud restante. {self.get_stat_loss_message()}"
+                # Convertir el log de combate en un solo string con saltos de línea
+                return '\n'.join(self.combat_log)
             else:
                 return "El combate terminó en un empate. No se ganaron ni perdieron puntos de experiencia."
         except Exception as e:
             session.rollback()
             return f"Ocurrió un error durante el combate: {str(e)}"
 
+
     def run(self):
-        damage_taken=round(self.enemy.damage*0.20)
-        #chance del 30% de huir
+        damage_taken = round(self.enemy.damage * 0.01)
+        damage_reduction = round(round(self.player.defense * 0.1)*damage_taken)
+        # Chance del 30% de huir
         if random.random() < 0.30:
-            return [True,f"{self.player.name} ha decidido huir del combate contra el {self.enemy.name}."]
+            return [True, f"{self.player.name} ha decidido huir del combate contra el {self.enemy.name}."]
         else:
-            self.player.health = max(0, self.player.health - damage_taken)
+            self.player.current_health = max(0, self.player.current_health - damage_reduction)
             session.commit()
-            return [False,f" El {self.enemy.name} ha sido mas astuto que tú y te ha hecho {damage_taken} puntos de daño!."]
+            return [False, f"El {self.enemy.name} ha sido más astuto que tú y te ha hecho {damage_reduction} puntos de daño!."]
 
     def simulate_combat(self):
-        # Lógica simplificada para determinar el resultado del combate
-        if self.player.class_player == 'warrior':
-            player_attack = self.get_player_damage('warrior')
-        elif self.player.class_player == 'mage':
-            player_attack = self.get_player_damage('mage')
-        elif self.player.class_player == 'thieve':
-            player_attack = self.get_player_damage('thieve')
-        else:
-            raise ValueError("Clase de jugador no válida.")
+        # Determinar quién ataca primero
+        first_attacker = self.determine_first_attacker()
+        player_attack = self.get_player_damage(self.player.class_player)
         enemy_attack = self.enemy.damage
-
-        if player_attack > enemy_attack:
-            return "player_wins"
-        elif enemy_attack > player_attack:
-            return "enemy_wins"
+        # Combate por turnos
+        if first_attacker == 'player':
+            if player_attack > enemy_attack:
+                self.combat_log.append(f"{self.player.name} ha derrotado al {self.enemy.name}.")
+                self.combat_log.append(self.get_stat_gain_message())
+                return "player_wins"
+            else:
+                self.combat_log.append(f"{self.enemy.name} ha derrotado a {self.player.name}.")
+                self.combat_log.append(f"{self.player.name} tiene {self.player.current_health} de salud restante.")
+                self.combat_log.append(self.get_stat_loss_message())
+                return "enemy_wins"
         else:
-            return "draw"
+            if enemy_attack > player_attack:
+                self.combat_log.append(f"{self.enemy.name} ha derrotado a {self.player.name}.")
+                self.combat_log.append(f"{self.player.name} tiene {self.player.current_health} de salud restante.")
+                self.combat_log.append(self.get_stat_loss_message())
+                return "enemy_wins"
+            else:
+                self.combat_log.append(f"{self.player.name} ha derrotado al {self.enemy.name}.")
+                self.combat_log.append(self.get_stat_gain_message())
+                return "player_wins"
 
+    def determine_first_attacker(self):
+        """Determina quién ataca primero basado en la evasión del jugador y la diferencia de niveles."""
+        level_diff = self.player.level - self.enemy.level
 
+        # Ajustamos la evasión del jugador en función de la diferencia de nivel
+        if level_diff > 0:
+            player_chance = (self.player.evasion + (level_diff * 2)) / (self.player.evasion + abs(level_diff) * 2)
+        else:
+            player_chance = self.player.evasion / (self.player.evasion + abs(level_diff) * 2)
+
+        # El enemigo no tiene evasión, por lo que la probabilidad de que el jugador ataque primero es solo relativa a la evasión del jugador.
+        if random.random() < player_chance:
+            self.combat_log.append(f"{self.player.name} ataca primero gracias a su evasión.")
+            return 'player'
+        else:
+            self.combat_log.append(f"{self.enemy.name} ataca primero.")
+            return 'enemy'
 
     def award_victory_points(self):
         points_gained = self.enemy.experience
@@ -69,7 +98,7 @@ class SimulatedCombat:
         session.commit()
 
     def penalize_defeat_points(self):
-        points_to_lose = round(self.enemy.experience*0.2)
+        points_to_lose = round(self.enemy.experience * 0.2)
         self.player.experience = max(0, self.player.experience - points_to_lose)
         session.commit()
 
@@ -78,10 +107,8 @@ class SimulatedCombat:
         return f"Has ganado {points_gained} puntos de experiencia!"
 
     def get_stat_loss_message(self):
-        points_to_lose = round(self.enemy.experience*0.2)
+        points_to_lose = round(self.enemy.experience * 0.2)
         return f"Has perdido {points_to_lose} puntos de experiencia."
-
-
 
     def get_player_damage(self, class_name):
         a = 0.7  # Factor de crecimiento cuadrático reducido
@@ -93,13 +120,10 @@ class SimulatedCombat:
 
         # Ajuste según clase y estadísticas del jugador, aplicando logaritmo a las estadísticas
         if class_name == 'warrior':
-            # El daño del guerrero se ajusta en base a fuerza
             stat_modifier = a * math.log(self.player.strength + 1) + b * self.player.strength + c
         elif class_name == 'mage':
-            # El daño del mago se ajusta en base a inteligencia
             stat_modifier = a * math.log(self.player.intelligence + 1) + b * self.player.intelligence + c
         elif class_name == 'thieve':
-            # El daño del ladrón se ajusta en base a agilidad
             stat_modifier = a * math.log(self.player.agility + 1) + b * self.player.agility + c
         else:
             raise ValueError("Clase de jugador no válida.")
@@ -109,10 +133,5 @@ class SimulatedCombat:
 
         # Limitar el daño final para evitar valores extremadamente altos
         final_damage = min(final_damage, 1000)  # Limitar el daño máximo a 1000 (puedes ajustar esto)
-        
+
         return round(final_damage)
-
-        
-
-
- 

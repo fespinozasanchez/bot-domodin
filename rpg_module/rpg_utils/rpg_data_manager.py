@@ -13,7 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 # Crear el motor de SQLAlchemy
 DATABASE_URL = f"mysql+pymysql://{DATABASE_CONFIG['user']}:{DATABASE_CONFIG['password']}@{DATABASE_CONFIG['host']}/{DATABASE_CONFIG['database']}"
-engine = create_engine(DATABASE_URL, echo=True, connect_args={'connect_timeout': 10})
+engine = create_engine(DATABASE_URL, echo=True, connect_args={'connect_timeout': 180}, pool_pre_ping=True)
 
 # Crear una sesión
 Session = sessionmaker(bind=engine)
@@ -81,6 +81,8 @@ def level_up_player(player):
             player.strength += 1
             player.intelligence += 1
             player.agility += 1
+            player.defense += 1
+            player.evasion += 0.1
             if player.class_player == 'warrior':
                 player.strength += 1
             elif player.class_player == 'mage':
@@ -104,8 +106,8 @@ def revive_player(player):
     try:
         session.connection(execution_options={'timeout': 30}) 
         if player.experience >= required_points:
-            player.health = 100
-            player.mana = 100
+            player.current_health = player.health
+            player.current_mana = player.mana
             player.experience -= required_points
             session.commit()
             return f"Has sido revivido! "

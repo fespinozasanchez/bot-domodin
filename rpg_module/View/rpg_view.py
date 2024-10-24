@@ -17,7 +17,7 @@ class RPGView:
                 player = get_player_by_name(player_name)
                 self.player = player
                 
-                if player and player.health == 0:
+                if player and player.current_health == 0:
                     self.add_item(ReviveButton(player_name, user_id, message))
 
             async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -80,11 +80,15 @@ class RPGView:
         )
         embed.add_field(name="Clase", value=player.__class__.__name__, inline=True)
         embed.add_field(name="Nivel", value=player.level, inline=True)
-        embed.add_field(name="Salud", value=player.health, inline=True)
+        embed.add_field(name="Salud Máxima", value=player.health, inline=True)
+        embed.add_field(name="Salud Actual", value=player.current_health, inline=True)
         embed.add_field(name="Fuerza", value=player.strength, inline=True)
         embed.add_field(name="Inteligencia", value=player.intelligence, inline=True)
         embed.add_field(name="Agilidad", value=player.agility, inline=True)
-        embed.add_field(name="Mana", value=player.mana, inline=True)
+        embed.add_field(name="Defensa", value=player.defense, inline=True)
+        embed.add_field(name="Evasion", value=player.evasion, inline=True)
+        embed.add_field(name="Mana Máximo", value=player.mana, inline=True)
+        embed.add_field(name="Mana Actual", value=player.current_mana, inline=True)
         embed.add_field(name="Experiencia", value=player.experience, inline=True)
         embed.add_field(name="Puntos de Estadística", value=player.stats_points, inline=True)
         return embed
@@ -151,6 +155,8 @@ class AssignStatsView(View):
     async def assign_strength(self, interaction: discord.Interaction, button: Button):
         if self.player.stats_points > 0:
             self.player.strength += 1
+            self.player.health += 10
+            self.player.current_health += 10
             self.player.stats_points -= 1
             session.commit()
             await interaction.response.edit_message(
@@ -165,6 +171,8 @@ class AssignStatsView(View):
     async def assign_intelligence(self, interaction: discord.Interaction, button: Button):
         if self.player.stats_points > 0:
             self.player.intelligence += 1
+            self.player.mana += 10
+            self.player.current_mana += 10
             self.player.stats_points -= 1
             session.commit()
             await interaction.response.edit_message(
@@ -179,6 +187,7 @@ class AssignStatsView(View):
     async def assign_agility(self, interaction: discord.Interaction, button: Button):
         if self.player.stats_points > 0:
             self.player.agility += 1
+            self.player.evasion += 0.01
             self.player.stats_points -= 1
             session.commit()
             await interaction.response.edit_message(
