@@ -1,0 +1,207 @@
+PAra ORM  no se puede tener una clase Abstracta ya que la base declarativa es abstracta en si  por SQLAlchemy
+
+Para resolver el conflicto y mantener el diseño orientado a objetos con abstracción, vamos a usar un patrón que combina herencia mixta con mixins. Aquí te explico cómo proceder:
+
+    Utilizar Mixins para Interfaces:
+        En lugar de heredar directamente de ABC para las interfaces, utiliza las interfaces como mixins.
+        Define las interfaces sin ABC y úsalas como mixins que añaden métodos específicos.
+
+    Clase Abstracta Player sin ABC pero Usando Mixins:
+        La clase Player debe heredar de Base (de SQLAlchemy) y de las interfaces (mixins), pero no de ABC.
+        Player seguirá actuando como una clase abstracta porque no podrá ser instanciada directamente. Puedes seguir definiendo métodos que levanten NotImplementedError.
+
+
+@startuml
+interface Attacker {
+    + attack()
+}
+
+interface SkillUser {
+    + use_special_ability()
+}
+
+interface ItemEquipper {
+    + equip_item(item)
+}
+
+interface ItemUser {
+    + use_item(item)
+}
+
+interface DamageReceiver {
+    + receive_damage(damage)
+}
+
+class Player {
+    - id: Integer
+    - name: String
+    - level: Integer
+    - health: Float
+    - current_health: Float
+    - strength: Float
+    - intelligence: Float
+    - agility: Float
+    - defense: Integer
+    - evasion: Float
+    - mana: Float
+    - stats_points: Integer
+    - class_player: String
+    + attack()
+    + use_special_ability()
+    + equip_item(item)
+    + use_item(item)
+    + receive_damage(damage)
+    + die()
+}
+
+Player <|-- Warrior
+Player <|-- Mage
+Player <|-- Thieve
+Player ..|> Attacker
+Player ..|> SkillUser
+Player ..|> ItemEquipper
+Player ..|> ItemUser
+Player ..|> DamageReceiver
+
+class Warrior {
+    - rage: Integer
+    + attack()
+    + use_special_ability()
+    + equip_item(item)
+    + use_item(item)
+    + receive_damage(damage)
+    + die()
+}
+
+class Mage {
+    - spell_power: Integer
+    + attack()
+    + use_special_ability()
+    + equip_item(item)
+    + use_item(item)
+    + receive_damage(damage)
+    + die()
+}
+
+class Thieve {
+    - stealth: Integer
+    + attack()
+    + use_special_ability()
+    + equip_item(item)
+    + use_item(item)
+    + receive_damage(damage)
+    + die()
+}
+
+class Enemy {
+    - level: Integer
+    - health: Float
+    - damage: Float
+    + attack(player: Player)
+    + receive_damage(damage)
+    + die()
+}
+
+class RPGView {
+    + general_menu_view(player_name)
+    + AssignStatsView(View)
+    + AdventureView(View)
+    + ReturnToMenuView(View)
+    + PlayerInfoView(View)
+    + RegisterPlayer(View)
+}
+
+class RPGCommands {
+    + register_player()
+    + player_info()
+    + go_adventure()
+    + assign_stats()
+    + level_up()
+    + revive()
+}
+
+class SimulatedCombat {
+    - player: Player
+    - enemy: Enemy
+    + fight(): String
+    + run(): String
+    + simulate_combat(): String
+    + award_victory_points(): void
+    + penalize_defeat_points(): void
+    + get_stat_gain_message(): String
+    + get_stat_loss_message(): String
+}
+
+class RPGDataManager {
+    + init_alchemy_db()
+    + register_player(name: String, player_class: String): Player
+    + get_player_by_name(name: String): Player
+    + get_all_players(): List<Player>
+    + level_up_player(player: Player): String
+    + revive_player(player: Player): String
+
+}
+
+
+RPGCommands ..> RPGDataManager : use
+RPGView ..> RPGCommands : use
+RPGView ..> SimulatedCombat : use
+SimulatedCombat --> Player
+SimulatedCombat --> Enemy
+@enduml
+
+
+
+
+Single Table Inheritance (STI). En este caso, tendríamos una tabla única Player que contendría todos los jugadores, y una coluna adicional (class_player) que indicaría si se trata de un Warrior, Mage o Thieve.
+
+
+Tabla players
+
+
+CREATE TABLE players (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(255) NOT NULL,
+    level INTEGER DEFAULT 1,
+    health FLOAT DEFAULT 100,
+    current_health FLOAT DEFAULT 100,
+    strength FLOAT DEFAULT 10,
+    intelligence FLOAT DEFAULT 10,
+    agility FLOAT DEFAULT 10,
+    defense FLOAT DEFAULT 10,
+    evasion FLOAT DEFAULT 1,
+    mana FLOAT DEFAULT 100,
+    current_mana FLOAT DEFAULT 100,
+    stats_points INTEGER DEFAULT 15,
+    experience INTEGER DEFAULT 0,
+    class_player VARCHAR(50)
+);
+
+
+CREATE TABLE warriors (
+    id INT PRIMARY KEY,
+    rage INT DEFAULT 0,
+    FOREIGN KEY (id) REFERENCES players(id)
+);
+
+
+
+
+
+CREATE TABLE mages (
+    id INT PRIMARY KEY,
+    magic_power INT DEFAULT 50,
+    FOREIGN KEY (id) REFERENCES players(id)
+);
+
+
+
+
+CREATE TABLE thieves (
+    id INT PRIMARY KEY,
+    stealth INT DEFAULT 50,
+    FOREIGN KEY (id) REFERENCES players(id)
+); 
+
+
+

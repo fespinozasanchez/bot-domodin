@@ -1,0 +1,51 @@
+**Version 1.01 Patch Notes**
+
+**Gameplay Mechanics Updates:**
+- **Damage Calculation:** Player and enemy damage is now calculated using a polynomial function, replacing the previous linear model. This change aims to provide a more dynamic and challenging combat experience.
+- **Stat Points Allocation:** Stat points are no longer tied to leveling up. Players will now gain experience points from defeating enemies and receive a fixed 15 stat points per level.
+- **Experience Requirements:** Leveling up now follows an exponential curve, with each level requiring progressively more experience points.
+- **Combat While Fleeing:** Players now have a chance of being attacked while attempting to flee from enemies, adding risk to the decision to retreat.
+
+**Bug Fixes:**
+- **Player Information Consistency:** The player information screen and the "See Stats" button now display identical embedded information, ensuring consistency across the interface.
+- **Stat Allocation Button Update:** The "Give Stats" button now edits the existing message instead of creating new messages each time, reducing unnecessary clutter.
+- **Navigation Improvement:** A "Return to Main Menu" option has been added to all relevant messages, making navigation more intuitive.
+- **Message Update Efficiency:** Menu messages now update themselves when interacted with, minimizing redundant messages and improving overall user experience.
+- **Stat Reallocation Fix:** Players who had previously spent stat points now have those points refunded, allowing them to redistribute based on their current level. This recalculation ensures fair and balanced stat allocation.
+
+
+**Version 1.02 Patch Notes**
+
+**Gameplay Mechanics Updates:**
+- **Damage Calculation:** Player damage now scales using a logarithmic growth model, ensuring more balanced progression.
+
+- **Stat Point Allocation:** Players now receive 1 stat point per level to promote more strategic stat distribution.
+
+- **Enemies:** Enemy experience gain and damage output have been reduced for a smoother difficulty curve.
+
+- **Leveling System:** Players now require less experience to level up, making progression more fluid and rewarding.
+
+
+# Version 1.03 Patch Notes
+
+## Gameplay Mechanics Updates:
+
+- **Evasion and Defense Stats Added:**
+    - Players now have two additional stats: evasion and defense.
+    - **Evasion:** Increases the chance for a player to attack first in combat and potentially defeat enemies of a higher level. It is calculated by the player's agility, with each point of agility granting 0.01 evasion.
+    - **Defense:** Reduces the damage taken from enemy attacks, offering more survivability during battles.
+
+- **Stat Influence on Health and Mana:**
+    - **Strength** now contributes to health, with each point of strength adding 10 health points.
+    - **Intelligence** increases mana, with each point of intelligence providing 10 mana points.
+    - **Agility** now provides a bonus to evasion, increasing the chance to evade enemy attacks and strike first.
+
+- **First Attack Determined by Evasion:**
+    - The combat system has been updated so that the first attacker in combat is now determined by the player's evasion stat. This allows players with higher agility to potentially attack first, even against higher-level enemies.
+
+## Bug Fixes:
+
+- **Combat Balancing Adjustments:**
+    - Fixed issues where combat results did not properly account for player evasion and defense. Combat now reflects these stats correctly, offering a more strategic experience.
+
+
