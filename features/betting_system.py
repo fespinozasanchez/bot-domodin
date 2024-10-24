@@ -317,6 +317,8 @@ class Betting(commands.Cog):
         for limite in taxes.keys():
             if cantidad >= limite:
                 impuesto = taxes[limite]
+            else:
+                impuesto = 0
 
         cantidad_format = f"${cantidad:,.0f}".replace(",", ".")
         tax_format = f"${cantidad*impuesto:,.0f}".replace(",", ".")
