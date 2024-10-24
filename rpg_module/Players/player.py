@@ -48,7 +48,7 @@ class Player(Base, Attacker, SkillUser, ItemEquipper, ItemUser, DamageReceiver):
         player_level=self.level
         # Factores para el cálculo
         base_experience = 100  # Experiencia base para el primer nivel
-        growth_factor = 3  # Factor de crecimiento polinómico
+        growth_factor = 2.6  # Factor de crecimiento polinómico
 
         # Cálculo de la experiencia necesaria para el siguiente nivel
         experience_needed = base_experience * (player_level ** growth_factor)
