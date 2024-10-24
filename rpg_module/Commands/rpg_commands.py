@@ -8,13 +8,6 @@ class RPG(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(help='Inicializa la base de datos.')
-    async def init_db(self, ctx):
-        try:
-            init_alchemy_db()
-            await ctx.send("Base de datos inicializada con éxito.")
-        except Exception as e:
-            await ctx.send(f"Error al inicializar la base de datos: {str(e)}")
 
     @commands.command(help='Registra un jugador. Usa el comando solo una vez por usuario.')
     async def register_player(self, ctx, class_name = None):
