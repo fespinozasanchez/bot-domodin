@@ -13,7 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 # Crear el motor de SQLAlchemy
 DATABASE_URL = f"mysql+pymysql://{DATABASE_CONFIG['user']}:{DATABASE_CONFIG['password']}@{DATABASE_CONFIG['host']}/{DATABASE_CONFIG['database']}"
-engine = create_engine(DATABASE_URL, echo=True, connect_args={'connect_timeout': 180}, pool_pre_ping=True)
+engine = create_engine(DATABASE_URL, echo=True, connect_args={'connect_timeout': 180}, pool_pre_ping=True, pool_recycle=10800)
 
 # Crear una sesión
 Session = sessionmaker(bind=engine)
