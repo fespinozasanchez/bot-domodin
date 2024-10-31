@@ -378,10 +378,34 @@ class Betting(commands.Cog):
         user_data = load_user_data(user_id, guild_id)
         bot_data = load_user_data(bot_user_id, guild_id)
 
+
+        max_betting_amount = round(float(user_data['balance']) * float(economic_limits['max_own_balance_bet_percentage']))
+        max_win_amount = round(float(bot_data['balance']) * float(economic_limits['max_win_percentage_per_bet']))
+
+        max_betting_amount_formated = f"${max_betting_amount:,.0f}".replace(",", ".")
+        max_win_amount_formated = f"${max_win_amount:,.0f}".replace(",", ".")
+
         if user_data is None:
             embed = discord.Embed(
                 title="🚫 No Registrado",
                 description=f"{usuario.name}, no estás registrado. Usa el comando !registrar para registrarte.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+        
+        if int(cantidad) > max_betting_amount:
+            embed = discord.Embed(
+                title="🚫 Apuesta Máxima Excedida",
+                description=f"{usuario.name}, la apuesta máxima es {max_betting_amount_formated} MelladoCoins.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+        if int(cantidad)> max_win_amount:
+            embed = discord.Embed(
+                title="🚫 Ganancia Máxima Excedida",
+                description=f"{usuario.name}, la ganancia máxima es {max_win_amount_formated} MelladoCoins.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -434,8 +458,8 @@ class Betting(commands.Cog):
             ganancia = 0
             if resultado[0] == resultado[1] == resultado[2]:  # Tres iguales
                 ganancia = cantidad_float * slot_combinations[resultado[0]]
-                ganancia.replace(",", ".")
-                embed.add_field(name="Ganancia", value=f"¡Jackpot! Has ganado {ganancia:.0f} MelladoCoins.", inline=False)
+                ganancia_format = f"${ganancia:,.0f}".replace(",", ".")
+                embed.add_field(name="Ganancia", value=f"¡Jackpot! Has ganado {ganancia_format} MelladoCoins.", inline=False)
                 user_data['balance'] += ganancia
                 bot_data['balance'] -= ganancia
             elif resultado[0] == resultado[1] or resultado[1] == resultado[2]:  # Dos iguales
@@ -456,7 +480,7 @@ class Betting(commands.Cog):
                 if interaction.user == usuario:
                     # Reiniciar el juego actualizando el mismo embed y reutilizando el botón
                     embed.clear_fields()  # Limpia los campos anteriores
-                    embed.add_field(name="Resultado", value="❓ | ❓ | ❓ |❓ |❓ ", inline=False)
+                    embed.add_field(name="Resultado", value="❓ | ❓ | ❓  ", inline=False)
                     embed.set_footer(text="Presiona 'Girar' para jugar nuevamente.")
                     
                     view = discord.ui.View()
@@ -496,10 +520,35 @@ class Betting(commands.Cog):
         user_data=load_user_data(user_id, guild_id)
         bot_data=load_user_data(bot_user_id, guild_id)
 
+        max_betting_amount = round(float(user_data['balance']) * float(economic_limits['max_own_balance_bet_percentage']))
+        max_win_amount = round(float(bot_data['balance']) * float(economic_limits['max_win_percentage_per_bet']))
+
+        max_betting_amount_formated = f"${max_betting_amount:,.0f}".replace(",", ".")
+        max_win_amount_formated = f"${max_win_amount:,.0f}".replace(",", ".")
+
+
         if user_data is None:
             embed = discord.Embed(
                 title="🚫 No Registrado",
                 description=f"{usuario.name}, no estás registrado. Usa el comando !registrar para registrarte.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+        
+        if int(cantidad) > max_betting_amount:
+            embed = discord.Embed(
+                title="🚫 Apuesta Máxima Excedida",
+                description=f"{usuario.name}, la apuesta máxima es {max_betting_amount_formated} MelladoCoins.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed)
+            return
+        
+        if int(cantidad)> max_win_amount:
+            embed = discord.Embed(
+                title="🚫 Ganancia Máxima Excedida",
+                description=f"{usuario.name}, la ganancia máxima es {max_win_amount_formated} MelladoCoins.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
@@ -525,17 +574,17 @@ class Betting(commands.Cog):
             )
             await ctx.send(embed=embed)
             return
-        
+        cantidad_float_format = f"${cantidad_float:,.0f}".replace(",", ".")
         if cantidad_float > user_data['balance']:
             embed = discord.Embed(
                 title="🚫 Saldo Insuficiente",
-                description=f"{usuario.name}, no tienes suficiente saldo para apostar {cantidad_float:.0f} MelladoCoins.",
+                description=f"{usuario.name}, no tienes suficiente saldo para apostar {cantidad_float_format} MelladoCoins.",
                 color=discord.Color.red()
             )
             await ctx.send(embed=embed)
             return
 
-        embed = discord.Embed(title="🎰 ¡Super Gacha! 🎰", description=f"{usuario.name} está apostando {cantidad_float:.0f} MelladoCoins.", color=discord.Color.red())
+        embed = discord.Embed(title="🎰 ¡Super Gacha! 🎰", description=f"{usuario.name} está apostando {cantidad_float_format} MelladoCoins.", color=discord.Color.red())
         embed.add_field(name="Resultado", value="❓ | ❓ | ❓ | ❓| ❓", inline=False)
         embed.set_footer(text="Presiona 'Girar' para jugar.")
 
@@ -556,10 +605,11 @@ class Betting(commands.Cog):
 
             # Calcular las ganancias
             ganancia = 0
+            ganancia_format =f"{ganancia:,.0f}".replace(",", ".")
             if resultado[0] == resultado[1] == resultado[2] == resultado[3] == resultado[4]:  # Cinco iguales
                 ganancia = cantidad_float * super_slot_combinations[resultado[0]]
                 ganancia = float(str(ganancia).replace(",", "."))
-                embed.add_field(name="Ganancia", value=f"¡Jackpot! Has ganado {ganancia:.0f} MelladoCoins.", inline=False)
+                embed.add_field(name="Ganancia", value=f"¡Jackpot! Has ganado {ganancia_format} MelladoCoins.", inline=False)
                 user_data['balance'] += ganancia
                 bot_data['balance'] -= ganancia
                  # Guardar los datos actualizados
@@ -570,7 +620,7 @@ class Betting(commands.Cog):
                 resultado[1] == resultado[2] == resultado[3] == resultado[4]):
                 ganancia = cantidad_float * super_slot_combinations[resultado[2]]  *0.50
                 ganancia = float(str(ganancia).replace(",", "."))
-                embed.add_field(name="Ganancia", value=f"Cuatro iguales! Has ganado {ganancia:.0f} MelladoCoins.", inline=False)
+                embed.add_field(name="Ganancia", value=f"Cuatro iguales! Has ganado {ganancia_format} MelladoCoins.", inline=False)
                 user_data['balance'] += ganancia
                 bot_data['balance'] -= ganancia
                 # Guardar los datos actualizados
@@ -583,7 +633,7 @@ class Betting(commands.Cog):
                 resultado[2] == resultado[3] == resultado[4]):
                 ganancia = cantidad_float * slot_combinations[resultado[2]]  
                 ganancia = float(str(ganancia).replace(",", "."))
-                embed.add_field(name="Ganancia", value=f"¡Tres iguales! Has ganado {ganancia:.0f} MelladoCoins.", inline=False)
+                embed.add_field(name="Ganancia", value=f"¡Tres iguales! Has ganado {ganancia_format} MelladoCoins.", inline=False)
                 user_data['balance'] += ganancia
                 bot_data['balance'] -= ganancia
                 # Guardar los datos actualizados
