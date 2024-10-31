@@ -605,10 +605,9 @@ class Betting(commands.Cog):
 
             # Calcular las ganancias
             ganancia = 0
-            ganancia_format =f"{ganancia:,.0f}".replace(",", ".")
             if resultado[0] == resultado[1] == resultado[2] == resultado[3] == resultado[4]:  # Cinco iguales
                 ganancia = cantidad_float * super_slot_combinations[resultado[0]]
-                ganancia = float(str(ganancia).replace(",", "."))
+                ganancia_format =f"{ganancia:,.0f}".replace(",", ".")
                 embed.add_field(name="Ganancia", value=f"¡Jackpot! Has ganado {ganancia_format} MelladoCoins.", inline=False)
                 user_data['balance'] += ganancia
                 bot_data['balance'] -= ganancia
@@ -619,7 +618,7 @@ class Betting(commands.Cog):
             elif (resultado[0] == resultado[1] == resultado[2] == resultado[3] or
                 resultado[1] == resultado[2] == resultado[3] == resultado[4]):
                 ganancia = cantidad_float * super_slot_combinations[resultado[2]]  *0.50
-                ganancia = float(str(ganancia).replace(",", "."))
+                ganancia_format =f"{ganancia:,.0f}".replace(",", ".")
                 embed.add_field(name="Ganancia", value=f"Cuatro iguales! Has ganado {ganancia_format} MelladoCoins.", inline=False)
                 user_data['balance'] += ganancia
                 bot_data['balance'] -= ganancia
