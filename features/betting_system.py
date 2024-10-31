@@ -631,7 +631,7 @@ class Betting(commands.Cog):
                 resultado[1] == resultado[2] == resultado[3] or
                 resultado[2] == resultado[3] == resultado[4]):
                 ganancia = cantidad_float * slot_combinations[resultado[2]]  
-                ganancia = float(str(ganancia).replace(",", "."))
+                ganancia_format =f"{ganancia:,.0f}".replace(",", ".")
                 embed.add_field(name="Ganancia", value=f"¡Tres iguales! Has ganado {ganancia_format} MelladoCoins.", inline=False)
                 user_data['balance'] += ganancia
                 bot_data['balance'] -= ganancia
