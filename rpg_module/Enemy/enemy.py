@@ -1,14 +1,13 @@
 
 from random import choices, randint
 import numpy as np
-from .enemy_const import  TIERS, TIER_WEIGHTS, NOMBRES_ENEMIGO, LEVEL_RANGE
+from .enemy_const import  TIERS, TIER_WEIGHTS, ENEMY_NAMES, LEVEL_RANGE
 
 class Enemy:
     def __init__(self, level=None, tier=None):
-        #level = ran.randint(level,level+10)
         self.level = max(1, randint(level - 10, level + 10)) if level is not None else self.calculate_enemy_level()
         self.tier = tier if tier is not None else choices(list(TIERS.keys()), TIER_WEIGHTS)[0]
-        self.name = choices(NOMBRES_ENEMIGO[1])[0]
+        self.name = choices(ENEMY_NAMES[1])[0]
         self.health = self.calculate_health()
         self.damage = self.calculate_damage()
         self.experience = self.calculate_enemy_experience(self.level, self.tier)

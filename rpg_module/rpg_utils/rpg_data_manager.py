@@ -112,7 +112,7 @@ def revive_player(player):
             session.commit()
             return f"Has sido revivido! "
         else:
-            return f"No tienes suficientes puntos de stats para revivir. Necesita {required_points} puntos."
+            return f"No tienes suficientes puntos de experiencia para revivir. Necesita {required_points} puntos."
     except SQLAlchemyError as e:
         session.rollback()
         raise e

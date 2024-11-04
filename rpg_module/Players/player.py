@@ -58,3 +58,5 @@ class Player(Base, Attacker, SkillUser, ItemEquipper, ItemUser, DamageReceiver):
         experience_needed = base_experience * (player_level ** growth_factor)
 
         return int(experience_needed)
+    
+    
