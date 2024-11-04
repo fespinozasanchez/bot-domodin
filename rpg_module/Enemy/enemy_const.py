@@ -1,11 +1,22 @@
 # Constantes de ejemplo
-NOMBRES_ENEMIGO = {
+ENEMY_NAMES = {
     1: ['Goblin 🧟‍♀️', 'Bandido 🏴', 'Rata Gigante 🐀', 'Esqueleto ☠️',
         'Orco 🐗', 'Mercenario ⚔️', 'Ogro 👹', 'Guerrero Esqueleto ⚔️☠️',
-        'Troll 🧌', 'Mago Oscuro 🧙‍♂️', 'Elemental de Fuego 🔥', 'Gárgola 🗿',
+        'Gato Ninja 🐱‍👤', 'Mago Oscuro 🧙‍♂️', 'Elemental de Fuego 🔥', 'Gárgola 🗿',
         'Dragón Juvenil 🐉', 'Liche 💀', 'Gigante 🦍', 'Señor Vampiro 🦇',
         'Dragón Anciano 🐲', 'Archidemonio 👿', 'Titán 🏔️', 'El Enemigo 👾']
 }
+
+
+
+ENEMY_BOSS_NAMES = {
+    1: ['El Diablo 😈', 'El Rey Demonio 👹', 'El Dragón de las Sombras 🐉🌑',
+        'El Señor de la Guerra ⚔️', 'El Destructor 🌪️', 'El Rey Liche 💀👑',
+        'La Reina de las Pesadillas 👻👑', 'El Dragón de la Muerte 💀🐲']
+}
+
+
+
 
 TIERS = {
     'F': 1.25,
@@ -25,3 +36,5 @@ LEVEL_RANGE = {
     'min_level': 1,
     'max_level': 120
 }
+
+

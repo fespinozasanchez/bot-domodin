@@ -47,5 +47,15 @@
 
 - **Combat Balancing Adjustments:**
     - Fixed issues where combat results did not properly account for player evasion and defense. Combat now reflects these stats correctly, offering a more strategic experience.
+# Version 1.04 Patch Notes
 
+## Gameplay Mechanics Updates:
+- **Boss Enemies:** Players can now embark on group adventures to defeat Raid Bosses. The experience gained and damage required are boosted, and the boss will fight each player until defeated.
+- **Enemies Experience:** Enemies will now have their experience adjusted based on the level difference. Higher-level players will receive a boost in experience, while lower-level players will experience a downgrade.
+
+## Features:
+- **Assign Stat Points:** The message now displays your current stat points.
+
+## Bug Fixes:
+- **Dead Players:** Players who have died can no longer participate in adventures.
 

@@ -54,7 +54,7 @@ class SimulatedCombat:
         enemy_attack = self.enemy.damage
         # Combate por turnos
         if first_attacker == 'player':
-            if player_attack > enemy_attack:
+            if player_attack*1.3 > enemy_attack:
                 self.combat_log.append(f"{self.player.name} ha derrotado al {self.enemy.name}.")
                 self.combat_log.append(self.get_stat_gain_message())
                 return "player_wins"
@@ -66,7 +66,7 @@ class SimulatedCombat:
         else:
             if enemy_attack > player_attack:
                 self.combat_log.append(f"{self.enemy.name} ha derrotado a {self.player.name}.")
-                self.combat_log.append(f"{self.player.name} tiene {self.player.current_health} de salud restante.")
+                self.combat_log.append(f"{self.player.name} tiene {self.player.current_health - round(self.player.current_health * 0.3)} de salud restante.")
                 self.combat_log.append(self.get_stat_loss_message())
                 return "enemy_wins"
             else:
@@ -93,9 +93,15 @@ class SimulatedCombat:
             return 'enemy'
 
     def award_victory_points(self):
-        points_gained = self.enemy.experience
-        self.player.experience += points_gained
+        level_diff = self.enemy.level - self.player.level
+        percent_change = abs(level_diff) * 0.1  
+        if level_diff > 0:
+            points_gained = self.enemy.experience * (1 + percent_change)
+        else:
+            points_gained = self.enemy.experience * (1 - percent_change)
+        self.player.experience += int(points_gained)
         session.commit()
+
 
     def penalize_defeat_points(self):
         points_to_lose = round(self.enemy.experience * 0.2)
@@ -103,7 +109,12 @@ class SimulatedCombat:
         session.commit()
 
     def get_stat_gain_message(self):
-        points_gained = self.enemy.experience
+        level_diff = self.enemy.level - self.player.level
+        percent_change = abs(level_diff) * 0.1
+        if level_diff > 0:
+            points_gained = self.enemy.experience * (1 + percent_change)
+        else:
+            points_gained = self.enemy.experience * (1 - percent_change)
         return f"Has ganado {points_gained} puntos de experiencia!"
 
     def get_stat_loss_message(self):
