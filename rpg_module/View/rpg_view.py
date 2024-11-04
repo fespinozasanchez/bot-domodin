@@ -382,7 +382,7 @@ class RegisterPlayerView(View):
 
 class RaidView(View):
     def __init__(self, boss_enemy, player_name, user_id):
-        super().__init__(timeout=10) 
+        super().__init__(timeout=150) 
         self.boss_enemy = boss_enemy
         self.players_joined = []
         self.players_joined_names = []
