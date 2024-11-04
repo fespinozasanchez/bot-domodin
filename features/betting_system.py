@@ -3,7 +3,7 @@ from discord.ext import commands
 import requests
 import random
 from utils.data_manager import load_user_data, save_user_data, load_bets, save_bet, delete_bets, save_roulette_status
-from .const_economy import economic_limits, taxes
+from .const_economy import economic_limits, taxes, gacha_limits
 from .const_gacha import slot_combinations, super_slot_combinations
 import logging
 from datetime import datetime, timedelta
@@ -379,8 +379,8 @@ class Betting(commands.Cog):
         bot_data = load_user_data(bot_user_id, guild_id)
 
 
-        max_betting_amount = round(float(user_data['balance']) * float(economic_limits['max_own_balance_bet_percentage']))
-        max_win_amount = round(float(bot_data['balance']) * float(economic_limits['max_win_percentage_per_bet']))
+        max_betting_amount = round(float(user_data['balance']) * float(gacha_limits['max_own_balance_bet_percentage']))
+        max_win_amount = round(float(bot_data['balance']) * float(gacha_limits['max_win_percentage_per_bet']))
 
         max_betting_amount_formated = f"${max_betting_amount:,.0f}".replace(",", ".")
         max_win_amount_formated = f"${max_win_amount:,.0f}".replace(",", ".")
@@ -478,7 +478,7 @@ class Betting(commands.Cog):
 
             async def play_again_callback(interaction):
                 if interaction.user == usuario:
-                    # Reiniciar el juego actualizando el mismo embed y reutilizando el botón
+
                     embed.clear_fields()  # Limpia los campos anteriores
                     embed.add_field(name="Resultado", value="❓ | ❓ | ❓  ", inline=False)
                     embed.set_footer(text="Presiona 'Girar' para jugar nuevamente.")
@@ -517,16 +517,16 @@ class Betting(commands.Cog):
         guild_id = str(ctx.guild.id)
         bot_user_id = str(self.bot.user.id)
 
-        user_data=load_user_data(user_id, guild_id)
-        bot_data=load_user_data(bot_user_id, guild_id)
+        user_data = load_user_data(user_id, guild_id)
+        bot_data = load_user_data(bot_user_id, guild_id)
 
-        max_betting_amount = round(float(user_data['balance']) * float(economic_limits['max_own_balance_bet_percentage']))
-        max_win_amount = round(float(bot_data['balance']) * float(economic_limits['max_win_percentage_per_bet']))
+        max_betting_amount = round(float(user_data['balance']) * float(gacha_limits['max_own_balance_bet_percentage']))
+        max_win_amount = round(float(bot_data['balance']) * float(gacha_limits['max_win_percentage_per_bet']))
 
         max_betting_amount_formated = f"${max_betting_amount:,.0f}".replace(",", ".")
         max_win_amount_formated = f"${max_win_amount:,.0f}".replace(",", ".")
 
-
+        # Verificaciones de balance y cantidad
         if user_data is None:
             embed = discord.Embed(
                 title="🚫 No Registrado",
@@ -535,7 +535,7 @@ class Betting(commands.Cog):
             )
             await ctx.send(embed=embed)
             return
-        
+
         if int(cantidad) > max_betting_amount:
             embed = discord.Embed(
                 title="🚫 Apuesta Máxima Excedida",
@@ -544,8 +544,8 @@ class Betting(commands.Cog):
             )
             await ctx.send(embed=embed)
             return
-        
-        if int(cantidad)> max_win_amount:
+
+        if int(cantidad) > max_win_amount:
             embed = discord.Embed(
                 title="🚫 Ganancia Máxima Excedida",
                 description=f"{usuario.name}, la ganancia máxima es {max_win_amount_formated} MelladoCoins.",
@@ -553,15 +553,7 @@ class Betting(commands.Cog):
             )
             await ctx.send(embed=embed)
             return
-        
-        if cantidad is None:
-            embed = discord.Embed(
-                title="🚫 Cantidad Inválida",
-                description=f"{usuario.name}, por favor ingresa una cantidad válida.",
-                color=discord.Color.red()
-            )
-            await ctx.send(embed=embed)
-            return
+
         try:
             cantidad_float = float(cantidad)
             if cantidad_float <= 0:
@@ -574,6 +566,7 @@ class Betting(commands.Cog):
             )
             await ctx.send(embed=embed)
             return
+
         cantidad_float_format = f"${cantidad_float:,.0f}".replace(",", ".")
         if cantidad_float > user_data['balance']:
             embed = discord.Embed(
@@ -584,11 +577,12 @@ class Betting(commands.Cog):
             await ctx.send(embed=embed)
             return
 
+        # Mensaje inicial del juego
         embed = discord.Embed(title="🎰 ¡Super Gacha! 🎰", description=f"{usuario.name} está apostando {cantidad_float_format} MelladoCoins.", color=discord.Color.red())
         embed.add_field(name="Resultado", value="❓ | ❓ | ❓ | ❓| ❓", inline=False)
         embed.set_footer(text="Presiona 'Girar' para jugar.")
 
-
+        # Botón para Girar
         button_girar = discord.ui.Button(label="Girar", style=discord.ButtonStyle.primary)
 
         async def button_callback(interaction):
@@ -596,119 +590,67 @@ class Betting(commands.Cog):
                 await interaction.response.send_message("¡No puedes jugar en el turno de otra persona!", ephemeral=True)
                 return
 
-            # Generar los símbolos de la gachapon
             simbolos = ['🍒', '🍋', '🍉', '🔔', '⭐']
-            resultado = random.choices(simbolos, k=5)
+            pesos = [0.5, 0.29, 0.1, 0.09, 0.01]
+            resultado = random.choices(simbolos, weights=pesos, k=5)
 
-            # Mostrar el resultado en el embed
             embed.set_field_at(0, name="Resultado", value=f'{resultado[0]} | {resultado[1]} | {resultado[2]}| {resultado[3]}| {resultado[4]}')
 
-            # Calcular las ganancias
             ganancia = 0
             if resultado[0] == resultado[1] == resultado[2] == resultado[3] == resultado[4]:  # Cinco iguales
                 ganancia = cantidad_float * super_slot_combinations[resultado[0]]
-                ganancia_format =f"{ganancia:,.0f}".replace(",", ".")
-                embed.add_field(name="Ganancia", value=f"¡Jackpot! Has ganado {ganancia_format} MelladoCoins.", inline=False)
+                embed.add_field(name="Ganancia", value=f"¡Jackpot! Has ganado {ganancia:,.0f} MelladoCoins.", inline=False)
                 user_data['balance'] += ganancia
                 bot_data['balance'] -= ganancia
-                 # Guardar los datos actualizados
-           
-        
-            # Cuatro iguales 
-            elif (resultado[0] == resultado[1] == resultado[2] == resultado[3] or
-                resultado[1] == resultado[2] == resultado[3] == resultado[4]):
-                ganancia = cantidad_float * super_slot_combinations[resultado[2]]  *0.50
-                ganancia_format =f"{ganancia:,.0f}".replace(",", ".")
-                embed.add_field(name="Ganancia", value=f"Cuatro iguales! Has ganado {ganancia_format} MelladoCoins.", inline=False)
-                user_data['balance'] += ganancia
-                bot_data['balance'] -= ganancia
-                # Guardar los datos actualizados
-             
-               
-
-            # Tres iguales 
-            elif (resultado[0] == resultado[1] == resultado[2] or
-                resultado[1] == resultado[2] == resultado[3] or
-                resultado[2] == resultado[3] == resultado[4]):
-                ganancia = cantidad_float * slot_combinations[resultado[2]]  
-                ganancia_format =f"{ganancia:,.0f}".replace(",", ".")
-                embed.add_field(name="Ganancia", value=f"¡Tres iguales! Has ganado {ganancia_format} MelladoCoins.", inline=False)
-                user_data['balance'] += ganancia
-                bot_data['balance'] -= ganancia
-                # Guardar los datos actualizados
-                
-               
-
-            # Dos iguales 
-            elif (resultado[0] == resultado[1] or
-                resultado[1] == resultado[2] or
-                resultado[2] == resultado[3] or
-                resultado[3] == resultado[4]):
-                coste= cantidad_float
-                user_data['balance'] -= coste
-                bot_data['balance'] += coste
-                embed.add_field(name="Ganancia", value="No has ganado esta vez. Mejor suerte la próxima vez.", inline=False)
-                
-
-            # Ninguna ganancia
             else:
-                coste= cantidad_float
-                user_data['balance'] -= coste
-                bot_data['balance'] += coste
+                user_data['balance'] -= cantidad_float
+                bot_data['balance'] += cantidad_float
                 embed.add_field(name="Ganancia", value="No has ganado esta vez. Mejor suerte la próxima vez.", inline=False)
-                
-                
+
             save_user_data(user_id, guild_id, user_data['balance'])
             save_user_data(bot_user_id, guild_id, bot_data['balance'])
-           
 
-            # Botón para volver a jugar
+            # Botón para Volver a jugar
             button_play_again = discord.ui.Button(label="Volver a jugar", style=discord.ButtonStyle.secondary)
+
             async def play_again_callback(interaction):
-                if interaction.user == usuario:
-                    # Reiniciar el juego actualizando el mismo embed y reutilizando el botón
-                    embed.clear_fields()  # Limpia los campos anteriores
-                    embed.add_field(name="Resultado", value="❓ | ❓ | ❓ |❓ |❓", inline=False)
-                    embed.set_footer(text="Presiona 'Girar' para jugar nuevamente.")
-                    
-                    view = discord.ui.View()
-                    view.add_item(button_girar)  # Volvemos a agregar el botón de "Girar"
-                    
-                    await interaction.response.edit_message(embed=embed, view=view)  # Actualizar el mensaje original
-                else:
+                if interaction.user != usuario:
                     await interaction.response.send_message("¡No puedes reiniciar el juego de otra persona!", ephemeral=True)
+                    return
+
+                # Verificación del saldo del jugador
+                if user_data['balance'] <= 0:
+                    await interaction.response.send_message(f"🚫 {usuario.name}, estás en deuda con el banco. No puedes jugar nuevamente.", ephemeral=True)
+                    return
+
+                # Recalcular la apuesta máxima como ganancia máxima permitida
+                max_betting_amount = round(float(user_data['balance']) * float(gacha_limits['max_own_balance_bet_percentage']))
+                max_betting_amount_formated = f"${max_betting_amount:,.0f}".replace(",", ".")
+                embed.clear_fields()
+                embed.add_field(name="Resultado", value="❓ | ❓ | ❓ | ❓ | ❓", inline=False)
+                embed.set_footer(text=f"La apuesta máxima es {max_betting_amount_formated}. Presiona 'Girar' para jugar nuevamente.")
+                if max_betting_amount<cantidad_float:
+                    embed.clear_fields()
+                    embed.add_field(name="Apuesta", value=f"Has superado tu apuesta máxima", inline=False)
+                    embed.set_footer(text=f"La apuesta máxima es {max_betting_amount_formated}. Presiona 'Girar' para jugar nuevamente.")
+                    await ctx.send(embed=embed)
+
+                    return
+                view = discord.ui.View()
+                view.add_item(button_girar)
+                await interaction.response.edit_message(embed=embed, view=view)
 
             button_play_again.callback = play_again_callback
-            
 
-            # Crear nueva vista con botón de "Volver a jugar"
             view = discord.ui.View()
             view.add_item(button_play_again)
-
             await interaction.response.edit_message(embed=embed, view=view)
 
-        # Asociar el callback al botón
         button_girar.callback = button_callback
-
-        
-        
-
-
-        # Crear la vista y añadir el botón
         view = discord.ui.View()
         view.add_item(button_girar)
-
-        # Enviar el embed con el botón
         await ctx.send(embed=embed, view=view)
             
-
-
-
-
-
-
-
-
 
 
     @commands.command(name='gacha_info', help='Información sobre el juego gacha')
@@ -733,6 +675,7 @@ class Betting(commands.Cog):
         )
         for simbolo, pago in super_slot_combinations.items():
             embed.add_field(name=simbolo, value=f"Paga x{pago}", inline=True)
+            embed.add_field(name="Recordatorio", value="Estos multiplicadores indican el pago de la cantidad apostada si ganas x4 quiere 4 veces tu cantidad apostada de ganancia", inline=True)
         embed.set_footer(text="¡Buena suerte!")
 
         await ctx.send(embed=embed)
