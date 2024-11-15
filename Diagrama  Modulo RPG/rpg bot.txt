@@ -10,7 +10,6 @@ Para resolver el conflicto y mantener el diseño orientado a objetos con abstrac
         La clase Player debe heredar de Base (de SQLAlchemy) y de las interfaces (mixins), pero no de ABC.
         Player seguirá actuando como una clase abstracta porque no podrá ser instanciada directamente. Puedes seguir definiendo métodos que levanten NotImplementedError.
 
-
 @startuml
 interface Attacker {
     + attack()
@@ -95,13 +94,40 @@ class Thieve {
 
 class Enemy {
     - level: Integer
+    - tier: String
+    - name: String
     - health: Float
     - damage: Float
+    - experience: Float
+    + generate_level_weights()
+    + calculate_enemy_level()
+    + calculate_health()
+    + calculate_damage()
+    + calculate_enemy_experience()
     + attack(player: Player)
     + receive_damage(damage)
     + die()
 }
 
+class BossEnemy {
+    - level: Integer
+    - tier: String
+    - name: String
+    - health: Float
+    - damage: Float
+    - experience: Float
+    - boss_message: String
+    + generate_level_weights()
+    + calculate_enemy_level()
+    + calculate_health()
+    + calculate_damage()
+    + calculate_enemy_experience()
+    + attack(player: Player)
+    + receive_damage(damage)
+    + die()
+}
+
+Enemy <|-- BossEnemy 
 class RPGView {
     + general_menu_view(player_name)
     + AssignStatsView(View)
@@ -132,6 +158,23 @@ class SimulatedCombat {
     + get_stat_loss_message(): String
 }
 
+class BossSimulatedCombat {
+    - players: Players<Player>
+    - boss: BossEnemy
+    - combat_log: List<String>
+    - defeated_players: List<Players>
+    - defeated_players: List<Players>
+    + fight(): String
+    + run(): String
+    + simulate_combat(): String
+    + award_victory_points(): void
+    + penalize_defeat_points(): void
+    + get_stat_gain_message(): String
+    + get_stat_loss_message(): String
+}
+
+
+
 class RPGDataManager {
     + init_alchemy_db()
     + register_player(name: String, player_class: String): Player
@@ -147,6 +190,7 @@ RPGCommands ..> RPGDataManager : use
 RPGView ..> RPGCommands : use
 RPGView ..> SimulatedCombat : use
 SimulatedCombat --> Player
+BossSimulatedCombat --> Player
 SimulatedCombat --> Enemy
 @enduml
 

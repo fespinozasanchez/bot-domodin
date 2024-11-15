@@ -60,12 +60,12 @@ def get_player_by_name(name):
 # Función para obtener todos los jugadores
 def get_all_players():
     """Obtiene todos los jugadores de la base de datos."""
-    session.connection(execution_options={'timeout':30})
-    session = Session()
     try:
-        return session.query(Player).all()
-    finally:
-        session.close()
+        players = session.query(Player).order_by(Player.level.desc()).all()
+        return players
+    except SQLAlchemyError as e:
+        session.rollback()
+        raise e
 
 
 
