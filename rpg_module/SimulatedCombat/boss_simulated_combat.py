@@ -2,11 +2,12 @@ import random
 import math
 from rpg_module.Players.player import Player
 from rpg_module.Enemy.enemy import Enemy
+from rpg_module.Enemy.boss_enemy import BossEnemy
 from rpg_module.rpg_utils.rpg_data_manager import session
 
 
 class SimulatedBossCombat:
-    def __init__(self, players: list[Player], boss: Enemy):
+    def __init__(self, players: list[Player], boss: BossEnemy):
         self.players = players
         self.boss = boss
         self.combat_log = []
@@ -50,7 +51,7 @@ class SimulatedBossCombat:
                         return '\n'.join(self.combat_log)
 
                     # Turno del jefe
-                    boss_attack = self.boss.damage
+                    boss_attack = round(self.boss.damage*0.5)
                     player.current_health = max(player.current_health - boss_attack, 0)
                     self.combat_log.append(
                         f"🔹 El jefe **{self.boss.name}** ataca a **{player.name}** causando **{boss_attack}** de daño. Salud restante de {player.name}: **{player.current_health}**."

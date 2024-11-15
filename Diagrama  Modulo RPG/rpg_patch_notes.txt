@@ -59,3 +59,13 @@
 ## Bug Fixes:
 - **Dead Players:** Players who have died can no longer participate in adventures.
 
+
+# Version 1.05 Patch Notes
+
+## Gameplay Mechanics Updates:
+- **Boss Enemies:** Boss damage got reduced.
+
+## Features:
+- **Ranking:** players can now see their rank.
+
+
