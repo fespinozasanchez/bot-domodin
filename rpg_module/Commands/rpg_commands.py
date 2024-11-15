@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord.ui import View, Button
-from rpg_module.rpg_utils.rpg_data_manager import register_player, get_player_by_name, init_alchemy_db, session
+from rpg_module.rpg_utils.rpg_data_manager import register_player, get_player_by_name,get_all_players, init_alchemy_db, session
 from rpg_module.View.rpg_view import RPGView, PlayerInfoView, RegisterPlayerView
 
 class RPG(commands.Cog):
@@ -48,6 +48,15 @@ class RPG(commands.Cog):
             embed=RPGView.player_info_embed(player_data),
             view=PlayerInfoView(player_data, usuario.id)
         )
+
+    @commands.command(help='Muestra  el ranking de jugadores.')
+    async def rpg_ranking(self, ctx):
+        # Obtener los 10 mejores jugadores
+        top_players = get_all_players()
+
+        # Enviar el ranking de jugadores
+        await ctx.send(embed=RPGView.ranking_embed(top_players))
+
 
     @commands.command(help='Muestra el menú general del jugador.')
     async def rpg_menu(self, ctx):

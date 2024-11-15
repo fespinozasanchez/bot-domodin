@@ -97,7 +97,7 @@ class RPGView:
                         f"**Nivel:** {boss_enemy.level}\n"
                         f"**Tier:** {boss_enemy.tier}\n"  
                         f"**Experiencia a Repartir:** {boss_enemy.experience:,.0f}".replace(",", ".") + "\n"
-                        f"**Daño requerido para derrotar:** {boss_enemy.damage}\n\n"
+                        f"**Daño requerido para derrotar:** {boss_enemy.health}\n\n"
                         "¡Jugadores, únanse a la Raid con el botón a continuación!"
                     ),
                     view=raid_view
@@ -106,6 +106,22 @@ class RPGView:
                 RPGView.boss_invocation_timeout = current_time + 120
 
         return GeneralMenu(player_name, user_id, message)
+
+
+    @staticmethod
+    def ranking_embed(players):
+        embed = discord.Embed(
+            title="Ranking de Jugadores",
+            color=discord.Color.gold()
+        )
+        for i, player in enumerate(players, start=1):
+            embed.add_field(
+                name=f"{i}. {player.name}",
+                value=f" Clase {player.class_player} - Nivel: {player.level} - Experiencia: {player.experience:,.0f}".replace(",", "."),
+                inline=False
+            )
+        return embed
+
 
     @staticmethod
     def player_info_embed(player):
@@ -382,7 +398,7 @@ class RegisterPlayerView(View):
 
 class RaidView(View):
     def __init__(self, boss_enemy, player_name, user_id):
-        super().__init__(timeout=150) 
+        super().__init__(timeout=20) 
         self.boss_enemy = boss_enemy
         self.players_joined = []
         self.players_joined_names = []
@@ -408,7 +424,7 @@ class RaidView(View):
             f"**Nivel:** {self.boss_enemy.level}\n"
             f"**Tier:** {self.boss_enemy.tier}\n"
             f"**Experiencia a Repartir:** {self.boss_enemy.experience:,.0f}".replace(",",".")+"\n"
-            f"**Daño requerido para derrotar:** {self.boss_enemy.damage}\n\n"
+            f"**Daño requerido para derrotar:** {self.boss_enemy.health}\n\n"
             f"**Jugadores actuales:** {', '.join(self.players_joined_names)}\n"
             f"**Daño total**: {self.combat.players_damage}"
         )
@@ -492,3 +508,5 @@ def split_text(text, max_length=2000):
     if current_chunk:
         chunks.append(current_chunk)
     return chunks
+
+
