@@ -94,7 +94,7 @@ class SimulatedCombat:
 
     def award_victory_points(self):
         level_diff = self.enemy.level - self.player.level
-        percent_change = abs(level_diff) * 0.1  
+        percent_change = abs(level_diff) * 0.09  
         if level_diff > 0:
             points_gained = self.enemy.experience * (1 + percent_change)
         else:

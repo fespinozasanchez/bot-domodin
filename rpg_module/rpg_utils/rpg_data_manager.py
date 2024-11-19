@@ -93,7 +93,7 @@ def level_up_player(player):
             session.commit()
             return f"{player.name} ha subido al nivel {player.level}! "
         else:
-            return f"{player.name} no tiene suficientes puntos de experiencia para subir de nivel. Necesitas {required_points} puntos."
+            return f"{player.name} no tiene suficientes puntos de experiencia para subir de nivel. Necesitas {required_points - player.experience} puntos."
     
     except SQLAlchemyError as e:
         session.rollback()

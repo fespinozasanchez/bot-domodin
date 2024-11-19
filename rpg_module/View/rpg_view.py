@@ -103,7 +103,7 @@ class RPGView:
                     view=raid_view
                 )
 
-                RPGView.boss_invocation_timeout = current_time + 120
+                RPGView.boss_invocation_timeout = current_time + 30
 
         return GeneralMenu(player_name, user_id, message)
 
