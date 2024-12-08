@@ -453,7 +453,7 @@ class Economy(commands.Cog):
             embed.add_field(name="Acción Requerida", value="El Banco Central debe ser registrado para utilizar Mellado Bank.", inline=False)
             embed.set_footer(text="Registro necesario para utilizar Mellado Bank", icon_url="https://pillan.inf.uct.cl/~fespinoza/logo.png")
 
-    @tasks.loop(hours=3)
+    @tasks.loop(hours=12)
     async def mellado_coins_task(self):
         try:
             for guild in self.bot.guilds:

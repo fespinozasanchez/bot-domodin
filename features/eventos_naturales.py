@@ -99,7 +99,7 @@ class NaturalEvents(commands.Cog):
         except Exception as e:
             logging.error(f"Error al manejar los eventos diarios: {e}")
 
-    @tasks.loop(hours=1)
+    @tasks.loop(hours=24)
     async def daily_natural_event(self):
         try:
             # Obtener el evento actual desde la base de datos
