@@ -23,7 +23,7 @@ signal.signal(signal.SIGINT, def_handler)
 
 # Cargar variables de entorno
 load_dotenv()
-token = os.getenv('DISCORD_TOKEN_DEVELOP')
+token = os.getenv('DISCORD_TOKEN')
 
 # Configurar intentos de Discord
 intents = discord.Intents.default()
